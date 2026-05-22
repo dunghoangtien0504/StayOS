@@ -77,15 +77,22 @@ export function parsePancakeDate(s?: string): Date {
 export function stripHtml(html?: string): string {
   if (!html) return '';
   return html
+    // Line breaks
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(div|p)>/gi, '\n')
+    // Block-level closing + opening tags → newline (covers div, p, li, h1-h6, tr, blockquote)
+    .replace(/<\/?(div|p|li|tr|blockquote|h[1-6])[^>]*>/gi, '\n')
+    // List wrappers
+    .replace(/<\/?[ou]l[^>]*>/gi, '\n')
+    // Remove remaining tags
     .replace(/<[^>]*>/g, '')
+    // HTML entities
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/\n{2,}/g, '\n')
+    // Collapse 3+ newlines → max 2 (preserve paragraph breaks, not just single newlines)
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
