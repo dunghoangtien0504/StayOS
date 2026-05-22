@@ -401,7 +401,7 @@ export default function SmartInboxPage() {
     }
   };
 
-  // ── Upload & send image ──────────────────────────────────────
+  // ── Upload & send image directly to Pancake (multipart) ─────
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedThread?.pageId) return;
@@ -410,31 +410,17 @@ export default function SmartInboxPage() {
     setIsUploadingImage(true);
     setSendError(null);
     try {
-      // 1. Upload to our server
+      // Send file directly to Pancake via our proxy endpoint (no intermediate URL needed)
       const form = new FormData();
       form.append('file', file);
-      const upRes = await fetch('/api/upload', { method: 'POST', body: form });
-      const upData = await upRes.json();
-      if (!upRes.ok || !upData.url) throw new Error(upData.error || 'Upload thất bại');
+      form.append('pageId', selectedThread.pageId);
+      form.append('conversationId', selectedThread.id);
+      if (selectedThread.customerId) form.append('customerId', selectedThread.customerId);
 
-      // 2. Build absolute URL for Pancake
-      const absoluteUrl = `${window.location.origin}${upData.url}`;
-
-      // 3. Send via Pancake
-      const res = await fetch('/api/pancake/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pageId: selectedThread.pageId,
-          conversationId: selectedThread.id,
-          customerId: selectedThread.customerId,
-          contentUrl: absoluteUrl,
-        }),
-      });
+      const res = await fetch('/api/pancake/send-image', { method: 'POST', body: form });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Gửi ảnh thất bại');
 
-      // 4. Append locally
       sendMessage(selectedThread.id, `[Ảnh: ${file.name}]`);
     } catch (err) {
       setSendError(err instanceof Error ? err.message : 'Lỗi gửi ảnh');

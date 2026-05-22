@@ -59,12 +59,17 @@ export async function POST(request: NextRequest) {
 
     // Pancake returns 200 + success:false on logical errors
     if (!res.ok || data.success === false) {
+      console.error('Pancake send error response:', JSON.stringify(data));
       return NextResponse.json(
         {
           error:
             data.message ||
+            data.error ||
+            data.msg ||
+            (data.errors ? JSON.stringify(data.errors) : null) ||
             `Pancake send failed: HTTP ${res.status}`,
           error_code: data.error_code,
+          pancake_raw: data,
         },
         { status: 502 }
       );
