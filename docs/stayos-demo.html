@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StayOS — Quản trị Booking Homestay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0B0F17;
+  --sidebar-bg: #070A10;
+  --surface: #131926;
+  --surface-2: #1A2230;
+  --border: rgba(255,255,255,0.07);
+  --border-h: rgba(255,255,255,0.14);
+  --primary: #E8843A;
+  --primary-l: rgba(232,132,58,0.13);
+  --primary-g: rgba(232,132,58,0.28);
+  --success: #22C55E;
+  --warn: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+  --text-1: #EEE9E3;
+  --text-2: #8A919E;
+  --text-3: #454E5C;
+  --zalo: #0068FF;
+  --fb: #1877F2;
+  --booking: #003B95;
+  --airbnb: #FF5A5F;
+  --walkin: #64748B;
+  --direct: #059669;
+  --r: 6px; --rm: 10px; --rl: 14px;
+  --sw: 240px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text-1);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-h);border-radius:2px}
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sw);min-width:var(--sw);background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;position:relative;z-index:10}
+.sb-logo{padding:18px 18px 14px;border-bottom:1px solid var(--border)}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:var(--primary);border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px var(--primary-g);flex-shrink:0}
+.logo-text{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:.02em}
+.logo-text span{display:block;font-size:9.5px;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text-2);letter-spacing:.09em;text-transform:uppercase;margin-top:1px}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 8px}
+.nav-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);padding:10px 12px 4px;margin-top:4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;color:var(--text-2);font-size:13.5px;font-weight:500;transition:all .15s ease;position:relative;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,0.05);color:var(--text-1)}
+.nav-item.active{background:var(--primary-l);color:var(--primary)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--primary);border-radius:0 2px 2px 0;box-shadow:0 0 8px var(--primary)}
+.nav-ico{width:16px;height:16px;flex-shrink:0;opacity:.65;transition:opacity .15s}
+.nav-item.active .nav-ico{opacity:1}
+.nbadge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;line-height:16px}
+.nbadge.w{background:var(--warn);color:#000}
+.sb-foot{padding:12px;border-top:1px solid var(--border)}
+.prop-sw{background:var(--surface);border:1px solid var(--border);border-radius:var(--rm);padding:10px 12px;cursor:pointer;transition:all .15s}
+.prop-sw:hover{border-color:var(--border-h)}
+.ps-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em}
+.ps-name{font-size:13px;font-weight:600;margin-top:2px}
+.ps-sub{font-size:11px;color:var(--text-2);margin-top:1px}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:54px;min-height:54px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:10px;position:relative;z-index:5}
+.tb-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;flex:0 0 auto}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rm);padding:3px;margin-left:6px}
+.tab-btn{padding:5px 13px;border-radius:7px;border:none;background:transparent;color:var(--text-2);font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tab-btn:hover{color:var(--text-1)}
+.tab-btn.active{background:var(--surface-2);color:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.tb-space{flex:1}
+.tb-search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rm);padding:6px 12px;width:210px;transition:border-color .15s}
+.tb-search:hover{border-color:var(--border-h)}
+.tb-search input{background:none;border:none;color:var(--text-1);font-family:inherit;font-size:12.5px;width:100%;outline:none}
+.tb-search input::placeholder{color:var(--text-3)}
+.tb-date{font-size:11px;color:var(--text-3);white-space:nowrap;padding:0 4px}
+.icon-btn{width:34px;height:34px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2);position:relative;transition:all .15s}
+.icon-btn:hover{border-color:var(--border-h);color:var(--text-1)}
+.notif-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid var(--bg);animation:pdot 2s infinite}
+@keyframes pdot{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 4px rgba(239,68,68,0)}}
+.avatar{width:32px;height:32px;background:linear-gradient(135deg,var(--primary),#B06020);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0}
+
+/* ── PAGES ── */
+.page{flex:1;overflow-y:auto;display:none;animation:fadeUp .22s ease}
+.page.active{display:block}
+.tl-page{display:none;flex-direction:column;height:calc(100vh - 54px);overflow:hidden}
+.tl-page.active{display:flex}
+.inbox-page{display:none;height:calc(100vh - 54px);overflow:hidden}
+.inbox-page.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── DASHBOARD ── */
+.dash{padding:18px 20px;display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.kpi-row{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--rm);padding:15px;position:relative;overflow:hidden;transition:all .2s ease;cursor:default}
+.kpi:hover{border-color:var(--border-h);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.kpi-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:11px}
+.kpi-ico.o{background:rgba(232,132,58,.13);color:var(--primary)}
+.kpi-ico.b{background:rgba(59,130,246,.13);color:#3B82F6}
+.kpi-ico.g{background:rgba(34,197,94,.13);color:var(--success)}
+.kpi-ico.p{background:rgba(168,85,247,.13);color:#A855F7}
+.kpi-ico.y{background:rgba(245,158,11,.13);color:var(--warn)}
+.kpi-ico.pk{background:rgba(236,72,153,.13);color:#EC4899}
+.kpi-lbl{font-size:11px;color:var(--text-2);font-weight:500;letter-spacing:.02em}
+.kpi-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;margin:3px 0;line-height:1}
+.kpi-trend{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--text-2)}
+.kpi-trend.up{color:var(--success)}
+.kpi-trend.dn{color:var(--danger)}
+
+/* Charts row */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:18px}
+.chart-card.big{grid-column:1/9}
+.chart-card.sm{grid-column:9/-1}
+.ch-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ch-title{font-size:13.5px;font-weight:600}
+.ch-sub{font-size:10px;color:var(--text-3);margin-top:2px}
+.ch-pill{background:var(--surface-2);border:1px solid var(--border);border-radius:5px;padding:3px 9px;font-size:11.5px;color:var(--text-2);cursor:pointer}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;justify-content:center;position:relative;margin:8px 0}
+.donut-center{position:absolute;text-align:center}
+.donut-pct{font-family:'Syne',sans-serif;font-size:24px;font-weight:700}
+.donut-lbl{font-size:10px;color:var(--text-2)}
+.d-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.d-leg{display:flex;align-items:center;gap:6px;font-size:11.5px}
+.d-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.d-name{color:var(--text-2);flex:1}
+.d-val{font-weight:600}
+
+/* Lower cards */
+.lower-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:18px}
+.lower-card.rb{grid-column:1/8}
+.lower-card.al{grid-column:8/-1}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-title{font-size:13.5px;font-weight:600}
+.see-all{font-size:11.5px;color:var(--primary);cursor:pointer;font-weight:500}
+
+.brow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);transition:all .1s;cursor:pointer}
+.brow:last-child{border-bottom:none}
+.brow:hover{background:rgba(255,255,255,0.025);margin:0 -8px;padding:9px 8px;border-radius:6px}
+.bav{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.b-info{flex:1;min-width:0}
+.b-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b-detail{font-size:10.5px;color:var(--text-2);margin-top:2px}
+.bstatus{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.s-ok{background:rgba(34,197,94,.13);color:var(--success)}
+.s-pend{background:rgba(245,158,11,.13);color:var(--warn)}
+.s-in{background:rgba(59,130,246,.13);color:#3B82F6}
+.s-out{background:rgba(239,68,68,.13);color:var(--danger)}
+
+.alert-item{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:var(--r);margin-bottom:7px;cursor:pointer;transition:transform .15s}
+.alert-item:hover{transform:translateX(2px)}
+.alert-item:last-child{margin-bottom:0}
+.alert-item.danger{background:rgba(239,68,68,.07);border-left:2.5px solid var(--danger)}
+.alert-item.warn{background:rgba(245,158,11,.07);border-left:2.5px solid var(--warn)}
+.alert-item.info{background:rgba(59,130,246,.07);border-left:2.5px solid #3B82F6}
+.alert-item.ok{background:rgba(34,197,94,.07);border-left:2.5px solid var(--success)}
+.al-ico{font-size:13px;margin-top:1px;flex-shrink:0}
+.al-title{font-size:12px;font-weight:600}
+.al-desc{font-size:10.5px;color:var(--text-2);margin-top:2px}
+
+/* ── TIMELINE ── */
+.tl-toolbar{padding:11px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg)}
+.tl-nav{padding:6px 11px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text-2);font-family:inherit;font-size:12.5px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.tl-nav:hover{border-color:var(--border-h);color:var(--text-1)}
+.tl-daterange{font-size:13.5px;font-weight:600;padding:0 6px}
+.tl-space{flex:1}
+.tl-legend{display:flex;gap:11px;align-items:center}
+.tl-leg-item{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text-2)}
+.tl-leg-dot{width:10px;height:10px;border-radius:3px}
+.add-btn{padding:7px 14px;background:var(--primary);border:none;border-radius:var(--r);color:#fff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;box-shadow:0 0 14px rgba(232,132,58,.3)}
+.add-btn:hover{background:#D07030;box-shadow:0 0 22px rgba(232,132,58,.45);transform:translateY(-1px)}
+
+.tl-wrap{flex:1;overflow:auto;position:relative}
+.tl-canvas{min-width:860px;position:relative}
+
+/* Day header */
+.tl-dhead{display:flex;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:4;background:var(--bg)}
+.tl-room-hdr{width:178px;min-width:178px;padding:9px 14px;font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;border-right:1px solid var(--border)}
+.tl-days{flex:1;display:grid;grid-template-columns:repeat(7,1fr)}
+.tl-day{padding:7px 0;text-align:center;border-right:1px solid var(--border);font-size:10.5px}
+.tl-day:last-child{border-right:none}
+.tl-day-name{color:var(--text-2);font-weight:500}
+.tl-day-num{font-weight:700;font-size:13.5px;margin-top:2px}
+.tl-day.today{background:var(--primary-l)}
+.tl-day.today .tl-day-name,.tl-day.today .tl-day-num{color:var(--primary)}
+
+/* Property group */
+.tl-prop-lbl{display:flex;align-items:center;background:var(--surface);border-bottom:1px solid var(--border)}
+.tl-prop-name{width:178px;min-width:178px;padding:5px 14px;font-size:10.5px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;border-right:1px solid var(--border)}
+.tl-prop-stripe{flex:1;height:26px;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(100%/7 - 1px),var(--border) calc(100%/7 - 1px),var(--border) calc(100%/7));opacity:.3}
+
+/* Room row */
+.tl-rrow{display:flex;border-bottom:1px solid var(--border);min-height:50px}
+.tl-rrow:last-child{border-bottom:none}
+.tl-rinfo{width:178px;min-width:178px;padding:0 14px;display:flex;align-items:center;gap:9px;border-right:1px solid var(--border);flex-shrink:0}
+.rdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rdot.clean{background:var(--success);box-shadow:0 0 6px rgba(34,197,94,.4)}
+.rdot.cleaning{background:var(--warn)}
+.rdot.dirty{background:var(--danger)}
+.rname{font-size:13px;font-weight:600}
+.rtype{font-size:10px;color:var(--text-2)}
+
+.tl-cells{flex:1;position:relative;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(100%/7 - 1px),var(--border) calc(100%/7 - 1px),var(--border) calc(100%/7))}
+
+/* Booking blocks */
+.bb{position:absolute;top:7px;bottom:7px;border-radius:6px;display:flex;align-items:center;padding:0 9px;font-size:11px;font-weight:600;color:#fff;cursor:pointer;transition:all .15s ease;overflow:hidden;white-space:nowrap;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.32)}
+.bb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 100%);pointer-events:none}
+.bb:hover{transform:translateY(-2px) scaleY(1.04);box-shadow:0 6px 22px rgba(0,0,0,.45);z-index:10}
+.bb-ico{width:13px;height:13px;border-radius:3px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:8px;margin-right:6px;flex-shrink:0;font-weight:900}
+.bb-zalo{background:var(--zalo)}
+.bb-fb{background:var(--fb)}
+.bb-bk{background:var(--booking)}
+.bb-ab{background:var(--airbnb)}
+.bb-wk{background:var(--walkin)}
+.bb-dr{background:var(--direct)}
+
+.buf{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(245,158,11,.07) 4px,rgba(245,158,11,.07) 8px);z-index:1;border-left:1px dashed rgba(245,158,11,.28)}
+
+/* Now indicator */
+.now-line{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:20;pointer-events:none}
+.now-line::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:8px;height:8px;background:var(--danger);border-radius:50%;box-shadow:0 0 8px var(--danger);animation:npulse 2s infinite}
+@keyframes npulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+.now-tag{position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:var(--danger);color:#fff;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap}
+
+/* ── INBOX ── */
+.inbox-page{gap:0}
+.inbox-left{width:310px;min-width:310px;border-right:1px solid var(--border);display:flex;flex-direction:column}
+.inbox-hdr{padding:14px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.inbox-filters{display:flex;padding:8px 12px;gap:6px;border-bottom:1px solid var(--border);overflow-x:auto}
+.fchip{padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid var(--border);color:var(--text-2);transition:all .15s}
+.fchip:hover{border-color:var(--border-h);color:var(--text-1)}
+.fchip.active{border-color:var(--primary);color:var(--primary);background:var(--primary-l)}
+.conv-list{flex:1;overflow-y:auto}
+.conv-item{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;display:flex;gap:10px;align-items:flex-start;position:relative}
+.conv-item:hover{background:var(--surface)}
+.conv-item.active{background:var(--primary-l);border-left:3px solid var(--primary)}
+.cav-wrap{position:relative;flex-shrink:0}
+.cav{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.ch-badge{position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.cbody{flex:1;min-width:0}
+.ctop{display:flex;justify-content:space-between;align-items:baseline}
+.cname{font-size:12.5px;font-weight:600}
+.conv-item.unread .cname{font-weight:700}
+.ctime{font-size:10px;color:var(--text-3);flex-shrink:0;margin-left:8px}
+.cprev{font-size:11px;color:var(--text-2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.csub{font-size:10px;color:var(--text-3);margin-top:2px}
+.unread-dot{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:7px;height:7px;background:var(--primary);border-radius:50%}
+
+/* Thread */
+.inbox-thread{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.th-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.th-name{font-size:14px;font-weight:700}
+.th-sub{font-size:11px;color:var(--text-2);margin-top:2px}
+.th-actions{margin-left:auto;display:flex;gap:7px}
+.th-btn{padding:5px 11px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text-1);font-family:inherit;font-size:11.5px;font-weight:500;cursor:pointer;transition:all .15s}
+.th-btn:hover{border-color:var(--border-h)}
+.th-btn.pr{background:var(--primary);border-color:var(--primary);font-weight:700}
+.th-btn.pr:hover{background:#D07030}
+.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px}
+.msg{display:flex;gap:8px;max-width:76%}
+.msg.in{align-self:flex-start}
+.msg.out{align-self:flex-end;flex-direction:row-reverse}
+.mav{width:28px;height:28px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;align-self:flex-end}
+.mbubble{padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.55}
+.msg.in .mbubble{background:var(--surface-2);border-radius:4px 12px 12px 12px}
+.msg.out .mbubble{background:var(--primary);color:#fff;border-radius:12px 4px 12px 12px}
+.mtime{font-size:9.5px;color:var(--text-3);margin-top:3px}
+.msg.in .mtime{text-align:left}
+.msg.out .mtime{text-align:right}
+
+.ai-sug{margin:2px 0 6px;padding:10px 12px;background:rgba(232,132,58,.07);border:1px dashed rgba(232,132,58,.28);border-radius:8px;font-size:11px;color:var(--text-2);display:flex;align-items:flex-start;gap:8px}
+.ai-sug-body{flex:1}
+.ai-label{font-weight:700;color:var(--primary);font-size:11.5px;margin-bottom:5px}
+.ai-opt{font-size:11.5px;color:var(--text-1);line-height:1.5}
+.ai-btns{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.ai-btn{padding:3px 9px;background:var(--primary-l);border:1px solid var(--primary);border-radius:20px;font-size:10.5px;color:var(--primary);cursor:pointer;font-weight:600;transition:all .15s}
+.ai-btn:hover{background:var(--primary);color:#fff}
+
+.msg-bar{padding:11px 14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end}
+.quick-acts{display:flex;gap:5px;margin-bottom:5px;flex-wrap:wrap}
+.qa-btn{padding:3px 9px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;font-size:10.5px;color:var(--text-2);cursor:pointer;transition:all .15s;font-weight:500}
+.qa-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-l)}
+.msg-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text-1);font-family:inherit;font-size:12.5px;resize:none;outline:none;min-height:40px;max-height:90px;transition:border-color .15s}
+.msg-input:focus{border-color:var(--primary)}
+.msg-input::placeholder{color:var(--text-3)}
+.send-btn{width:38px;height:38px;background:var(--primary);border:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;transition:all .15s;flex-shrink:0;box-shadow:0 0 10px rgba(232,132,58,.3)}
+.send-btn:hover{background:#D07030;transform:scale(1.07)}
+
+/* Profile */
+.inbox-right{width:290px;min-width:290px;border-left:1px solid var(--border);overflow-y:auto}
+.prof-hdr{padding:22px 18px 14px;text-align:center;border-bottom:1px solid var(--border)}
+.prof-av{width:60px;height:60px;border-radius:15px;margin:0 auto 11px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff}
+.prof-name{font-size:14.5px;font-weight:700}
+.prof-phone{font-size:11.5px;color:var(--text-2);margin-top:4px}
+.prof-tags{display:flex;justify-content:center;gap:5px;margin-top:8px;flex-wrap:wrap}
+.ptag{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.ptag.vip{background:rgba(245,158,11,.13);color:var(--warn)}
+.ptag.reg{background:rgba(34,197,94,.13);color:var(--success)}
+.ptag.ch{background:rgba(0,104,255,.13);color:#0068FF}
+.prof-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.pstat{padding:11px 6px;text-align:center;background:var(--bg)}
+.pstat-val{font-size:15px;font-weight:700}
+.pstat-lbl{font-size:9.5px;color:var(--text-2);margin-top:2px}
+.prof-sec{padding:14px 18px;border-bottom:1px solid var(--border)}
+.prof-sec:last-child{border-bottom:none}
+.prof-sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);margin-bottom:10px}
+.bh-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:11.5px}
+.bh-item+.bh-item{border-top:1px solid var(--border)}
+.bh-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.bh-inf{flex:1}
+.bh-n{font-weight:600}
+.bh-d{font-size:10px;color:var(--text-2)}
+.bh-amt{font-size:11px;font-weight:700;color:var(--success)}
+.note-box{font-size:11.5px;color:var(--text-2);background:var(--surface);border-radius:6px;padding:9px;line-height:1.6}
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.act-btn{padding:7px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text-1);font-family:inherit;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;text-align:center}
+.act-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-l)}
+
+svg{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div class="logo-text">StayOS <span>Quản trị Homestay</span></div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-item active" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Tổng quan
+    </div>
+    <div class="nav-item" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Đặt phòng <span class="nbadge">3</span>
+    </div>
+    <div class="nav-item" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Smart Inbox <span class="nbadge">5</span>
+    </div>
+    <div class="nav-item" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      Cơ sở / Phòng
+    </div>
+    <div class="nav-item" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Khách hàng
+    </div>
+    <div class="nav-label">Vận hành</div>
+    <div class="nav-item" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><path d="M3 9V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3"/></svg>
+      Buồng phòng <span class="nbadge w">2</span>
+    </div>
+    <div class="nav-item" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Doanh thu / P&L
+    </div>
+    <div class="nav-item" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Báo cáo
+    </div>
+    <div class="nav-label">Hệ thống</div>
+    <div class="nav-item" onclick="setNav(this)">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M20.49 12H22M2 12h1.51M17.66 17.66l1.41 1.41M4.93 4.93l1.41 1.41M12 20.49V22M12 2v1.51"/></svg>
+      Cài đặt
+    </div>
+  </nav>
+  <div class="sb-foot">
+    <div class="prop-sw">
+      <div class="ps-lbl">Cơ sở đang xem</div>
+      <div class="ps-name">Tất cả cơ sở</div>
+      <div class="ps-sub">12 cơ sở · 86 căn lưu trú</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+  <header class="topbar">
+    <span class="tb-title" id="tb-title">Tổng quan</span>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('dash',this)">Dashboard</button>
+      <button class="tab-btn" onclick="switchTab('tl',this)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        Timeline
+      </button>
+      <button class="tab-btn" onclick="switchTab('inbox',this)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Smart Inbox
+      </button>
+    </div>
+    <div class="tb-space"></div>
+    <div class="tb-search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Tìm khách, phòng... ⌘K">
+    </div>
+    <div class="tb-date">T4, 07/05/2026</div>
+    <div class="icon-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="notif-dot"></div>
+    </div>
+    <div class="avatar">AD</div>
+  </header>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="page active" id="p-dash">
+    <div class="dash">
+
+      <!-- KPI -->
+      <div class="kpi-row">
+        <div class="kpi" style="animation-delay:.05s">
+          <div class="kpi-ico o"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <div class="kpi-lbl">Tổng cơ sở</div>
+          <div class="kpi-val" style="color:var(--primary)">12</div>
+          <div class="kpi-trend up"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>+1 so với tháng trước</div>
+        </div>
+        <div class="kpi" style="animation-delay:.10s">
+          <div class="kpi-ico b"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+          <div class="kpi-lbl">Tổng căn lưu trú</div>
+          <div class="kpi-val" style="color:#3B82F6">86</div>
+          <div class="kpi-trend up"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>+6 so với tháng trước</div>
+        </div>
+        <div class="kpi" style="animation-delay:.15s">
+          <div class="kpi-ico g"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="kpi-lbl">Tỷ lệ lấp đầy</div>
+          <div class="kpi-val" style="color:var(--success)">78%</div>
+          <div class="kpi-trend up"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>+6% so với tháng trước</div>
+        </div>
+        <div class="kpi" style="animation-delay:.20s">
+          <div class="kpi-ico p"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="kpi-lbl">Doanh thu tháng</div>
+          <div class="kpi-val" style="color:#A855F7;font-size:19px">1,28 tỷ</div>
+          <div class="kpi-trend up"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>+12% so với tháng trước</div>
+        </div>
+        <div class="kpi" style="animation-delay:.25s">
+          <div class="kpi-ico y"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></div>
+          <div class="kpi-lbl">Đặt phòng hôm nay</div>
+          <div class="kpi-val" style="color:var(--warn)">34</div>
+          <div class="kpi-trend up"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>+9 so với hôm qua</div>
+        </div>
+        <div class="kpi" style="animation-delay:.30s">
+          <div class="kpi-ico pk"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+          <div class="kpi-lbl">Khách đang lưu trú</div>
+          <div class="kpi-val" style="color:#EC4899">112</div>
+          <div class="kpi-trend up"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>+18 so với hôm qua</div>
+        </div>
+      </div>
+
+      <!-- Revenue chart -->
+      <div class="chart-card big">
+        <div class="ch-head">
+          <div><div class="ch-title">Doanh thu theo tháng</div><div class="ch-sub">Năm 2026 · Tất cả cơ sở</div></div>
+          <div class="ch-pill">Năm nay ▾</div>
+        </div>
+        <svg viewBox="0 0 700 155" preserveAspectRatio="none" style="width:100%;height:155px">
+          <defs>
+            <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#E8843A" stop-opacity=".28"/>
+              <stop offset="100%" stop-color="#E8843A" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="25" x2="700" y2="25" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="65" x2="700" y2="65" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="105" x2="700" y2="105" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="145" x2="700" y2="145" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <text x="4" y="23" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans">2 tỷ</text>
+          <text x="4" y="63" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans">1.5 tỷ</text>
+          <text x="4" y="103" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans">1 tỷ</text>
+          <text x="4" y="143" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans">0.5 tỷ</text>
+          <path d="M55,118 C85,112 110,96 135,90 C160,84 182,102 207,108 C232,113 258,80 282,70 C307,60 332,44 357,40 C382,36 407,52 430,56 C455,50 480,34 505,28 C530,22 555,38 578,42 C601,39 628,32 655,25 L655,155 L55,155 Z" fill="url(#grad1)"/>
+          <path id="revchart" d="M55,118 C85,112 110,96 135,90 C160,84 182,102 207,108 C232,113 258,80 282,70 C307,60 332,44 357,40 C382,36 407,52 430,56 C455,50 480,34 505,28 C530,22 555,38 578,42 C601,39 628,32 655,25" fill="none" stroke="#E8843A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="55" cy="118" r="3.5" fill="#0B0F17" stroke="#E8843A" stroke-width="2"/>
+          <circle cx="135" cy="90" r="3.5" fill="#0B0F17" stroke="#E8843A" stroke-width="2"/>
+          <circle cx="207" cy="108" r="3.5" fill="#0B0F17" stroke="#E8843A" stroke-width="2"/>
+          <circle cx="282" cy="70" r="3.5" fill="#0B0F17" stroke="#E8843A" stroke-width="2"/>
+          <circle cx="357" cy="40" r="4.5" fill="#E8843A" stroke="#E8843A" stroke-width="2"/>
+          <circle cx="430" cy="56" r="3.5" fill="#0B0F17" stroke="#E8843A" stroke-width="2"/>
+          <circle cx="505" cy="28" r="3.5" fill="#0B0F17" stroke="#E8843A" stroke-width="2"/>
+          <line x1="357" y1="0" x2="357" y2="155" stroke="#E8843A" stroke-width="1" stroke-dasharray="3 3" opacity=".35"/>
+          <rect x="323" y="22" width="68" height="17" rx="4" fill="rgba(232,132,58,.15)"/>
+          <text x="357" y="35" fill="#E8843A" font-size="10" font-family="Plus Jakarta Sans" font-weight="700" text-anchor="middle">1,28 tỷ ▲12%</text>
+          <text x="55" y="153" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle">T1</text>
+          <text x="135" y="153" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle">T2</text>
+          <text x="207" y="153" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle">T3</text>
+          <text x="282" y="153" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle">T4</text>
+          <text x="357" y="153" fill="#E8843A" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle" font-weight="700">T5</text>
+          <text x="430" y="153" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle">T6</text>
+          <text x="505" y="153" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle">T7</text>
+          <text x="578" y="153" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle">T8</text>
+          <text x="655" y="153" fill="#454E5C" font-size="9.5" font-family="Plus Jakarta Sans" text-anchor="middle">T9</text>
+        </svg>
+      </div>
+
+      <!-- Donut -->
+      <div class="chart-card sm">
+        <div class="ch-head" style="margin-bottom:6px">
+          <div><div class="ch-title">Tỷ lệ lấp đầy</div><div class="ch-sub">Theo khu vực</div></div>
+        </div>
+        <div class="donut-wrap">
+          <svg width="155" height="155" viewBox="0 0 155 155">
+            <circle cx="77.5" cy="77.5" r="55" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="20"/>
+            <circle cx="77.5" cy="77.5" r="55" fill="none" stroke="#E8843A" stroke-width="20" stroke-dasharray="120 225.5" stroke-dashoffset="0" style="transform-origin:77.5px 77.5px;transform:rotate(-90deg)"/>
+            <circle cx="77.5" cy="77.5" r="55" fill="none" stroke="#3B82F6" stroke-width="20" stroke-dasharray="108 237.5" stroke-dashoffset="-120" style="transform-origin:77.5px 77.5px;transform:rotate(-90deg)"/>
+            <circle cx="77.5" cy="77.5" r="55" fill="none" stroke="#22C55E" stroke-width="20" stroke-dasharray="104 241.5" stroke-dashoffset="-228" style="transform-origin:77.5px 77.5px;transform:rotate(-90deg)"/>
+            <circle cx="77.5" cy="77.5" r="55" fill="none" stroke="#A855F7" stroke-width="20" stroke-dasharray="113 232.5" stroke-dashoffset="-332" style="transform-origin:77.5px 77.5px;transform:rotate(-90deg)"/>
+            <circle cx="77.5" cy="77.5" r="42" fill="var(--surface)"/>
+          </svg>
+          <div class="donut-center"><div class="donut-pct">78%</div><div class="donut-lbl">Trung bình</div></div>
+        </div>
+        <div class="d-legend">
+          <div class="d-leg"><div class="d-dot" style="background:#E8843A"></div><span class="d-name">Đà Lạt</span><span class="d-val">82%</span></div>
+          <div class="d-leg"><div class="d-dot" style="background:#3B82F6"></div><span class="d-name">Hội An</span><span class="d-val">74%</span></div>
+          <div class="d-leg"><div class="d-dot" style="background:#22C55E"></div><span class="d-name">Sa Pa</span><span class="d-val">71%</span></div>
+          <div class="d-leg"><div class="d-dot" style="background:#A855F7"></div><span class="d-name">Ninh Bình</span><span class="d-val">76%</span></div>
+        </div>
+      </div>
+
+      <!-- Recent bookings -->
+      <div class="lower-card rb">
+        <div class="sec-head"><div class="sec-title">Đặt phòng gần đây</div><div class="see-all">Xem tất cả →</div></div>
+        <div class="brow"><div class="bav" style="background:linear-gradient(135deg,#E8843A,#B06020)">NT</div><div class="b-info"><div class="b-name">Nguyễn Thu Trang</div><div class="b-detail">Đà Lạt Hills · P.203 · 22/05–24/05 · 2 đêm · Zalo</div></div><div class="bstatus s-ok">Đã xác nhận</div></div>
+        <div class="brow"><div class="bav" style="background:linear-gradient(135deg,#1877F2,#0c55c0)">LH</div><div class="b-info"><div class="b-name">Lê Hoàng Nam</div><div class="b-detail">Hội An Riverside · P.102 · 23/05–25/05 · 2 đêm · Facebook</div></div><div class="bstatus s-pend">Chờ xử lý</div></div>
+        <div class="brow"><div class="bav" style="background:linear-gradient(135deg,#22C55E,#15903e)">PM</div><div class="b-info"><div class="b-name">Phạm Minh Tuấn</div><div class="b-detail">Sa Pa Cloud · P.301 · 23/05–26/05 · 3 đêm · Airbnb</div></div><div class="bstatus s-in">Đang lưu trú</div></div>
+        <div class="brow"><div class="bav" style="background:linear-gradient(135deg,#FF5A5F,#d02025)">TB</div><div class="b-info"><div class="b-name">Trần Bảo Hân</div><div class="b-detail">Ninh Bình Lotus · P.201 · 24/05–25/05 · 1 đêm · Booking</div></div><div class="bstatus s-ok">Đã xác nhận</div></div>
+        <div class="brow"><div class="bav" style="background:linear-gradient(135deg,#A855F7,#7c3aed)">DL</div><div class="b-info"><div class="b-name">Đỗ Lan Anh</div><div class="b-detail">Pleiku Garden · P.405 · 24/05–26/05 · 2 đêm · Walk-in</div></div><div class="bstatus s-pend">Chờ xử lý</div></div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="lower-card al">
+        <div class="sec-head"><div class="sec-title">Cảnh báo vận hành</div><div style="font-size:10px;color:var(--text-3)">09:42 · Live</div></div>
+        <div class="alert-item danger"><div class="al-ico">🔴</div><div><div class="al-title">3 booking cần xác nhận gấp</div><div class="al-desc">Quá 24h chưa xác nhận — nguy cơ mất booking</div></div></div>
+        <div class="alert-item warn"><div class="al-ico">🟡</div><div><div class="al-title">2 phòng cần dọn trước 14h</div><div class="al-desc">P.203 Đà Lạt · P.301 Hội An — check-in sắp tới</div></div></div>
+        <div class="alert-item warn"><div class="al-ico">🟡</div><div><div class="al-title">1 căn đang bảo trì</div><div class="al-desc">P.102 Sa Pa — cần kiểm tra máy lạnh</div></div></div>
+        <div class="alert-item info"><div class="al-ico">🔵</div><div><div class="al-title">5 tin nhắn chưa trả lời</div><div class="al-desc">3 Booking.com · 2 Zalo — phản hồi &lt;15 phút</div></div></div>
+        <div class="alert-item ok"><div class="al-ico">⭐</div><div><div class="al-title">Điểm đánh giá: 4.8 / 5</div><div class="al-desc">Dựa trên 328 đánh giá · +0.1 so với tháng trước</div></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ TIMELINE ══ -->
+  <div class="tl-page" id="p-tl">
+    <div class="tl-toolbar">
+      <button class="tl-nav">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Tuần trước
+      </button>
+      <div class="tl-daterange">05/05 – 11/05/2026</div>
+      <button class="tl-nav">Tuần sau<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+      <div class="tl-space"></div>
+      <div class="tl-legend">
+        <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--zalo)"></div>Zalo</div>
+        <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--fb)"></div>Facebook</div>
+        <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--booking)"></div>Booking</div>
+        <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--airbnb)"></div>Airbnb</div>
+        <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--direct)"></div>Direct</div>
+        <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--walkin)"></div>Walk-in</div>
+      </div>
+      <button class="add-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Thêm booking
+      </button>
+    </div>
+
+    <div class="tl-wrap">
+      <div class="tl-canvas">
+        <!-- Day headers -->
+        <div class="tl-dhead">
+          <div class="tl-room-hdr">Phòng</div>
+          <div class="tl-days">
+            <div class="tl-day"><div class="tl-day-name">T2</div><div class="tl-day-num">05/05</div></div>
+            <div class="tl-day"><div class="tl-day-name">T3</div><div class="tl-day-num">06/05</div></div>
+            <div class="tl-day today"><div class="tl-day-name">T4 ●</div><div class="tl-day-num">07/05</div></div>
+            <div class="tl-day"><div class="tl-day-name">T5</div><div class="tl-day-num">08/05</div></div>
+            <div class="tl-day"><div class="tl-day-name">T6</div><div class="tl-day-num">09/05</div></div>
+            <div class="tl-day"><div class="tl-day-name">T7</div><div class="tl-day-num">10/05</div></div>
+            <div class="tl-day"><div class="tl-day-name">CN</div><div class="tl-day-num">11/05</div></div>
+          </div>
+        </div>
+
+        <!-- ▸ Đà Lạt Hills -->
+        <div class="tl-prop-lbl"><div class="tl-prop-name">🏔 An Nhiên Đà Lạt Hills</div><div class="tl-prop-stripe"></div></div>
+        <div class="tl-rrow">
+          <div class="tl-rinfo"><div class="rdot clean"></div><div><div class="rname">Phòng 101</div><div class="rtype">Bungalow · 2 người</div></div></div>
+          <div class="tl-cells">
+            <div class="buf" style="left:42%;width:3%"></div>
+            <div class="bb bb-ab" style="left:43%;width:27.5%" title="Trần Thị Mai · Airbnb · 08–10/05">
+              <div class="bb-ico">A</div>Trần Thị Mai · 2đ
+            </div>
+            <div class="bb bb-bk" style="left:86%;width:13.5%" title="Lê Văn Hùng · Booking · 11/05">
+              <div class="bb-ico">B</div>Lê Văn Hùng
+            </div>
+          </div>
+        </div>
+        <div class="tl-rrow">
+          <div class="tl-rinfo"><div class="rdot cleaning"></div><div><div class="rname">Phòng 102</div><div class="rtype">Bungalow · 4 người</div></div></div>
+          <div class="tl-cells">
+            <div class="bb bb-zalo" style="left:14%;width:28.5%;box-shadow:0 0 14px rgba(0,104,255,.3)" title="Nguyễn Thu Trang · Zalo · 06–08/05 · Đang ở">
+              <div class="bb-ico">Z</div>Nguyễn Thu Trang · đang ở
+            </div>
+            <div class="buf" style="left:42%;width:3.5%"></div>
+          </div>
+        </div>
+        <div class="tl-rrow">
+          <div class="tl-rinfo"><div class="rdot dirty"></div><div><div class="rname">Phòng 103</div><div class="rtype">Villa · 6 người</div></div></div>
+          <div class="tl-cells">
+            <div class="bb bb-wk" style="left:28.5%;width:28.5%" title="Phạm Minh Tuấn · Walk-in · 07–09/05">
+              <div class="bb-ico">W</div>Phạm Minh Tuấn · 2đ
+            </div>
+          </div>
+        </div>
+
+        <!-- ▸ Hội An Riverside -->
+        <div class="tl-prop-lbl"><div class="tl-prop-name">🌊 An Nhiên Hội An Riverside</div><div class="tl-prop-stripe"></div></div>
+        <div class="tl-rrow">
+          <div class="tl-rinfo"><div class="rdot clean"></div><div><div class="rname">Phòng 201</div><div class="rtype">Bungalow · 2 người</div></div></div>
+          <div class="tl-cells">
+            <div class="bb bb-fb" style="left:0.5%;width:70%" title="Đỗ Lan Anh · Facebook · 05–10/05">
+              <div class="bb-ico">F</div>Đỗ Lan Anh · 5 đêm · Facebook
+            </div>
+          </div>
+        </div>
+        <div class="tl-rrow">
+          <div class="tl-rinfo"><div class="rdot clean"></div><div><div class="rname">Phòng 202</div><div class="rtype">Chalet · 2 người</div></div></div>
+          <div class="tl-cells">
+            <div class="bb bb-bk" style="left:42.5%;width:57%" title="Vũ Thành Long · Booking.com · 08–11/05">
+              <div class="bb-ico">B</div>Vũ Thành Long · 3 đêm
+            </div>
+          </div>
+        </div>
+        <div class="tl-rrow">
+          <div class="tl-rinfo"><div class="rdot dirty"></div><div><div class="rname">Phòng 203</div><div class="rtype">Bungalow · 4 người</div></div></div>
+          <div class="tl-cells">
+            <div class="bb bb-dr" style="left:14%;width:14%;opacity:.65" title="Hoàng Bảo Châu · Direct · 06–07/05 · Đã check-out">
+              <div class="bb-ico">D</div>Hoàng B. Châu
+            </div>
+            <div class="buf" style="left:28%;width:3.5%"></div>
+            <div class="bb bb-zalo" style="left:57%;width:42.5%" title="Mai Thị Hoa · Zalo · 09–11/05">
+              <div class="bb-ico">Z</div>Mai Thị Hoa · 2 đêm
+            </div>
+          </div>
+        </div>
+
+        <!-- ▸ Sa Pa Cloud -->
+        <div class="tl-prop-lbl"><div class="tl-prop-name">⛰ An Nhiên Sa Pa Cloud Home</div><div class="tl-prop-stripe"></div></div>
+        <div class="tl-rrow">
+          <div class="tl-rinfo"><div class="rdot clean"></div><div><div class="rname">Phòng 301</div><div class="rtype">Chalet · 4 người</div></div></div>
+          <div class="tl-cells">
+            <div class="bb bb-ab" style="left:0.5%;width:56.5%" title="Phạm Minh Tuấn · Airbnb · 05–09/05">
+              <div class="bb-ico">A</div>Phạm Minh Tuấn · Airbnb · 4đ
+            </div>
+          </div>
+        </div>
+        <div class="tl-rrow">
+          <div class="tl-rinfo"><div class="rdot clean"></div><div><div class="rname">Phòng 302</div><div class="rtype">Deluxe · 2 người</div></div></div>
+          <div class="tl-cells">
+            <div class="bb bb-zalo" style="left:57%;width:42.5%" title="Trương Minh Khoa · Zalo · 09–11/05">
+              <div class="bb-ico">Z</div>Trương Minh Khoa · 2đ
+            </div>
+          </div>
+        </div>
+
+        <!-- Now indicator -->
+        <div class="now-line" id="nowLine" style="left:34.5%">
+          <div class="now-tag" id="nowTag">10:26</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INBOX ══ -->
+  <div class="inbox-page" id="p-inbox">
+    <!-- Left: conversations -->
+    <div class="inbox-left">
+      <div class="inbox-hdr">
+        Smart Inbox
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">5</span>
+        </div>
+      </div>
+      <div class="inbox-filters">
+        <div class="fchip active">Tất cả</div>
+        <div class="fchip">🔵 Zalo (2)</div>
+        <div class="fchip">🔵 FB</div>
+        <div class="fchip">🏨 Booking (2)</div>
+        <div class="fchip">🔴 Airbnb (1)</div>
+      </div>
+      <div class="conv-list">
+        <div class="conv-item active unread">
+          <div class="cav-wrap"><div class="cav" style="background:linear-gradient(135deg,#E8843A,#B06020)">NT</div><div class="ch-badge" style="background:#0068FF"><svg width="8" height="8" viewBox="0 0 24 24" fill="white" stroke="none"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8" stroke="white" stroke-width="2"/></svg></div></div>
+          <div class="cbody"><div class="ctop"><div class="cname">Nguyễn Thu Trang</div><div class="ctime">09:42</div></div><div class="cprev">Dạ em hỏi phòng 102 còn trống...</div><div class="csub">Zalo · Đà Lạt Hills</div></div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="conv-item unread">
+          <div class="cav-wrap"><div class="cav" style="background:linear-gradient(135deg,#003B95,#0052cc)">KH</div><div class="ch-badge" style="background:#003B95"><svg width="8" height="8" viewBox="0 0 24 24" fill="white"><path d="M12 2l9 5v6c0 5-4 10-9 11-5-1-9-6-9-11V7z"/></svg></div></div>
+          <div class="cbody"><div class="ctop"><div class="cname">Booking #3829471</div><div class="ctime">09:15</div></div><div class="cprev">New booking: Trần Văn Minh, 2 đêm...</div><div class="csub">Booking.com · Hội An Riverside</div></div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="conv-item unread">
+          <div class="cav-wrap"><div class="cav" style="background:linear-gradient(135deg,#FF5A5F,#c01518)">PM</div><div class="ch-badge" style="background:#FF5A5F"><svg width="8" height="8" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"/></svg></div></div>
+          <div class="cbody"><div class="ctop"><div class="cname">Phạm Minh Tuấn</div><div class="ctime">08:53</div></div><div class="cprev">Can I get an early check-in tomorrow?</div><div class="csub">Airbnb · Sa Pa Cloud Home</div></div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="conv-item">
+          <div class="cav-wrap"><div class="cav" style="background:linear-gradient(135deg,#1877F2,#0d55c4)">LH</div><div class="ch-badge" style="background:#1877F2"><svg width="8" height="8" viewBox="0 0 24 24" fill="white"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></div></div>
+          <div class="cbody"><div class="ctop"><div class="cname">Lê Hoàng Nam</div><div class="ctime">Hôm qua</div></div><div class="cprev">Cảm ơn anh chị, em rất hài lòng 😊</div><div class="csub">Facebook · Ninh Bình Lotus</div></div>
+        </div>
+        <div class="conv-item">
+          <div class="cav-wrap"><div class="cav" style="background:linear-gradient(135deg,#0068FF,#004dc0)">VT</div><div class="ch-badge" style="background:#0068FF"><svg width="8" height="8" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"/></svg></div></div>
+          <div class="cbody"><div class="ctop"><div class="cname">Vũ Thành Long</div><div class="ctime">Hôm qua</div></div><div class="cprev">Anh ơi cho em hỏi wifi mật khẩu là gì?</div><div class="csub">Zalo · Hội An Riverside</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle: thread -->
+    <div class="inbox-thread">
+      <div class="th-hdr">
+        <div class="cav" style="background:linear-gradient(135deg,#E8843A,#B06020);width:38px;height:38px;border-radius:10px;font-size:12px;flex-shrink:0">NT</div>
+        <div>
+          <div class="th-name">Nguyễn Thu Trang</div>
+          <div class="th-sub"><span style="color:#0068FF;font-weight:600">Zalo</span> · Đà Lạt Hills · 0987.654.321</div>
+        </div>
+        <div class="th-actions">
+          <button class="th-btn">👁 Profile</button>
+          <button class="th-btn">📋 Tạo booking</button>
+          <button class="th-btn pr">⚡ Trả lời nhanh</button>
+        </div>
+      </div>
+      <div class="msgs">
+        <div style="text-align:center;font-size:10px;color:var(--text-3)">Hôm nay · 07/05/2026</div>
+        <div class="msg in">
+          <div class="mav" style="background:linear-gradient(135deg,#E8843A,#B06020)">NT</div>
+          <div><div class="mbubble">Dạ chào anh/chị ạ, em hỏi thăm phòng 102 tại Đà Lạt Hills còn trống từ ngày 15/5 đến 18/5 không ạ?</div><div class="mtime">09:38</div></div>
+        </div>
+        <div class="msg in">
+          <div class="mav" style="background:linear-gradient(135deg,#E8843A,#B06020)">NT</div>
+          <div><div class="mbubble">Và giá phòng dịp đó bao nhiêu ạ? Em đi 2 người 🙏</div><div class="mtime">09:39</div></div>
+        </div>
+        <!-- AI suggestion -->
+        <div class="ai-sug">
+          <div style="font-size:18px;flex-shrink:0">🤖</div>
+          <div class="ai-sug-body">
+            <div class="ai-label">An Trợ Lý — 3 phương án gợi ý</div>
+            <div class="ai-opt"><strong>Option A:</strong> Phòng 102 còn trống 15–18/5. Giá 1.250.000đ/đêm, 2 người, bao gồm sáng. Cần cọc 50% để giữ chỗ.</div>
+            <div class="ai-btns">
+              <div class="ai-btn">Dùng Option A</div>
+              <div class="ai-btn">Xem 3 options</div>
+              <div class="ai-btn">Tùy chỉnh</div>
+            </div>
+          </div>
+        </div>
+        <div class="msg out">
+          <div class="mav" style="background:linear-gradient(135deg,#454E5C,#2d343f)">AD</div>
+          <div><div class="mbubble">Chào bạn Thu Trang! Phòng 102 vẫn còn trống 15–18/5 bạn nhé 🏡 Giá 1.250.000đ/đêm, 2 người, bao gồm bữa sáng. Tổng 3 đêm = 3.750.000đ. Cần cọc 50% để giữ phòng. Bạn muốn đặt không ạ?</div><div class="mtime">09:42 · ✓✓</div></div>
+        </div>
+        <div class="msg in">
+          <div class="mav" style="background:linear-gradient(135deg,#E8843A,#B06020)">NT</div>
+          <div><div class="mbubble">Oke anh ơi em đặt luôn nha! Chuyển khoản cọc qua VietQR được không ạ?</div><div class="mtime">09:45</div></div>
+        </div>
+        <!-- AI follow-up -->
+        <div class="ai-sug">
+          <div style="font-size:18px;flex-shrink:0">🤖</div>
+          <div class="ai-sug-body">
+            <div class="ai-label">Gợi ý tiếp theo</div>
+            <div class="ai-opt">Khách muốn cọc VietQR → Gửi QR code + tự động tạo booking với status "Chờ cọc"</div>
+            <div class="ai-btns">
+              <div class="ai-btn">📤 Gửi QR cọc</div>
+              <div class="ai-btn">📋 Tạo booking ngay</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="msg-bar">
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+          <div class="quick-acts">
+            <div class="qa-btn">📎 Gửi QR cọc</div>
+            <div class="qa-btn">📋 Tạo booking</div>
+            <div class="qa-btn">🏠 Gửi địa chỉ</div>
+            <div class="qa-btn">📶 Gửi WiFi</div>
+            <div class="qa-btn">📍 Google Maps</div>
+          </div>
+          <textarea class="msg-input" placeholder="Nhập tin nhắn... hoặc / để AI gợi ý" rows="1"></textarea>
+        </div>
+        <button class="send-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: guest profile -->
+    <div class="inbox-right">
+      <div class="prof-hdr">
+        <div class="prof-av" style="background:linear-gradient(135deg,#E8843A,#B06020)">NT</div>
+        <div class="prof-name">Nguyễn Thu Trang</div>
+        <div class="prof-phone">0987.654.321 · thutr@gmail.com</div>
+        <div class="prof-tags">
+          <div class="ptag vip">⭐ VIP</div>
+          <div class="ptag reg">Khách quen</div>
+          <div class="ptag ch">Zalo</div>
+        </div>
+      </div>
+      <div class="prof-stats">
+        <div class="pstat"><div class="pstat-val" style="color:var(--primary)">7</div><div class="pstat-lbl">Lần đặt</div></div>
+        <div class="pstat"><div class="pstat-val" style="color:var(--success)">4.9</div><div class="pstat-lbl">Rating</div></div>
+        <div class="pstat"><div class="pstat-val" style="color:#A855F7;font-size:12px">18.5tr</div><div class="pstat-lbl">Tổng chi</div></div>
+      </div>
+      <div class="prof-sec">
+        <div class="prof-sec-title">Lịch sử đặt phòng</div>
+        <div class="bh-item"><div class="bh-dot" style="background:var(--success)"></div><div class="bh-inf"><div class="bh-n">P.102 · Đà Lạt Hills</div><div class="bh-d">20/04–22/04 · 2 đêm</div></div><div class="bh-amt">2.5tr</div></div>
+        <div class="bh-item"><div class="bh-dot" style="background:var(--success)"></div><div class="bh-inf"><div class="bh-n">P.201 · Hội An</div><div class="bh-d">15/02–18/02 · 3 đêm</div></div><div class="bh-amt">3.75tr</div></div>
+        <div class="bh-item"><div class="bh-dot" style="background:var(--success)"></div><div class="bh-inf"><div class="bh-n">P.301 · Sa Pa Cloud</div><div class="bh-d">30/12–02/01 · 3 đêm</div></div><div class="bh-amt">4.2tr</div></div>
+      </div>
+      <div class="prof-sec">
+        <div class="prof-sec-title">Ghi chú</div>
+        <div class="note-box">Khách VIP, hay đặt phòng view đẹp. Thích yên tĩnh, ít người. Thường cuối tuần & nghỉ lễ. Nhắc sớm chính sách hủy phòng.</div>
+      </div>
+      <div class="prof-sec">
+        <div class="prof-sec-title">Hành động nhanh</div>
+        <div class="act-grid">
+          <div class="act-btn">📋 Tạo booking</div>
+          <div class="act-btn">💳 Gửi QR</div>
+          <div class="act-btn">📍 Gửi bản đồ</div>
+          <div class="act-btn">🔔 Đặt nhắc</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// Tab switch
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page,.tl-page,.inbox-page').forEach(p => p.classList.remove('active'));
+  const titles = {dash:'Tổng quan',tl:'Lịch đặt phòng — Timeline',inbox:'Smart Inbox'};
+  document.getElementById('tb-title').textContent = titles[name];
+  document.getElementById('p-'+name).classList.add('active');
+  if(name==='tl') updateNow();
+}
+function setNav(el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active')}
+
+// Now indicator
+function updateNow(){
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const dayIdx = 2; // Wed = day 2 of Mon-Sun week
+  const pct = (dayIdx + (h*60+m)/1440) / 7 * 100;
+  const line = document.getElementById('nowLine');
+  const tag = document.getElementById('nowTag');
+  if(line){ line.style.left = pct+'%'; tag.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+}
+updateNow(); setInterval(updateNow, 30000);
+
+// Stagger KPI entrance
+document.querySelectorAll('.kpi').forEach((c,i)=>{
+  c.style.opacity='0'; c.style.transform='translateY(10px)';
+  c.style.transition=`opacity .35s ease ${i*.07}s,transform .35s ease ${i*.07}s`;
+  setTimeout(()=>{c.style.opacity='1';c.style.transform='translateY(0)'},80+i*70);
+});
+
+// Animate chart line
+const p = document.getElementById('revchart');
+if(p){const L=850;p.style.strokeDasharray=L;p.style.strokeDashoffset=L;p.style.transition='stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1) .4s';setTimeout(()=>{p.style.strokeDashoffset='0'},120);}
+
+// Filter chips toggle
+document.querySelectorAll('.fchip').forEach(c=>{c.onclick=()=>{document.querySelectorAll('.fchip').forEach(x=>x.classList.remove('active'));c.classList.add('active')}});
+
+// Booking blocks click
+document.querySelectorAll('.bb').forEach(b=>{
+  b.onclick=()=>{ 
+    const n=b.getAttribute('title')||b.textContent.trim().split('·')[0].trim();
+    const info = b.getAttribute('title')||'';
+    alert('Booking: '+info.split('·')[0].trim()+'\n\n'+info+'\n\n→ Sẽ mở BookingDetailsModal trong phiên bản thật:\n• Check-in / Check-out\n• Thanh toán\n• Ghi chú\n• Lịch sử thay đổi'); 
+  };
+});
+</script>
+</body>
+</html>

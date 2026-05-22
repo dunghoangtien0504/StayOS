@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(ls \"D:/Kinh doanh/AI/Homestay\" && echo \"---\" && ls \"D:/Kinh doanh/AI/Hotel Manager OS\")",
+      "PowerShell(Get-ChildItem \"D:\\\\Kinh doanh\\\\AI\\\\Hotel Manager OS\" -Force | ForEach-Object { Move-Item $_.FullName \"D:\\\\Kinh doanh\\\\AI\\\\StayOS\\\\\" -Force }; ls \"D:\\\\Kinh doanh\\\\AI\\\\Hotel Manager OS\"; echo \"---\"; ls \"D:\\\\Kinh doanh\\\\AI\\\\StayOS\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(ls \"D:/Kinh doanh/AI/StayOS/src/app/settings/\" && stat -c '%n %s' \"D:/Kinh doanh/AI/StayOS/src/app/settings/admin/page.tsx\")",
+      "Bash(npx eslint *)",
+      "Bash(tee build.log)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(rm -rf .next node_modules/.cache)",
+      "Bash(timeout 5 curl -s -I http://localhost:3002)",
+      "mcp__Claude_in_Chrome__computer",
+      "WebFetch(domain:docs.pancake.biz)",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_in_Chrome__get_page_text",
+      "mcp__Claude_in_Chrome__find",
+      "WebFetch(domain:developer.pancake.biz)",
+      "WebSearch",
+      "WebFetch(domain:docs.pages.fm)",
+      "WebFetch(domain:docs.pancake.vn)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(node -e ' *)",
+      "Bash(netstat -ano)",
+      "Bash(cmd //c \"taskkill /PID 31348 /F\")",
+      "Bash(grep -q -E \"Ready|already running\" dev-test.log)",
+      "Bash(cd \"D:\\\\Kinh doanh\\\\AI\\\\StayOS\" && rm -f sync-result.json dev-test.log /tmp/r2.json /tmp/r3.json && echo \"cleaned\")",
+      "Bash(curl -s --max-time 90 \"http://localhost:3002/api/pancake/sync\" -o /tmp/sync.json -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(curl -s --max-time 90 \"http://localhost:3002/api/pancake/sync\" -o _t_sync.json -w \"SYNC HTTP %{http_code}\\\\n\")",
+      "Bash(node -e \"const m=require\\('./_t_first.json'\\);const p=new URLSearchParams\\({pageId:m.pageId,conversationId:m.conversationId,customerId:m.customerId}\\);process.stdout.write\\(p.toString\\(\\)\\)\")",
+      "Bash(curl -s --max-time 60 http://localhost:3002/api/pancake/messages?__TRACKED_VAR__ -o _t_msg.json -w 'MESSAGES HTTP %{http_code}\\\\n')",
+      "Bash(git add *)"
+    ]
+  }
+}

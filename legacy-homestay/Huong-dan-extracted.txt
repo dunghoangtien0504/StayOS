@@ -1,0 +1,1240 @@
+Dưới đây là 
+PRD hoàn chỉnh bằng tiếng Việt
+ để bạn có thể giao trực tiếp cho Antigravity xây dựng app quản lý khách sạn/homestay. Tài liệu này được xây trên logic nghiệp vụ thể hiện trong video: quản lý đặt phòng theo 
+Timeline/Table
+, nhiều đợt thanh toán, dọn phòng, chi phí, báo cáo, dashboard và phân quyền theo vai trò; đồng thời được chuẩn hóa thành yêu cầu sản phẩm để triển khai thành một ứng dụng web thực thụ, không phụ thuộc Google Sheets. 
+Source
+PRD — Ứng dụng quản lý khách sạn / homestay đa cơ sở
+1. Thông tin tài liệu
+Mục
+Nội dung
+Tên sản phẩm
+Hotel / Homestay Operations Management App
+Phiên bản PRD
+v1.0
+Mục tiêu tài liệu
+Mô tả đầy đủ yêu cầu nghiệp vụ, tính năng, màn hình, dữ liệu, rule xử lý và tiêu chí nghiệm thu để đội phát triển triển khai sản phẩm
+Đối tượng sử dụng tài liệu
+Product team, Antigravity, UI/UX, Backend, Frontend, QA
+Nguồn cảm hứng nghiệp vụ
+Video demo web app quản lý khách sạn/homestay bằng Google Sheets / Web App 
+Source
+2. Bối cảnh và bài toán
+Các mô hình khách sạn mini, nhà nghỉ, homestay, căn hộ dịch vụ và chuỗi lưu trú nhỏ thường quản lý bằng Excel/Google Sheets, dẫn tới các vấn đề: khó theo dõi phòng trống theo thời gian thực, dễ trùng lịch đặt phòng, khó kiểm soát công nợ, phân công dọn phòng thủ công, và báo cáo doanh thu/lợi nhuận mất thời gian. Video tham chiếu cho thấy một mô hình quản lý hiệu quả với các lớp tính năng chính: đặt phòng theo timeline, bảng booking, nhiều đợt thanh toán, dọn phòng, chi phí, báo cáo và dashboard. 
+Source
+Sản phẩm cần số hóa toàn bộ quy trình đó thành một ứng dụng web hiện đại, hỗ trợ đa cơ sở, phân quyền rõ ràng, dễ dùng trên máy tính, máy tính bảng và điện thoại.
+3. Mục tiêu sản phẩm
+3.1. Mục tiêu chính
+Sản phẩm phải giúp cơ sở lưu trú vận hành hằng ngày trên một hệ thống duy nhất, bao gồm:
+quản lý phòng và lịch đặt phòng theo giờ/ngày,
+kiểm soát thanh toán và công nợ,
+phân công và theo dõi dọn phòng,
+theo dõi chi phí vận hành,
+xem báo cáo và dashboard theo thời gian thực,
+quản lý người dùng theo vai trò và phạm vi cơ sở.
+3.2. Mục tiêu kinh doanh
+Mục tiêu
+Mô tả
+Giảm lỗi trùng booking
+Hệ thống tự kiểm tra trùng lịch trước khi lưu
+Tăng tốc thao tác lễ tân
+Cho phép tạo booking trực tiếp từ timeline
+Minh bạch doanh thu
+Tách rõ doanh thu thực thu và khoản chưa thanh toán
+Cải thiện vận hành
+Gắn dọn phòng vào booking và theo dõi tiến độ
+Hỗ trợ chủ/nhà đầu tư
+Cung cấp báo cáo theo cơ sở, dashboard trực quan
+3.3. Mục tiêu người dùng
+Nhóm người dùng
+Kỳ vọng
+Chủ cơ sở / Admin
+Quản trị toàn hệ thống, theo dõi số liệu tổng hợp
+Quản lý
+Điều hành booking và vận hành từng cơ sở
+Nhân viên
+Tạo và quản lý booking của mình nhanh, chính xác
+Nhà đầu tư
+Xem số liệu, không chỉnh sửa dữ liệu
+4. Phạm vi sản phẩm
+4.1. In scope — nằm trong phạm vi bản v1
+Nhóm
+Phạm vi
+Xác thực & phân quyền
+Đăng nhập, vai trò, giới hạn cơ sở
+Quản lý cơ sở & phòng
+CRUD cơ sở, phòng, trạng thái mặc định
+Đặt phòng
+Timeline view, Table view, form tạo/sửa/xóa booking
+Thanh toán
+Nhiều đợt thanh toán trên 1 booking
+Dọn phòng
+Phân công, trạng thái, ghi chú
+Chi phí
+Nhập và quản lý chi phí theo cơ sở
+Báo cáo
+Doanh thu, chi phí, lợi nhuận, số booking
+Dashboard
+KPI, biểu đồ tổng quan
+Danh mục cấu hình
+Nguồn khách, hình thức phòng, nhóm chi phí, trạng thái, người dọn
+4.2. Out of scope — chưa làm trong bản v1
+Nhóm
+Nội dung chưa bao gồm
+OTA / channel manager
+Đồng bộ Agoda, Booking, Airbnb
+Kế toán chuyên sâu
+Hạch toán, hóa đơn điện tử, VAT
+Tin nhắn tự động
+SMS/Zalo/Email tự động cho khách
+Check-in online
+eKYC / OCR CCCD
+Dynamic pricing
+Tự động thay giá theo nhu cầu
+POS / minibar
+Bán thêm dịch vụ tại phòng
+Mobile app native
+Chưa bắt buộc, v1 ưu tiên web responsive
+5. Vai trò người dùng và quyền hạn
+Video gốc mô tả 4 vai trò chính: 
+Admin
+, 
+Quản lý
+, 
+Nhân viên
+, 
+Nhà đầu tư
+. PRD này kế thừa đúng logic đó và chuẩn hóa thành ma trận quyền chi tiết. 
+Source
+5.1. Danh sách roles
+Role
+Mô tả
+Admin
+Toàn quyền toàn hệ thống
+Quản lý
+Quản lý vận hành booking ở các cơ sở được phân
+Nhân viên
+Tạo booking và chỉ sửa booking do mình phụ trách
+Nhà đầu tư
+Chỉ xem dữ liệu của các cơ sở được phân quyền
+5.2. Ma trận quyền
+Chức năng
+Admin
+Quản lý
+Nhân viên
+Nhà đầu tư
+Đăng nhập
+✔
+✔
+✔
+✔
+Xem dashboard
+✔
+Có thể cấu hình bật/tắt
+✖
+ mặc định
+✔
+Xem báo cáo
+✔
+Có thể cấu hình bật/tắt
+✖
+ mặc định
+✔
+Xem timeline / table booking
+✔
+✔
+✔
+✔
+Tạo booking
+✔
+✔
+✔
+✖
+Sửa booking của mình
+✔
+✔
+✔
+✖
+Sửa booking của người khác
+✔
+✔
+✖
+✖
+Xóa booking
+✔
+✔
+✖
+ hoặc theo policy
+✖
+Ghi nhận thanh toán
+✔
+✔
+✔
+ theo policy
+✖
+Cập nhật dọn phòng
+✔
+✔
+✔
+ nếu được phân
+✖
+Quản lý cơ sở/phòng
+✔
+Theo phạm vi
+✖
+✖
+Quản lý danh mục cấu hình
+✔
+Theo phạm vi
+✖
+✖
+Quản lý người dùng
+✔
+✖
+✖
+✖
+Xem dữ liệu mọi cơ sở
+✔
+Theo cơ sở được cấp
+Theo cơ sở được cấp
+Theo cơ sở được cấp
+5.3. Quy tắc phân quyền dữ liệu
+Mọi user chỉ thấy dữ liệu thuộc các cơ sở được gán.
+Nhân viên chỉ được sửa booking do chính mình tạo hoặc được gán phụ trách.
+Nhà đầu tư là role chỉ đọc.
+Quản lý có quyền vận hành booking trong phạm vi cơ sở được giao.
+6. Personas và nhu cầu chính
+Persona
+Nhu cầu
+Chủ chuỗi homestay
+Xem nhanh doanh thu, lợi nhuận, công suất phòng, hiệu quả nhân viên
+Lễ tân / nhân viên bán phòng
+Đặt phòng nhanh, tránh trùng, theo dõi khách đã cọc/chưa thanh toán
+Quản lý cơ sở
+Theo dõi lịch thuê, phân công dọn phòng, kiểm soát tình trạng phòng
+Nhà đầu tư
+Chỉ cần xem số liệu của các cơ sở mình góp vốn, không can thiệp dữ liệu
+7. KPI sản phẩm
+KPI
+Mục tiêu sau triển khai
+Tỷ lệ booking trùng lịch
+~0 nếu dữ liệu nhập đúng
+Thời gian tạo 1 booking
+< 60 giây
+Tỷ lệ booking có đầy đủ thông tin thanh toán
+> 95%
+Tỷ lệ phòng có trạng thái vận hành rõ ràng
+> 95%
+Thời gian tải màn hình timeline
+< 3 giây cho 1 cơ sở / tuần
+Tỷ lệ lỗi phân quyền
+0 lỗi mức nghiêm trọng
+8. Kiến trúc nghiệp vụ tổng quan
+Hệ thống xoay quanh 6 khối chính:
+Người dùng & phân quyền
+Cơ sở & phòng
+Booking & thanh toán
+Dọn phòng
+Chi phí
+Báo cáo & dashboard
+Dòng dữ liệu chính:
+Cơ sở tạo ra phòng.
+Phòng được dùng để tạo booking.
+Booking sinh ra thanh toán và nhu cầu dọn phòng.
+Chi phí được ghi nhận theo cơ sở.
+Báo cáo và dashboard tổng hợp từ booking, payment, expense, cleaning status.
+9. Luồng nghiệp vụ chính
+9.1. Luồng 1 — Tạo booking từ timeline
+Bước
+Người dùng
+Hệ thống
+1
+Mở màn hình Đặt phòng
+Hiển thị timeline theo cơ sở / tuần
+2
+Click vào ô trống của 1 phòng tại 1 mốc giờ
+Mở form tạo booking, tự điền room + check-in gợi ý
+3
+Nhập thông tin khách, thời gian, giá, thanh toán
+Kiểm tra hợp lệ dữ liệu
+4
+Bấm Lưu
+Check trùng lịch, check logic thời gian, tính tổng tiền
+5
+Thành công
+Vẽ booking lên timeline và tạo bản ghi trong table
+6
+Nếu lỗi
+Hiển thị thông báo rõ nguyên nhân
+9.2. Luồng 2 — Tạo booking từ form / table
+Tương tự luồng 1 nhưng điểm vào là nút “Thêm booking” từ màn hình Table hoặc nút CTA chung.
+9.3. Luồng 3 — Ghi nhận thanh toán
+Bước
+Người dùng
+Hệ thống
+1
+Mở booking
+Hiển thị tổng tiền, đã thanh toán, còn nợ
+2
+Chọn “Thêm thanh toán”
+Mở form nhập số tiền, ngày thanh toán, ghi chú
+3
+Lưu
+Tạo bản ghi payment mới
+4
+Sau lưu
+Cập nhật tổng đã thu và công nợ còn lại
+9.4. Luồng 4 — Phân công dọn phòng
+Bước
+Người dùng
+Hệ thống
+1
+Click trạng thái dọn phòng từ booking / room
+Mở popup dọn phòng
+2
+Chọn người dọn, trạng thái, thời gian, ghi chú
+Lưu dữ liệu cleaning task
+3
+Sau lưu
+Cập nhật màu/trạng thái trên giao diện
+9.5. Luồng 5 — Nhập chi phí
+Bước
+Người dùng
+Hệ thống
+1
+Vào trang Chi phí
+Hiển thị danh sách chi phí và form thêm
+2
+Chọn cơ sở, nhóm chi phí, số tiền, ngày
+Validate dữ liệu
+3
+Lưu
+Ghi expense và cập nhật báo cáo
+9.6. Luồng 6 — Xem báo cáo và dashboard
+Bước
+Người dùng
+Hệ thống
+1
+Chọn khoảng ngày / tháng / cơ sở
+Tải dữ liệu tổng hợp
+2
+Xem KPI, biểu đồ, bảng drill-down
+Render dữ liệu theo quyền xem
+3
+Click chi tiết
+Đi sâu đến cơ sở / phòng / nhân viên
+10. Danh sách tính năng chức năng
+10.1. Module A — Xác thực và quản trị người dùng
+Mã
+Tính năng
+Mô tả
+AUTH-01
+Đăng nhập
+Đăng nhập bằng username/email + mật khẩu
+AUTH-02
+Đăng xuất
+Kết thúc phiên
+AUTH-03
+Quản lý user
+Admin tạo/sửa/khóa user
+AUTH-04
+Gán role
+Gán Admin/Quản lý/Nhân viên/Nhà đầu tư
+AUTH-05
+Gán phạm vi cơ sở
+User chỉ thấy data của property được cấp
+AUTH-06
+Màu nhận diện nhân viên
+Tùy chọn màu đại diện trên timeline
+10.2. Module B — Quản lý cơ sở và phòng
+Mã
+Tính năng
+Mô tả
+PROP-01
+CRUD cơ sở
+Tạo, sửa, ẩn, khóa cơ sở
+ROOM-01
+CRUD phòng
+Tạo, sửa, ẩn, khóa phòng
+ROOM-02
+Thuộc tính phòng
+Mã phòng, tầng, cơ sở, ghi chú, trạng thái mặc định
+ROOM-03
+Trạng thái vận hành
+Bẩn / đang dọn / đã dọn / sẵn sàng
+10.3. Module C — Đặt phòng
+Mã
+Tính năng
+Mô tả
+BK-01
+Timeline view
+Xem booking theo phòng x thời gian
+BK-02
+Table view
+Xem booking dạng bảng
+BK-03
+Tạo booking
+Tạo mới từ ô trống timeline hoặc từ nút form
+BK-04
+Xem chi tiết booking
+Popup / drawer thông tin booking
+BK-05
+Sửa booking
+Theo phân quyền
+BK-06
+Xóa booking
+Theo phân quyền
+BK-07
+Tìm kiếm booking
+Theo tên khách, số điện thoại, mã phòng
+BK-08
+Lọc booking
+Theo cơ sở, ngày, trạng thái dọn, nhân viên
+BK-09
+Điều hướng tuần
+Previous / Next week
+BK-10
+Màu booking theo nhân viên
+Phân biệt người phụ trách
+BK-11
+Kiểm tra trùng lịch
+Không cho lưu khi overlap
+BK-12
+Buffer giữa 2 booking
+Ví dụ mặc định 30 phút, cấu hình được
+BK-13
+Hình thức thuê
+Qua đêm / theo giờ / combo
+BK-14
+Booking status
+Giữ phòng / xác nhận / đang ở / hoàn tất / hủy
+10.4. Module D — Thanh toán
+Mã
+Tính năng
+Mô tả
+PAY-01
+Nhiều đợt thanh toán
+1 booking có nhiều payment
+PAY-02
+Tính tổng đã thanh toán
+Cộng các payment hợp lệ
+PAY-03
+Tính công nợ
+Total booking - paid
+PAY-04
+Lịch sử thanh toán
+Xem danh sách các lần thu
+PAY-05
+Ghi chú thanh toán
+Ví dụ cọc, thu nốt, chuyển khoản
+10.5. Module E — Dọn phòng
+Mã
+Tính năng
+Mô tả
+CLEAN-01
+Trạng thái dọn phòng
+Chưa phân công / đang dọn / đã dọn
+CLEAN-02
+Gán người dọn
+Chọn cleaner / nhân viên dọn
+CLEAN-03
+Lịch dọn
+Ghi ngày giờ dọn
+CLEAN-04
+Ghi chú dọn
+Mô tả tình trạng
+CLEAN-05
+Gắn với booking
+Theo dõi vận hành theo lượt thuê
+CLEAN-06
+Danh sách lịch dọn
+Màn hình riêng cho nhân viên dọn (khuyến nghị v1.1 hoặc nếu đủ scope thì v1)
+10.6. Module F — Danh mục cấu hình
+Mã
+Tính năng
+Mô tả
+CFG-01
+Nguồn khách
+Facebook, quảng cáo, giới thiệu...
+CFG-02
+Hình thức phòng
+Qua đêm, theo giờ, combo
+CFG-03
+Nhóm chi phí
+Điện, nước, vật tư, vệ sinh...
+CFG-04
+Người dọn
+Danh sách cleaner
+CFG-05
+Trạng thái phòng
+Cấu hình trạng thái hoạt động
+CFG-06
+Buffer mặc định
+Khoảng cách tối thiểu giữa 2 booking
+10.7. Module G — Chi phí
+Mã
+Tính năng
+Mô tả
+EXP-01
+Ghi nhận chi phí
+Theo cơ sở, nhóm chi phí, số tiền, ngày
+EXP-02
+Lọc chi phí
+Theo cơ sở, nhóm, khoảng ngày
+EXP-03
+Sửa/xóa chi phí
+Theo phân quyền
+10.8. Module H — Báo cáo và dashboard
+Mã
+Tính năng
+Mô tả
+REP-01
+Báo cáo doanh thu tổng
+Theo khoảng thời gian
+REP-02
+Báo cáo chi phí tổng
+Theo khoảng thời gian
+REP-03
+Báo cáo lợi nhuận
+Doanh thu - chi phí
+REP-04
+Số lượng booking
+Theo ngày check-in
+REP-05
+Drill-down theo cơ sở
+Xem chi tiết từng cơ sở
+REP-06
+Drill-down theo phòng
+Xem chi tiết từng phòng
+DASH-01
+KPI hôm nay
+Doanh thu hôm nay, lượt khách hôm nay, phòng đang có khách
+DASH-02
+Occupancy
+Tỷ lệ lấp đầy
+DASH-03
+Doanh thu 30 ngày
+Biểu đồ xu hướng
+DASH-04
+Cơ cấu nguồn khách
+Pie / donut chart
+DASH-05
+Cơ cấu hình thức phòng
+Pie / donut chart
+DASH-06
+Doanh thu theo nhân viên
+Bar chart
+DASH-07
+Bộ lọc
+Theo cơ sở và khoảng ngày
+11. Danh sách màn hình sản phẩm
+11.1. Màn hình 1 — Đăng nhập
+Mục đích:
+ xác thực user và áp quyền truy cập.
+Input
+username/email
+password
+Output
+thành công: chuyển vào màn hình chính theo role
+thất bại: báo lỗi “Sai tài khoản hoặc mật khẩu”
+Thành phần UI
+logo
+ô tài khoản
+ô mật khẩu
+nút đăng nhập
+thông báo lỗi
+11.2. Màn hình 2 — Dashboard
+Mục đích:
+ xem chỉ số tổng quan.
+Thành phần UI
+bộ lọc cơ sở
+bộ lọc khoảng ngày
+KPI cards:
+doanh thu hôm nay
+lượt khách hôm nay
+phòng đang có khách
+tỷ lệ lấp đầy
+biểu đồ:
+doanh thu 30 ngày
+booking theo cơ sở
+cơ cấu nguồn khách
+cơ cấu hình thức phòng
+doanh thu theo nhân viên
+Input
+date range
+property
+permission scope
+Output
+số liệu tổng hợp
+biểu đồ và bảng drill-down
+11.3. Màn hình 3 — Đặt phòng / Timeline
+Mục đích:
+ vận hành đặt phòng trực quan theo thời gian.
+Thành phần UI
+bộ lọc cơ sở
+bộ lọc ngày / tuần
+nút tuần trước / tuần sau
+timeline theo phòng
+khối booking màu
+chỉ báo thời gian hiện tại
+ô trống có thể click để tạo booking
+chỉ báo trạng thái dọn phòng
+Input
+property
+week/date range
+filters
+Output
+lịch phòng trực quan
+popup tạo booking hoặc popup chi tiết
+11.4. Màn hình 4 — Đặt phòng / Table
+Mục đích:
+ quản lý booking chi tiết dạng bảng.
+Thành phần UI
+thanh tìm kiếm
+bộ lọc cơ sở / ngày / trạng thái / nhân viên
+bảng booking
+sort cột
+phân trang
+nút thêm booking
+Các cột khuyến nghị
+Mã booking
+Cơ sở
+Phòng
+Khách hàng
+SĐT
+Check-in
+Check-out
+Hình thức phòng
+Nhân viên
+Tổng tiền
+Đã thanh toán
+Chưa thanh toán
+Trạng thái booking
+Trạng thái dọn phòng
+Thao tác
+11.5. Màn hình 5 — Popup / Form tạo-sửa booking
+Các trường
+cơ sở
+phòng
+tên khách hàng
+số điện thoại
+nguồn khách
+nhân viên phụ trách
+check-in
+check-out
+đơn giá
+phụ phí
+hình thức phòng
+ghi chú
+danh sách các đợt thanh toán
+tổng tiền
+đã thu
+còn nợ
+Nút
+Lưu
+Hủy
+Thêm đợt thanh toán
+Xóa payment draft
+Xóa booking (nếu có quyền)
+11.6. Màn hình 6 — Popup chi tiết booking
+Mục đích:
+ xem nhanh thông tin để xác nhận với khách hoặc vận hành.
+Thành phần
+thông tin khách
+thông tin phòng/cơ sở
+thời gian lưu trú
+trạng thái booking
+lịch sử thanh toán
+trạng thái dọn phòng
+người dọn / thời gian dọn / ghi chú
+11.7. Màn hình 7 — Dọn phòng
+Có thể triển khai dưới dạng:
+popup gắn trên booking, hoặc
+tab/list riêng cho nhân viên dọn.
+Thành phần
+booking liên quan
+phòng
+người dọn
+trạng thái
+giờ dọn
+ghi chú
+nút lưu
+11.8. Màn hình 8 — Quản lý cơ sở
+Thành phần
+danh sách cơ sở
+form thêm/sửa cơ sở
+tên cơ sở
+địa chỉ
+ghi chú
+trạng thái hoạt động
+11.9. Màn hình 9 — Quản lý phòng
+Thành phần
+danh sách phòng theo cơ sở
+mã phòng
+tầng
+trạng thái mặc định
+ghi chú
+nút thêm/sửa/xóa
+11.10. Màn hình 10 — Cài đặt danh mục
+Các nhóm tab
+trạng thái phòng
+nguồn khách
+hình thức phòng
+nhóm chi phí
+người dọn
+buffer mặc định
+11.11. Màn hình 11 — Chi phí
+Thành phần
+bộ lọc cơ sở / ngày / nhóm chi phí
+bảng chi phí
+form thêm chi phí
+Trường
+cơ sở
+nhóm chi phí
+số tiền
+ngày chi
+ghi chú
+11.12. Màn hình 12 — Báo cáo
+Thành phần
+bộ lọc theo tháng / khoảng ngày / cơ sở
+summary cards: doanh thu, chi phí, lợi nhuận, booking
+bảng chi tiết theo cơ sở
+bảng drill-down theo phòng
+11.13. Màn hình 13 — Quản lý người dùng
+Chỉ Admin
+danh sách user
+tạo user
+reset mật khẩu
+gán role
+gán cơ sở
+chọn màu hiển thị
+12. Dữ liệu đầu vào / đầu ra
+12.1. Entity chính
+User
+Trường
+Kiểu
+Bắt buộc
+Ghi chú
+id
+UUID
+✔
+Khóa chính
+full_name
+string
+✔
+Tên người dùng
+username
+string
+✔
+Duy nhất
+password_hash
+string
+✔
+Không lưu plain text
+role
+enum
+✔
+admin/manager/staff/investor
+color_code
+string
+✖
+Màu hiển thị timeline
+status
+enum
+✔
+active/inactive
+assigned_property_ids
+array
+✔
+Phạm vi dữ liệu
+Property
+Trường
+Kiểu
+Bắt buộc
+id
+UUID
+✔
+name
+string
+✔
+address
+string
+✖
+note
+string
+✖
+status
+enum
+✔
+Room
+Trường
+Kiểu
+Bắt buộc
+id
+UUID
+✔
+property_id
+UUID
+✔
+room_code
+string
+✔
+floor
+string/int
+✖
+default_status
+enum
+✖
+note
+string
+✖
+status
+enum
+✔
+Booking
+Trường
+Kiểu
+Bắt buộc
+id
+UUID
+✔
+booking_code
+string
+✔
+property_id
+UUID
+✔
+room_id
+UUID
+✔
+customer_name
+string
+✔
+phone
+string
+✔
+source_id
+UUID
+✖
+assigned_staff_id
+UUID
+✔
+room_type_id
+UUID
+✖
+check_in_at
+datetime
+✔
+check_out_at
+datetime
+✔
+unit_price
+number
+✔
+extra_fee
+number
+✖
+total_amount
+number
+✔
+note
+string
+✖
+booking_status
+enum
+✔
+created_by
+UUID
+✔
+created_at
+datetime
+✔
+updated_at
+datetime
+✔
+Payment
+Trường
+Kiểu
+Bắt buộc
+id
+UUID
+✔
+booking_id
+UUID
+✔
+amount
+number
+✔
+paid_at
+datetime
+✔
+payment_type
+enum/string
+✖
+note
+string
+✖
+created_by
+UUID
+✔
+CleaningTask
+Trường
+Kiểu
+Bắt buộc
+id
+UUID
+✔
+booking_id
+UUID
+✖
+room_id
+UUID
+✔
+cleaner_id
+UUID
+✖
+cleaning_status
+enum
+✔
+scheduled_at
+datetime
+✖
+finished_at
+datetime
+✖
+note
+string
+✖
+Expense
+Trường
+Kiểu
+Bắt buộc
+id
+UUID
+✔
+property_id
+UUID
+✔
+expense_group_id
+UUID
+✔
+amount
+number
+✔
+expense_date
+date
+✔
+note
+string
+✖
+created_by
+UUID
+✔
+Danh mục
+Source
+RoomType
+ExpenseGroup
+Cleaner
+RoomStatusConfig
+12.2. Đầu ra chính của hệ thống
+Đầu ra
+Mô tả
+Timeline data
+Danh sách phòng + các booking theo trục thời gian
+Booking list
+Dữ liệu table với filter/sort/pagination
+Payment summary
+Tổng đã thu, còn nợ theo booking
+Cleaning summary
+Tình trạng phòng và tiến độ dọn
+Expense list
+Danh sách chi phí theo bộ lọc
+Reports
+Tổng doanh thu, chi phí, lợi nhuận, booking
+Dashboard metrics
+KPI và biểu đồ tổng hợp
+13. Rule xử lý nghiệp vụ
+13.1. Rule booking
+Mã rule
+Rule
+R-BK-01
+Booking bắt buộc có cơ sở, phòng, tên khách, SĐT, check-in, check-out, đơn giá, nhân viên phụ trách
+R-BK-02
+Check-out phải lớn hơn check-in
+R-BK-03
+Không được tạo booking nếu thời gian bị overlap với booking khác của cùng phòng
+R-BK-04
+Phải đảm bảo buffer tối thiểu giữa 2 booking cùng phòng; mặc định 30 phút, có thể cấu hình
+R-BK-05
+Tổng tiền = đơn giá + phụ phí hoặc theo công thức do business cấu hình
+R-BK-06
+Xóa booking không được làm mất lịch sử audit
+R-BK-07
+Booking đã có payment chỉ được xóa nếu user có quyền cao hoặc chuyển trạng thái hủy
+13.2. Rule thanh toán
+Mã rule
+Rule
+R-PAY-01
+Một booking có thể có nhiều payment
+R-PAY-02
+Tổng đã thanh toán = tổng các payment hợp lệ
+R-PAY-03
+Còn nợ = total_amount - total_paid
+R-PAY-04
+Không cho payment âm
+R-PAY-05
+Nếu tổng payment > total_amount thì cần xác nhận hoặc chặn theo policy
+R-PAY-06
+Mọi payment phải có ngày thanh toán
+13.3. Rule dọn phòng
+Mã rule
+Rule
+R-CL-01
+Mỗi phòng có trạng thái dọn phòng hiện thời
+R-CL-02
+Cleaning task có thể gắn với booking hoặc chỉ gắn với phòng
+R-CL-03
+Trạng thái chuẩn gồm: chưa phân công, đang dọn, đã dọn
+R-CL-04
+Nếu đã gán cleaner thì lưu lịch sử người thực hiện
+R-CL-05
+Trạng thái dọn phòng phải hiển thị được ngay trên màn hình đặt phòng
+13.4. Rule phân quyền
+Mã rule
+Rule
+R-ACL-01
+User chỉ xem được dữ liệu của property được gán
+R-ACL-02
+Nhân viên chỉ sửa booking của mình
+R-ACL-03
+Nhà đầu tư chỉ có quyền đọc
+R-ACL-04
+Admin có toàn quyền
+R-ACL-05
+Quản lý có quyền vận hành trong phạm vi property được giao
+13.5. Rule báo cáo
+Mã rule
+Rule
+R-REP-01
+Số booking được tính theo booking hợp lệ trong kỳ
+R-REP-02
+Doanh thu thực thu tính theo payment đã nhận
+R-REP-03
+Doanh thu booking có thể hiển thị thêm theo total booking amount nếu cần
+R-REP-04
+Lợi nhuận = doanh thu thực thu - chi phí
+R-REP-05
+Occupancy = số phòng có khách / tổng số phòng trong kỳ hoặc tại thời điểm lọc
+14. Công thức tính toán chuẩn
+Chỉ số
+Công thức
+Tổng tiền booking
+unit_price + extra_fee
+Tổng đã thanh toán
+SUM(payment.amount)
+Còn nợ
+total_amount - total_paid
+Doanh thu kỳ
+SUM(payment.amount trong kỳ)
+Chi phí kỳ
+SUM(expense.amount trong kỳ)
+Lợi nhuận kỳ
+revenue - expense
+Số booking kỳ
+COUNT(booking hợp lệ trong kỳ)
+Tỷ suất lợi nhuận
+profit / revenue
+Tỷ lệ lấp đầy
+booked_room_slots / available_room_slots hoặc active_occupied_rooms / total_active_rooms tùy view
+15. Yêu cầu phi chức năng
+Nhóm
+Yêu cầu
+Hiệu năng
+Timeline tải trong < 3 giây với 1 cơ sở / 7 ngày / tối đa 200 phòng
+Bảo mật
+Mật khẩu hash, phân quyền API, audit log thao tác quan trọng
+Responsive
+Dùng tốt trên desktop, tablet, mobile
+Dễ dùng
+Tạo booking dưới 60 giây với user đã quen
+Khả năng mở rộng
+Hỗ trợ đa cơ sở, nhiều user đồng thời
+Tính toàn vẹn dữ liệu
+Transaction khi tạo booking + payment
+Logging
+Log các thay đổi booking, payment, expense, cleaning
+Sao lưu
+Có cơ chế backup định kỳ
+Localization
+Hỗ trợ tiếng Việt; có thể mở rộng đa ngôn ngữ
+16. API / hành vi hệ thống ở mức khái niệm
+Không bắt buộc khóa chặt framework, nhưng cần có các nhóm endpoint/service sau:
+Nhóm service
+Chức năng
+Auth service
+đăng nhập, refresh token, đổi mật khẩu
+User service
+quản lý user, role, property scope
+Property service
+CRUD cơ sở
+Room service
+CRUD phòng
+Booking service
+tạo/sửa/xóa/tìm kiếm booking
+Payment service
+thêm payment, lịch sử payment
+Cleaning service
+cập nhật dọn phòng
+Expense service
+CRUD chi phí
+Config service
+danh mục động
+Report service
+báo cáo
+Dashboard service
+KPI + chart data
+17. Tiêu chí nghiệm thu theo module
+17.1. Nghiệm thu đăng nhập và phân quyền
+Mã
+Tiêu chí
+AC-AUTH-01
+User đăng nhập thành công với tài khoản hợp lệ
+AC-AUTH-02
+User sai mật khẩu nhận thông báo lỗi phù hợp
+AC-AUTH-03
+Nhân viên không sửa được booking của nhân viên khác
+AC-AUTH-04
+Nhà đầu tư không tạo/sửa/xóa dữ liệu
+AC-AUTH-05
+User chỉ nhìn thấy các cơ sở được gán
+17.2. Nghiệm thu booking
+Mã
+Tiêu chí
+AC-BK-01
+Click ô trống timeline mở đúng form tạo booking
+AC-BK-02
+Tạo booking hợp lệ thì booking xuất hiện trên timeline và table
+AC-BK-03
+Booking trùng lịch bị chặn và báo lỗi rõ ràng
+AC-BK-04
+Check-out nhỏ hơn check-in bị chặn
+AC-BK-05
+Buffer giữa 2 booking được áp dụng đúng
+AC-BK-06
+Tìm kiếm theo tên/SĐT/mã phòng trả kết quả đúng
+AC-BK-07
+Bộ lọc hoạt động đúng trên timeline và table
+17.3. Nghiệm thu payment
+Mã
+Tiêu chí
+AC-PAY-01
+Có thể thêm nhiều payment cho 1 booking
+AC-PAY-02
+Tổng đã thanh toán và còn nợ cập nhật đúng sau mỗi lần thu
+AC-PAY-03
+Không cho nhập payment âm
+AC-PAY-04
+Lịch sử thanh toán hiển thị đủ thời gian, số tiền, ghi chú
+17.4. Nghiệm thu dọn phòng
+Mã
+Tiêu chí
+AC-CL-01
+User có quyền có thể gán người dọn và trạng thái dọn
+AC-CL-02
+Trạng thái màu hiển thị đúng trên giao diện
+AC-CL-03
+Ghi chú và giờ dọn được lưu và xem lại được
+17.5. Nghiệm thu chi phí
+Mã
+Tiêu chí
+AC-EXP-01
+Có thể tạo chi phí hợp lệ
+AC-EXP-02
+Lọc chi phí theo cơ sở và ngày cho kết quả đúng
+AC-EXP-03
+Báo cáo lợi nhuận thay đổi đúng sau khi thêm/sửa chi phí
+17.6. Nghiệm thu báo cáo và dashboard
+Mã
+Tiêu chí
+AC-REP-01
+Dashboard hiển thị đúng KPI theo bộ lọc
+AC-REP-02
+Báo cáo doanh thu/chi phí/lợi nhuận khớp với dữ liệu gốc
+AC-REP-03
+Drill-down theo cơ sở và phòng hoạt động đúng
+AC-REP-04
+Doanh thu theo nhân viên và cơ cấu nguồn khách hiển thị đúng
+18. Test cases nghiệp vụ quan trọng
+Case
+Kỳ vọng
+Tạo 2 booking overlap cùng 1 phòng
+Bị chặn
+Tạo 2 booking khác phòng cùng thời gian
+Được phép
+Booking có cọc 50%, thu nốt sau
+Công nợ cập nhật chính xác
+User nhân viên mở booking của người khác
+Chỉ xem hoặc không được sửa, theo policy
+Nhà đầu tư vào hệ thống
+Chỉ thấy các cơ sở được gán, không có nút chỉnh sửa
+Xóa booking đã có payment
+Phải bị chặn hoặc cần xác nhận quyền cao
+Thêm chi phí cho cơ sở A
+Chỉ tác động báo cáo cơ sở A và báo cáo tổng
+19. Đề xuất UI/UX
+Khu vực
+Đề xuất
+Timeline
+Kéo ngang mượt, màu sắc rõ, booking block dễ nhận biết
+Mobile
+Với mobile ưu tiên Table view và card view, timeline dạng rút gọn
+Popup booking
+Thiết kế dạng multi-section: Thông tin khách / Lưu trú / Thanh toán / Dọn phòng
+Dashboard
+KPI cards ở trên, chart ở dưới, drill-down đơn giản
+Màu trạng thái
+Đỏ = chưa phân công, vàng = đang dọn, xanh = đã dọn
+20. Gợi ý triển khai kỹ thuật
+PRD không khóa cứng stack, nhưng để phù hợp với sản phẩm đa cơ sở, nhiều người dùng đồng thời, nên triển khai theo hướng:
+frontend web app hiện đại,
+backend API chuẩn REST/GraphQL,
+database quan hệ,
+auth bằng JWT/session,
+audit log cho thay đổi quan trọng,
+background jobs cho tổng hợp báo cáo nếu dữ liệu lớn.
+21. Milestones đề xuất
+Giai đoạn
+Phạm vi
+Phase 1
+Auth, role, property, room, booking timeline/table
+Phase 2
+Payment, cleaning, configs
+Phase 3
+Expense, report, dashboard
+Phase 4
+Audit log, performance tuning, UX polishing
+Phase 5
+Optional: export, notifications, cleaner mobile view
+22. Định nghĩa hoàn thành
+Sản phẩm được xem là “Done” khi:
+Có thể đăng nhập với 4 role và quyền hạn hoạt động đúng.
+Có thể tạo booking từ timeline và table mà không bị trùng lịch.
+Có thể ghi nhiều payment cho 1 booking và hiển thị đúng công nợ.
+Có thể cập nhật dọn phòng và nhìn được tình trạng trực quan.
+Có thể nhập chi phí và thấy thay đổi trên báo cáo.
+Có dashboard và báo cáo hoạt động đúng với filter.
+Giao diện usable trên desktop, tablet, mobile.
+QA pass toàn bộ acceptance criteria mức critical và high.
+Không có lỗi nghiêm trọng về phân quyền, dữ liệu, hoặc tính toán.
+23. Phụ lục — Tóm tắt tinh thần nghiệp vụ cần giữ giống bản tham chiếu
+Tinh thần cốt lõi cần giữ từ bản tham chiếu là: 
+đặt phòng phải thật nhanh và trực quan
+, 
+tránh trùng lịch tuyệt đối
+, 
+thanh toán phải nhìn ra ngay đã thu/chưa thu
+, 
+vận hành phải gắn với dọn phòng
+, và 
+quản lý phải xem được số liệu tức thời theo từng cơ sở
+. Video gốc thể hiện đầy đủ 5 trục đó và đây chính là nền tảng nghiệp vụ của sản phẩm cần xây.

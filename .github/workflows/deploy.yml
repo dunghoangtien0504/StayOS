@@ -1,0 +1,58 @@
+name: 🚀 Deploy StayOS to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to VPS (stayos.hoangtiendung.com)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Next.js
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: 🚢 Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            echo "=== Deploying StayOS ==="
+            cd /home/apps/StayOS
+
+            # Pull latest code
+            git pull origin main
+
+            # Install dependencies
+            npm ci --production=false
+
+            # Build
+            NODE_ENV=production npm run build
+
+            # Restart with PM2
+            pm2 restart stayos || pm2 start ecosystem.config.js
+
+            # Save PM2 state
+            pm2 save
+
+            echo "=== Deploy complete ==="
+            pm2 status

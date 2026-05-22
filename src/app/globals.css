@@ -1,0 +1,123 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Booking Source Colors */
+  --color-source-zalo: #0068FF;
+  --color-source-facebook: #1877F2;
+  --color-source-booking: #003580;
+  --color-source-airbnb: #FF5A5F;
+  --color-source-walk-in: #6B7280;
+  --color-source-direct: #10B981;
+
+  /* Booking Status Colors */
+  --color-booking-confirmed: #94A3B8;
+  --color-booking-deposited: #3B82F6;
+  --color-booking-checked-in: #10B981;
+  --color-booking-checked-out: #6B7280;
+  --color-booking-cancelled: #E2E8F0;
+  --color-booking-no-show: #F59E0B;
+}
+
+:root {
+  --background: hsl(25 15% 98%);
+  --foreground: hsl(25 10% 10%);
+  --card: hsl(25 15% 100%);
+  --card-foreground: hsl(25 10% 10%);
+  --popover: hsl(25 15% 100%);
+  --popover-foreground: hsl(25 10% 10%);
+  --primary: hsl(25 75% 45%);
+  --primary-foreground: hsl(25 10% 98%);
+  --secondary: hsl(142 30% 92%);
+  --secondary-foreground: hsl(142 30% 35%);
+  --muted: hsl(25 10% 95%);
+  --muted-foreground: hsl(25 5% 45%);
+  --accent: hsl(210 100% 50%);
+  --accent-foreground: hsl(210 10% 98%);
+  --destructive: hsl(0 75% 50%);
+  --destructive-foreground: hsl(0 10% 98%);
+  --border: hsl(25 10% 90%);
+  --input: hsl(25 10% 90%);
+  --ring: hsl(25 75% 45%);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: hsl(25 10% 5%);
+  --foreground: hsl(25 10% 98%);
+  --card: hsl(25 10% 8%);
+  --card-foreground: hsl(25 10% 98%);
+  --popover: hsl(25 10% 8%);
+  --popover-foreground: hsl(25 10% 98%);
+  --primary: hsl(25 75% 50%);
+  --primary-foreground: hsl(25 10% 5%);
+  --secondary: hsl(142 20% 15%);
+  --secondary-foreground: hsl(142 30% 85%);
+  --muted: hsl(25 10% 12%);
+  --muted-foreground: hsl(25 5% 65%);
+  --accent: hsl(210 100% 60%);
+  --accent-foreground: hsl(210 10% 98%);
+  --destructive: hsl(0 75% 45%);
+  --destructive-foreground: hsl(0 10% 98%);
+  --border: hsl(25 10% 15%);
+  --input: hsl(25 10% 15%);
+  --ring: hsl(25 75% 50%);
+}
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

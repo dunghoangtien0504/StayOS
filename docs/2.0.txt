@@ -1,0 +1,1041 @@
+# PMS SAAS — ARCHITECTURE BLUEPRINT & ANTIGRAVITY MASTER PROMPT
+### Phiên bản v2.0 | Đã kiểm toán & vá lỗi đầy đủ | Dựa trên PRD V18 Final
+### Changelog v2.0: +Check-in flow | +Buffer runtime | +Google Sheets | +Phiếu thu | +No-show | +Công thức giá | +Commission | Clarify Investor role
+
+---
+
+## PHẦN 1 — LUỒNG DỮ LIỆU TỔNG THỂ (Cross-Module Data Flow)
+
+### 1.1. Vòng đời đầy đủ của một Booking (Full Lifecycle — v2)
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  [MODULE 4 - ADD BOOKING MODAL]  — BƯỚC 1: TẠO BOOKING      ║
+╚══════════════════════════════════════════════════════════════╝
+Lễ tân điền form → Validate:
+  ✓ checkout > checkin (bắt buộc)
+  ✓ Room conflict: SELECT * FROM bookings WHERE room_id = ? 
+                   AND status NOT IN ('cancelled','no_show')
+                   AND check_in < new_checkout AND check_out > new_checkin
+  ✓ Buffer 30 phút: khoảng cách với booking liền kề ≥ 30 phút
+  ✓ Nếu conflict → Block submit, hiển thị lịch xung đột ngay trên modal
+
+→ Ghi bookings: status = "confirmed" (chưa cọc) hoặc "deposited" (đã cọc)
+→ Trigger: Nếu có payment → Ghi payment_records → Sinh receipt tự động
+→ Trigger: Google Sheets Sync Queue — append row mới vào Sheet khách hàng
+→ Hiển thị: Booking Block màu Xanh dương xuất hiện trên Timeline (M2.3)
+→ Table View (M9): KPI cards cập nhật real-time
+
+         ▼
+
+╔══════════════════════════════════════════════════════════════╗
+║  [MODULE 8 - BOOKING DETAILS MODAL] — BƯỚC 2: CHECK-IN  🆕  ║
+╚══════════════════════════════════════════════════════════════╝
+Lễ tân mở Booking Details Modal → Bấm nút [Check-in]:
+  → Validate: Phòng đang ở trạng thái "Đã dọn" (Clean)?
+      Nếu KHÔNG → Hiện cảnh báo "Phòng chưa sẵn sàng" + block Check-in
+      Nếu CÓ → Cho phép tiếp tục
+  → bookings.status → "checked_in"
+  → bookings.actual_check_in = NOW()
+  → Booking Block đổi màu → Xanh lá "Đang ở"
+  → Google Sheets Sync: Update row tương ứng (cột actual_check_in)
+
+         ▼
+
+╔══════════════════════════════════════════════════════════════╗
+║  TRONG THỜI GIAN LƯU TRÚ — Thanh toán nhiều đợt             ║
+╚══════════════════════════════════════════════════════════════╝
+Mỗi lần ghi payment:
+  → INSERT payment_records (booking_id, amount, method, date)
+  → bookings.amount_paid = SUM(payment_records.amount)
+  → bookings.amount_remaining = total_price - amount_paid
+  → Auto-trigger: Nếu remaining = 0 → status badge đổi "Đã TT đủ"
+  → Sinh phiếu thu (receipt) on-demand — có thể in ngay
+  → Table View (M9): Cột "Chưa TT" và "Ngày TT gần nhất" cập nhật real-time
+  → Google Sheets Sync: Update row (payment columns)
+
+  ⚠️ RUNTIME ALERT (Buffer check):
+  → Cron job chạy mỗi 15 phút: Scan bookings kế tiếp trong 60 phút tới
+  → Nếu phòng vẫn "Bẩn"/"Đang dọn" VÀ booking tiếp theo < 60 phút
+     → Push notification cho Housekeeping lead + lễ tân
+
+         ▼
+
+╔══════════════════════════════════════════════════════════════╗
+║  [MODULE 8] — BƯỚC 3: CHECK-OUT                              ║
+╚══════════════════════════════════════════════════════════════╝
+Lễ tân bấm [Check-out]:
+  → Validate: Còn nợ (amount_remaining > 0)?
+       → Hiện warning dialog: "Khách còn nợ [X]đ. Vẫn check-out?"
+       → [Xác nhận] → Ghi nhận nợ tồn, vẫn cho check-out
+       → [Hủy] → Quay lại thu tiền
+  → bookings.status → "checked_out"
+  → bookings.actual_check_out = NOW()
+  → ⚡ AUTO-TRIGGER: room.status → "dirty" (Bẩn)
+  → Timeline: Block đổi màu xám, Room dot đổi đỏ
+  → Housekeeping Board: Card mới xuất hiện cột "CẦN DỌN"
+  → Google Sheets Sync: Update row (checkout columns)
+
+  ⚠️ LATE CHECK-OUT ALERT:
+  → Nếu current_time > booking.check_out VÀ status vẫn "checked_in"
+     → Booking Block nháy cam trên Timeline
+     → Nếu booking kế tiếp < 2 tiếng → Alert popup lễ tân
+     → Lễ tân chọn: [Gia hạn + tính phí giờ] | [Miễn phí late C/O]
+
+  ⚠️ NO-SHOW HANDLING: 🆕
+  → Nếu current_time > check_in + 2 tiếng VÀ status vẫn "confirmed/deposited"
+     → Auto-alert lễ tân: "Khách [tên] chưa check-in"
+     → Lễ tân bấm [Đánh dấu No-show]:
+          → bookings.status → "no_show"
+          → Popup: Chính sách tiền cọc? [Giữ lại | Hoàn trả]
+          → Phòng → tự động "Available" (KHÔNG cần dọn, chưa ai ở)
+          → KHÔNG trigger Housekeeping
+
+         ▼
+
+╔══════════════════════════════════════════════════════════════╗
+║  [MODULE 7 - HOUSEKEEPING] — BƯỚC 4: DỌN PHÒNG              ║
+╚══════════════════════════════════════════════════════════════╝
+Nhận card "CẦN DỌN":
+  → Trưởng bộ phận phân công đích danh Housekeeper (từ danh sách staff)
+  → cleaning_assignments: INSERT (room_id, booking_id, assigned_to, status='pending')
+  → Housekeeper nhận task trên mobile → Bấm [Bắt đầu dọn]
+     → room.status → "cleaning" (Vàng)
+  → Housekeeper upload ảnh từ camera mobile:
+     → VALIDATE real-time: count(photos) hiển thị "X/8 ảnh"
+     → Nút [Hoàn thành] chỉ enable khi đủ 8 ảnh
+  → Bấm [Hoàn thành]:
+     → room.status → "clean" (Xanh)
+     → cleaning_assignments.status → "done"
+     → Timeline: Room dot đổi xanh, phòng sẵn sàng cho booking tiếp
+
+         ▼
+
+╔══════════════════════════════════════════════════════════════╗
+║  [MODULE 12 + 13] — SONG SONG: CHI PHÍ & BÁO CÁO            ║
+╚══════════════════════════════════════════════════════════════╝
+Module 12 — Expense:
+  → Kế toán ghi chi phí: property_id (hoặc NULL = chung toàn chuỗi)
+  → expenses table → Trigger M13 recalculate P&L
+
+Module 13 — P&L real-time:
+  → Revenue  = SUM(total_price) WHERE status NOT IN ('cancelled','no_show')
+               + Doanh thu thuần = Revenue - SUM(refund_amount)
+  → Expenses = SUM(amount) per property + phân bổ chi phí chung
+  → Fixed    = SUM(properties.monthly_rent) per kỳ
+  → Profit   = Revenue_thuần - Expenses - Fixed
+  → Occupancy = actual_checked_in_nights / total_room_nights * 100
+  → KPI "Chưa TT" = SUM(amount_remaining) WHERE status 
+                     NOT IN ('cancelled','no_show','checked_out_debt_written_off')
+
+         ▼
+
+╔══════════════════════════════════════════════════════════════╗
+║  [MODULE 15] — GOOGLE SHEETS BACKUP (REAL-TIME SYNC)  🆕     ║
+╚══════════════════════════════════════════════════════════════╝
+Mỗi write operation trong hệ thống:
+  → Event được đẩy vào sync_queue (bảng DB hoặc Redis queue)
+  → Background job (chạy mỗi 30 giây hoặc webhook):
+       - Lấy events chưa sync (synced = false)
+       - Call Google Sheets API: append/update dòng tương ứng
+       - Đánh dấu synced = true, ghi sync_at timestamp
+  → Nếu API call thất bại: retry 3 lần, sau đó báo lỗi admin
+  → Dedup: Check idempotency_key trước khi write vào Sheet
+  → Khách hàng sở hữu dữ liệu: Sheet nằm trong Google Drive của họ
+```
+
+---
+
+### 1.2. Bảng liên kết Module — v2 (Cross-Reference Matrix)
+
+| Sự kiện | Module nguồn | Trigger sang | Dữ liệu truyền |
+|---------|-------------|--------------|----------------|
+| Tạo Booking | M4 | M9, M2.3, M15 | booking_id, room_id, dates, amount |
+| Ghi Payment | M4/M8 | M9, M13, M15, Receipt | payment_amount, booking_id |
+| **Check-in** 🆕 | M8 | M2.3 | room_id, actual_check_in |
+| Check-out | M8 | M7, M2.3, M15 | room_id → dirty |
+| **No-show** 🆕 | M8 | M2.3 | room_id → available (skip cleaning) |
+| Dọn xong | M7 | M2.3, M8 (unblock checkin) | room_id → clean |
+| Nhập chi phí | M12 | M13, M15 | expense, property_id |
+| Cài đặt giá thuê CS | M11 | M13 (Fixed Cost) | monthly_rent |
+| Nhân viên tạo booking | M4 | M14 KPI, Commission | staff_id, booking_revenue |
+| **Google Sheets write** 🆕 | M15 | External Google Drive | Sync payload |
+
+---
+
+## PHẦN 2 — BUSINESS LOGIC & CÔNG THỨC (v2)
+
+### 2.1. Công thức tính giá theo Hình thức phòng 🆕
+
+```
+"Theo ngày":
+  → total_price = unit_price × số_ngày
+  → Số ngày = CEIL((checkout_date - checkin_date) / 86400 seconds)
+  → Ví dụ: Check-in 10/6 14h → Check-out 12/6 12h = 2 ngày
+
+"Theo giờ":
+  → total_price = unit_price × số_giờ (làm tròn LÊN)
+  → Số giờ = CEIL((checkout_time - checkin_time) / 3600 seconds)
+  → Ví dụ: 14h00 → 17h30 = CEIL(3.5) = 4 giờ
+
+"Qua đêm":
+  → total_price = unit_price × 1 (giá cố định cho 1 lượt qua đêm)
+  → Khung giờ chuẩn: Check-in 22h00 → Check-out 08h00 hôm sau
+  → Nếu khác khung giờ chuẩn: áp dụng phụ phí
+
+Frontend: Khi user chọn room_type → JS tự động detect công thức 
+         và recalculate total_price real-time khi thay đổi dates.
+```
+
+### 2.2. Commission (Hoa hồng nhân viên) 🆕
+
+```
+Thời điểm tính: Khi booking.status chuyển sang "checked_out"
+Công thức: commission_earned = booking.total_price × user.commission_rate / 100
+Lưu trữ: Ghi vào bookings.commission_earned (computed at checkout)
+Hiển thị: Dashboard M14.3 → Staff Performance Table cột "Commission"
+Xuất báo cáo: Tính tổng commission theo kỳ cho từng staff
+Lưu ý: Commission tính trên TỔNG doanh thu, không trừ discount/refund
+        (Điều chỉnh tùy chính sách — cần confirm với Product Owner)
+```
+
+### 2.3. Phân quyền Nhà đầu tư — đã làm rõ 🆕
+
+```
+⚠️ Mâu thuẫn trong PRD gốc đã được giải quyết như sau:
+   M6.1: "Nhà đầu tư — Chỉ xem cơ sở của mình"
+   KSP #10: "chỉ được xem báo cáo cơ sở rớt vốn" (có thể là typo "rớt" = "của")
+
+→ Quyết định thiết kế (chờ confirm Product Owner):
+   Nhà đầu tư XEM ĐƯỢC: 
+     - Báo cáo P&L đầy đủ của cơ sở mình đầu tư (property_access[])
+     - Dashboard KPI của cơ sở đó
+     - Không thấy cơ sở khác, không thấy dữ liệu nhân viên, không thấy chi tiết booking
+   Nhà đầu tư KHÔNG xem:
+     - Danh sách booking, thông tin khách hàng cụ thể
+     - Chi phí nhân viên, hoa hồng
+     - Cài đặt hệ thống
+
+→ Implementation: users.property_access = UUID[] (array of property_ids)
+   Mọi query của Investor role đều có WHERE property_id = ANY(user.property_access)
+```
+
+---
+
+## PHẦN 3 — EDGE CASES (v2 — Cập nhật đầy đủ)
+
+### EC-1: Hủy phòng có cọc tiền
+
+```
+→ Popup 3 lựa chọn: [Giữ cọc] | [Hoàn một phần (nhập %)] | [Hoàn toàn bộ]
+→ bookings.cancellation_type + refund_amount
+→ Nếu hoàn: Tạo expense_record loại "Refund" → ảnh hưởng P&L
+→ P&L hiển thị: "Doanh thu gộp" vs "Doanh thu thuần (sau hoàn)"
+→ Room: Available ngay lập tức (không cần dọn nếu chưa check-in)
+→ Google Sheets Sync: Update row + ghi refund_amount
+```
+
+### EC-2: Late Check-out
+
+```
+→ current_time > check_out VÀ status = "checked_in"
+→ Booking Block nháy màu cam trên Timeline
+→ Alert lễ tân nếu booking tiếp theo < 2 tiếng
+→ Chọn: [Gia hạn + phí giờ] → tạo surcharge record
+         [Miễn phí] → ghi note, không tính thêm
+→ Housekeeping: Nhận thông báo delay
+```
+
+### EC-3: No-show 🆕
+
+```
+→ Auto-alert sau check_in + 2 tiếng không có action
+→ Lễ tân confirm No-show:
+   booking.status → "no_show"
+   Chọn: [Giữ cọc] | [Hoàn cọc]
+   Room → "clean" (Available, không trigger Housekeeping)
+   KPI: No-show booking KHÔNG tính vào Revenue thực tế
+        Chỉ tính revenue từ tiền cọc giữ lại (nếu có)
+```
+
+### EC-4: Chi phí chung toàn chuỗi
+
+```
+→ property_id = NULL trong bảng expenses
+→ P&L Mức 1 (Toàn chuỗi): Trừ toàn bộ chi phí chung
+→ P&L Mức 2 (từng CS): Hiển thị riêng dòng "Chi phí chung được phân bổ"
+   Cách phân bổ: Tỷ lệ % theo doanh thu từng cơ sở
+   VD: CS-A đóng góp 60% doanh thu → chịu 60% chi phí chung
+```
+
+### EC-5: Nhân viên nghỉ việc còn booking
+
+```
+→ Soft-delete: users.is_active = false (KHÔNG xóa record)
+→ Popup: "Reassign [X] bookings chưa check-in?"
+→ Lịch sử booking vẫn giữ staff_id cũ (để báo cáo chính xác)
+→ Báo cáo: Toggle "Hiện nhân viên đã nghỉ" để xem historical data
+```
+
+### EC-6: Double-submit / Lỗi mạng
+
+```
+→ Idempotency key: UUID sinh khi mở modal, gắn vào mọi request
+→ Backend: INSERT ... ON CONFLICT (idempotency_key) DO NOTHING
+→ UI: Button disabled 3s sau click + loading state
+→ Google Sheets: Queue-based với dedup trên idempotency_key
+```
+
+### EC-7: Buffer runtime (Phòng dọn chưa xong) 🆕
+
+```
+→ Cron job mỗi 15 phút quét:
+   SELECT bookings WHERE check_in BETWEEN NOW() AND NOW() + 60min
+   JOIN rooms WHERE status IN ('dirty', 'cleaning')
+→ Nếu match: Push notification → Housekeeping lead + lễ tân
+→ Lễ tân không thể Check-in nếu room.status != 'clean'
+   (Chỉ có thể override nếu role = Admin/Manager)
+```
+
+---
+
+## PHẦN 4 — PHÂN RÃ COMPONENT (v2)
+
+### 4.1. Pages / Routes (v2)
+
+```
+/ (Root)
+├── /login                          → Đăng nhập
+├── /dashboard                      → Dashboard tổng quan (M14)
+├── /bookings
+│   ├── /bookings/timeline          → Timeline Gantt View [DEFAULT]
+│   └── /bookings/table             → Table View / Data Grid
+├── /rooms                          → Danh sách & trạng thái phòng
+├── /housekeeping                   → Kanban board dọn phòng
+├── /expenses                       → Quản lý chi phí
+├── /reports
+│   ├── /reports/pl                 → P&L Report (drill-down)
+│   ├── /reports/revenue            → Báo cáo doanh thu
+│   └── /reports/occupancy          → Báo cáo công suất
+├── /staff                          → Nhân viên + KPI
+└── /settings
+    ├── /settings/general           → Dynamic config (M10)
+    ├── /settings/properties        → Cơ sở & Phòng (M11)
+    ├── /settings/integrations  🆕  → Google Sheets OAuth + setup
+    └── /settings/roles             → RBAC
+```
+
+### 4.2. Shared UI Components (v2)
+
+#### LAYOUT
+| Component | Mô tả | Props |
+|-----------|-------|-------|
+| `<GlobalSidebar>` | Nav sidebar có collapse | role, activeRoute, properties[] |
+| `<TopBar>` | Header filters + actions | view, onSearch, onFilter |
+| `<PropertySelector>` | Dropdown chọn cơ sở | properties[], selected |
+| `<PageWrapper>` | Layout container chuẩn | title, breadcrumb, actions |
+
+#### BOOKING COMPONENTS (v2)
+| Component | Mô tả | Props |
+|-----------|-------|-------|
+| `<AddBookingModal>` | Tạo/sửa booking full form | mode, roomId, onSuccess |
+| `<BookingDetailsModal>` | Quick view + actions | bookingId, onCheckin🆕, onCheckout, onNoshow🆕 |
+| `<CheckinConfirmDialog>` 🆕 | Xác nhận check-in + kiểm tra phòng sạch | bookingId |
+| `<NoShowModal>` 🆕 | Confirm no-show + chính sách cọc | bookingId, depositAmount |
+| `<CancellationModal>` | Hủy booking + loại hoàn tiền | bookingId, paidAmount |
+| `<LateCheckoutModal>` | Xử lý late check-out | bookingId, nextBookingTime |
+| `<BookingBlock>` | Gantt block màu theo status | booking, onClick |
+| `<PaymentSection>` | Thanh toán nhiều đợt | bookingId, total, payments[] |
+| `<ReceiptModal>` 🆕 | Xem + In phiếu thu | receiptId, bookingId |
+
+#### TIMELINE COMPONENTS
+| Component | Mô tả | Props |
+|-----------|-------|-------|
+| `<TimelineGrid>` | Gantt chart container | rooms[], bookings[], dateRange |
+| `<TimelineHeader>` | Trục X thời gian | startDate, viewMode |
+| `<RoomRow>` | Hàng phòng trục Y | room, bookings[], onSlotClick |
+| `<CurrentTimeIndicator>` | Đường thời gian thực | — (auto mỗi phút) |
+| `<PropertyGroup>` | Nhóm collapsible theo cơ sở | property, rooms[] |
+| `<LateCheckoutAlert>` 🆕 | Badge nháy cam trên block | bookingId |
+
+#### DATA DISPLAY
+| Component | Mô tả | Props |
+|-----------|-------|-------|
+| `<StatusBadge>` | Badge trạng thái | status, type |
+| `<KpiCard>` | Thẻ chỉ số | title, value, change |
+| `<DataTable>` | Bảng sort/filter/export | columns[], data[] |
+| `<RoomStatusDot>` | Chấm màu clean/dirty/cleaning | status |
+| `<DebtBadge>` | Hiện công nợ cảnh báo | amount, isPaid |
+| `<CommissionTag>` 🆕 | Hiển thị commission nhân viên | amount, rate |
+
+#### FORM COMPONENTS
+| Component | Mô tả | Props |
+|-----------|-------|-------|
+| `<DateRangePicker>` | Chọn khoảng ngày | value, disabledRanges[] |
+| `<PropertyRoomPicker>` | Cascading CS → Phòng | properties[], onSelect |
+| `<PriceCalculator>` 🆕 | Tính giá theo loại phòng | roomType, checkin, checkout |
+| `<PhotoUploadGrid>` | Upload 8 ảnh nghiệm thu | required=8, onComplete |
+
+#### INTEGRATION COMPONENTS 🆕
+| Component | Mô tả | Props |
+|-----------|-------|-------|
+| `<GoogleSheetsConnect>` | OAuth connect + Sheet picker | orgId, onConnect |
+| `<SyncStatusIndicator>` | Hiện trạng sync real-time | lastSync, queueSize |
+| `<ReceiptTemplate>` | Template phiếu thu in được | bookingData, payments[] |
+
+---
+
+### 4.3. Database Schema (v2 — Đầy đủ)
+
+```sql
+-- ============================================================
+-- CORE ENTITIES
+-- ============================================================
+
+CREATE TABLE organizations (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        VARCHAR(255) NOT NULL,
+  plan        VARCHAR(50) DEFAULT 'basic',
+  created_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE properties (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID REFERENCES organizations(id),
+  name            VARCHAR(255) NOT NULL,
+  address         TEXT,
+  monthly_rent    DECIMAL(15,2) DEFAULT 0,
+  timezone        VARCHAR(50) DEFAULT 'Asia/Ho_Chi_Minh',
+  is_active       BOOLEAN DEFAULT true,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE rooms (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id     UUID REFERENCES properties(id),
+  name            VARCHAR(100) NOT NULL,
+  room_type       VARCHAR(100),
+  base_price      DECIMAL(15,2),
+  capacity        INT DEFAULT 2,
+  status          VARCHAR(20) DEFAULT 'clean',
+  -- ENUM: clean | dirty | cleaning
+  floor           INT,
+  sort_order      INT DEFAULT 0,
+  is_active       BOOLEAN DEFAULT true
+);
+
+-- ============================================================
+-- USERS & STAFF
+-- ============================================================
+
+CREATE TABLE users (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID REFERENCES organizations(id),
+  email           VARCHAR(255) UNIQUE NOT NULL,
+  full_name       VARCHAR(255) NOT NULL,
+  phone           VARCHAR(20),
+  role            VARCHAR(20) NOT NULL,
+  -- ENUM: admin | manager | staff | investor | housekeeper
+  property_access UUID[],       -- Properties được phép truy cập
+  commission_rate DECIMAL(5,2) DEFAULT 0,
+  tag_color       VARCHAR(7),
+  is_active       BOOLEAN DEFAULT true,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- NOTE: Housekeeper là role riêng trong bảng users.
+-- "Người dọn phòng" trong Settings (M10) = display alias của users có role='housekeeper'
+-- Housekeeper CÓ tài khoản đăng nhập để upload ảnh từ mobile.
+
+-- ============================================================
+-- BOOKINGS (v2 — đầy đủ trạng thái)
+-- ============================================================
+
+CREATE TABLE bookings (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id         UUID REFERENCES properties(id),
+  room_id             UUID REFERENCES rooms(id),
+  staff_id            UUID REFERENCES users(id),
+
+  -- Guest
+  guest_name          VARCHAR(255) NOT NULL,
+  guest_phone         VARCHAR(20),
+  source              VARCHAR(100),
+
+  -- Dates
+  check_in            TIMESTAMP NOT NULL,
+  check_out           TIMESTAMP NOT NULL,
+  actual_check_in     TIMESTAMP,      -- Set khi bấm Check-in
+  actual_check_out    TIMESTAMP,      -- Set khi bấm Check-out
+
+  -- Pricing (v2: phân biệt room_type_code để tính đúng công thức)
+  room_type_code      VARCHAR(20),
+  -- ENUM: per_day | per_hour | overnight
+  room_type_label     VARCHAR(100),   -- Hiển thị: "Theo ngày" etc.
+  unit_price          DECIMAL(15,2),
+  surcharge           DECIMAL(15,2) DEFAULT 0,
+  total_price         DECIMAL(15,2) NOT NULL,
+  amount_paid         DECIMAL(15,2) DEFAULT 0,
+  amount_remaining    DECIMAL(15,2) GENERATED ALWAYS AS (total_price - amount_paid) STORED,
+
+  -- Commission (v2)
+  commission_rate     DECIMAL(5,2) DEFAULT 0,     -- Snapshot tại thời điểm tạo
+  commission_earned   DECIMAL(15,2) DEFAULT 0,    -- Tính khi checked_out
+
+  -- Status
+  status              VARCHAR(30) DEFAULT 'confirmed',
+  -- ENUM: confirmed | deposited | checked_in | checked_out | cancelled | no_show
+
+  -- Cancellation
+  cancellation_type   VARCHAR(20),
+  -- ENUM: keep_deposit | partial_refund | full_refund
+  refund_amount       DECIMAL(15,2) DEFAULT 0,
+  cancellation_reason TEXT,
+  cancelled_at        TIMESTAMP,
+
+  -- No-show (v2)
+  no_show_deposit_action VARCHAR(20),
+  -- ENUM: keep | refund
+
+  -- Misc
+  notes               TEXT,
+  idempotency_key     UUID UNIQUE,
+
+  created_at          TIMESTAMP DEFAULT NOW(),
+  updated_at          TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================
+-- PAYMENTS
+-- ============================================================
+
+CREATE TABLE payment_records (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id      UUID REFERENCES bookings(id),
+  amount          DECIMAL(15,2) NOT NULL,
+  payment_method  VARCHAR(50),  -- cash | transfer | card
+  payment_date    DATE DEFAULT CURRENT_DATE,
+  note            TEXT,
+  recorded_by     UUID REFERENCES users(id),
+  receipt_number  VARCHAR(50) UNIQUE,  -- Auto-generated: REC-YYYYMMDD-XXXX
+  idempotency_key UUID UNIQUE,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================
+-- RECEIPTS (v2) 🆕
+-- ============================================================
+
+CREATE TABLE receipts (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment_id      UUID REFERENCES payment_records(id),
+  booking_id      UUID REFERENCES bookings(id),
+  receipt_number  VARCHAR(50) UNIQUE NOT NULL,
+  issued_by       UUID REFERENCES users(id),
+  issued_at       TIMESTAMP DEFAULT NOW(),
+  amount          DECIMAL(15,2) NOT NULL,
+  payment_method  VARCHAR(50),
+  notes           TEXT
+  -- Template được render on-demand từ data này, không lưu HTML/PDF
+);
+
+-- ============================================================
+-- HOUSEKEEPING
+-- ============================================================
+
+CREATE TABLE cleaning_assignments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id         UUID REFERENCES rooms(id),
+  booking_id      UUID REFERENCES bookings(id),
+  assigned_to     UUID REFERENCES users(id),  -- role='housekeeper'
+  assigned_by     UUID REFERENCES users(id),
+  status          VARCHAR(20) DEFAULT 'pending',
+  -- ENUM: pending | in_progress | done
+  photos          JSONB DEFAULT '[]',         -- Array of URLs, cần đủ 8
+  started_at      TIMESTAMP,
+  completed_at    TIMESTAMP,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================
+-- EXPENSES
+-- ============================================================
+
+CREATE TABLE expenses (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID REFERENCES organizations(id),
+  property_id     UUID REFERENCES properties(id),  -- NULL = chi phí chung
+  category        VARCHAR(100) NOT NULL,
+  amount          DECIMAL(15,2) NOT NULL,
+  expense_date    DATE NOT NULL,
+  description     TEXT,
+  receipt_url     TEXT,
+  recorded_by     UUID REFERENCES users(id),
+  idempotency_key UUID UNIQUE,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================
+-- GOOGLE SHEETS INTEGRATION (v2) 🆕
+-- ============================================================
+
+CREATE TABLE google_integrations (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID REFERENCES organizations(id) UNIQUE,
+  sheet_id        VARCHAR(255),        -- Google Sheets file ID
+  drive_folder_id VARCHAR(255),
+  access_token    TEXT,                -- Encrypted
+  refresh_token   TEXT,                -- Encrypted
+  token_expiry    TIMESTAMP,
+  is_active       BOOLEAN DEFAULT true,
+  last_sync_at    TIMESTAMP,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE sync_queue (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID REFERENCES organizations(id),
+  entity_type     VARCHAR(50),   -- booking | payment | expense
+  entity_id       UUID,
+  action          VARCHAR(20),   -- insert | update | delete
+  payload         JSONB,
+  idempotency_key UUID UNIQUE,
+  synced          BOOLEAN DEFAULT false,
+  retry_count     INT DEFAULT 0,
+  synced_at       TIMESTAMP,
+  error_message   TEXT,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================
+-- DYNAMIC CONFIG (M10)
+-- ============================================================
+
+CREATE TABLE system_configs (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID REFERENCES organizations(id),
+  config_type     VARCHAR(50) NOT NULL,
+  -- ENUM: room_status | guest_source | room_form_type
+  --       expense_category | housekeeper_alias
+  value           VARCHAR(255) NOT NULL,
+  sort_order      INT DEFAULT 0,
+  is_active       BOOLEAN DEFAULT true
+);
+
+-- ============================================================
+-- AUDIT LOG
+-- ============================================================
+
+CREATE TABLE audit_logs (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID REFERENCES users(id),
+  action          VARCHAR(100) NOT NULL,
+  entity_type     VARCHAR(50),
+  entity_id       UUID,
+  old_value       JSONB,
+  new_value       JSONB,
+  ip_address      INET,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================
+-- INDEXES
+-- ============================================================
+
+CREATE INDEX idx_bookings_room_dates   ON bookings(room_id, check_in, check_out);
+CREATE INDEX idx_bookings_property     ON bookings(property_id, status);
+CREATE INDEX idx_bookings_status       ON bookings(status);
+CREATE INDEX idx_bookings_staff        ON bookings(staff_id);
+CREATE INDEX idx_bookings_checkin_time ON bookings(check_in);  -- For no-show cron
+CREATE INDEX idx_payments_booking      ON payment_records(booking_id);
+CREATE INDEX idx_expenses_property     ON expenses(property_id, expense_date);
+CREATE INDEX idx_cleaning_room         ON cleaning_assignments(room_id, status);
+CREATE INDEX idx_sync_queue_unsynced   ON sync_queue(synced, created_at)
+                                       WHERE synced = false;  -- Partial index
+```
+
+---
+
+### 4.4. State Management
+
+```
+Global Store (Zustand)
+├── auth.slice        → user, role, permissions, session_expiry (2h)
+├── booking.slice     → bookings[], filters, viewMode (timeline/table)
+├── room.slice        → rooms[], statuses (realtime WebSocket)
+├── ui.slice          → modals, loading, notifications, alerts
+├── filter.slice      → property, dateRange, status filters
+├── report.slice      → P&L data, KPI, charts
+└── sync.slice   🆕  → syncStatus, lastSyncAt, queueSize, error
+```
+
+---
+
+## PHẦN 5 — MASTER PROMPT CHO ANTIGRAVITY (v2)
+
+```
+=================================================================
+MASTER PROMPT — PMS SAAS (HOMESTAY/HOTEL CHAIN MANAGEMENT)
+Version: Architecture Blueprint v2.0 | Ngôn ngữ UI: Tiếng Việt
+Đã bổ sung: Check-in Flow | No-show | Google Sheets | Phiếu thu
+=================================================================
+
+## ROLE & CONTEXT
+
+Bạn là Full-Stack Developer + UI/UX Designer chuyên B2B SaaS hospitality.
+Nhiệm vụ: Xây dựng hệ thống PMS (Property Management System) hoàn chỉnh
+cho chuỗi Homestay/Khách sạn tại Việt Nam.
+
+---
+
+## TARGET USERS
+
+| Role | Thiết bị chính | Tác vụ chính |
+|------|---------------|-------------|
+| Lễ tân | Desktop | Tạo booking, check-in/out, thu tiền |
+| Housekeeping | Mobile | Dọn phòng, upload ảnh |
+| Quản lý | Desktop/Tablet | Dashboard, phân công, báo cáo |
+| Nhà đầu tư | Mobile/Desktop | Chỉ xem P&L cơ sở của mình |
+| Admin | Desktop | Cài đặt toàn hệ thống |
+
+---
+
+## TECH STACK
+
+- Frontend: Next.js 14 App Router + TypeScript
+- Styling: Tailwind CSS + shadcn/ui
+- State: Zustand
+- Charts: Recharts
+- Database: PostgreSQL (Supabase)
+- Auth: Supabase Auth
+- Real-time: Supabase Realtime (WebSocket)
+- File Upload: Supabase Storage
+- Background Jobs: Supabase Edge Functions (hoặc cron)
+- Google Integration: Google Sheets API v4
+
+---
+
+## DATABASE SCHEMA
+
+[PASTE TOÀN BỘ SQL SCHEMA TỪ PHẦN 4.3 VÀO ĐÂY]
+
+---
+
+## BOOKING STATUS LIFECYCLE (Critical — code đúng state machine này)
+
+confirmed → deposited → checked_in → checked_out
+confirmed → cancelled (hoàn tiền/giữ cọc)
+confirmed/deposited → no_show (bấm manual sau 2h)
+deposited → cancelled
+
+Màu sắc trên Timeline:
+- confirmed:   #94A3B8 (Gray nhạt)
+- deposited:   #3B82F6 (Blue)
+- checked_in:  #10B981 (Green)
+- checked_out: #6B7280 (Gray)
+- cancelled:   strikethrough + #E2E8F0
+- no_show:     #F59E0B (Amber) + icon
+
+---
+
+## PRICING FORMULAS (implement đúng cho auto-calculation)
+
+room_type_code = 'per_day':
+  total = unit_price × CEIL(DATEDIFF(checkout, checkin, 'day'))
+
+room_type_code = 'per_hour':
+  total = unit_price × CEIL(TIMEDIFF(checkout, checkin, 'hour'))
+
+room_type_code = 'overnight':
+  total = unit_price × 1 (fixed per lượt)
+
+Frontend: Recalculate real-time on date/type change trong AddBookingModal.
+
+---
+
+## PAGES & ROUTES
+
+[PASTE DANH SÁCH ROUTES TỪ PHẦN 4.1 VÀO ĐÂY]
+
+---
+
+## COMPONENT SPECIFICATIONS
+
+### 1. TIMELINE VIEW (/bookings/timeline) — HERO FEATURE
+
+Gantt chart layout:
+- Left column (240px): Room names nhóm theo Property (collapsible)
+  * Room status dot: 🔴 Bẩn | 🟡 Đang dọn | 🟢 Đã dọn
+- Right area: Time axis (Day/Week toggle)
+- Current time: Đường thẳng đứng đỏ (update mỗi phút)
+
+Booking Blocks:
+- Width = tỷ lệ với duration
+- Colors theo status (xem Status Lifecycle trên)
+- Hover: Tooltip — guest name, dates, amount, remaining debt
+- Click → BookingDetailsModal
+
+BookingDetailsModal actions:
+- [Check-in] — chỉ enable khi room.status = 'clean'
+- [Check-out] — confirm nợ còn lại trước
+- [Đánh dấu No-show] — confirm + chính sách cọc
+- [Phân lịch dọn] → Housekeeping
+- [Sửa] | [Hủy booking]
+- [In phiếu thu] → ReceiptModal 🆕
+
+LATE CHECK-OUT: Block nháy cam nếu current_time > check_out && status='checked_in'
+
+---
+
+### 2. ADD BOOKING MODAL
+
+Section 1 — Vị trí: Property → Room (cascading dropdown)
+Section 2 — Khách: Tên, SĐT (format VN), Nguồn, Phụ trách
+Section 3 — Thời gian: Check-in/out picker, auto-calc duration
+Section 4 — Giá:
+  - Hình thức phòng (per_day/per_hour/overnight)
+  - Đơn giá (pre-fill từ room.base_price)
+  - Phụ phí
+  - TỔNG = auto-calc theo công thức (real-time)
+Section 5 — Thanh toán:
+  - Thêm nhiều đợt bằng nút [+]
+  - Mỗi đợt: Số tiền + PTTT + Ngày (auto = hôm nay)
+  - Còn lại = Tổng - Đã thu (đỏ nếu > 0)
+  - [In phiếu thu] sau khi lưu
+
+Validation:
+- Conflict check API call trước submit
+- Buffer 30 phút với lịch kề
+- Idempotency key gắn vào request
+
+---
+
+### 3. TABLE VIEW (/bookings/table)
+
+KPI Cards (top, lọc theo date range):
+- Tổng DT | Đã TT | Chưa TT | Số booking
+- "Chưa TT" KHÔNG tính booking cancelled/no_show
+
+Columns:
+ID | Ngày tạo | Cơ sở | Phòng | Khách | Check-in | Check-out |
+Người PT | Nguồn | DT | Chưa TT | Ngày TT gần nhất | Trạng thái | Actions
+
+- "Chưa TT": Badge đỏ nếu > 0, Xanh nếu = 0
+- Sortable, pagination 20/trang
+- Export Excel
+
+---
+
+### 4. HOUSEKEEPING BOARD (/housekeeping)
+
+Kanban 3 cột: [CẦN DỌN 🔴] [ĐANG DỌN 🟡] [HOÀN THÀNH 🟢]
+Card: Tên phòng, Cơ sở, Thời gian trigger, Housekeeper được giao
+Click card → Modal:
+  - Gán Housekeeper (dropdown từ users.role='housekeeper')
+  - Upload ảnh grid 2×4 (8 ô)
+  - Counter "X/8 ảnh"
+  - Nút [Hoàn thành] chỉ enable khi đủ 8 ảnh
+
+MOBILE-OPTIMIZED: Camera capture trực tiếp trên mobile
+
+---
+
+### 5. NO-SHOW FLOW 🆕
+
+Auto-trigger: 2 tiếng sau check_in time, chưa có actual_check_in
+→ Alert lễ tân (notification banner + badge trên booking)
+
+NoShowModal:
+  - Thông tin booking
+  - Số tiền cọc đã thu
+  - Lựa chọn: [Giữ tiền cọc] | [Hoàn trả cọc]
+  - Confirm → status = 'no_show', room → available
+
+---
+
+### 6. RECEIPT / PHIẾU THU 🆕
+
+ReceiptModal (A5 layout):
+  - Logo + tên cơ sở
+  - Số phiếu thu: REC-YYYYMMDD-XXXX (auto-generate)
+  - Thông tin khách + phòng + ngày
+  - Số tiền + PTTT + Ngày thanh toán
+  - Người thu tiền
+  - [In] → window.print() | [Xuất PDF]
+
+Trigger: Tự động sau mỗi payment_record được ghi.
+
+---
+
+### 7. GOOGLE SHEETS INTEGRATION (/settings/integrations) 🆕
+
+Setup flow:
+  1. [Kết nối Google] → OAuth2 authorization
+  2. Chọn Google Sheet file (hoặc tạo mới)
+  3. Map columns (hoặc dùng template mặc định)
+  4. Bật/tắt sync real-time
+
+SyncStatusIndicator (trên Sidebar):
+  - Icon mây + timestamp "Đồng bộ lúc HH:mm"
+  - Badge đỏ nếu sync thất bại
+  - Click → xem chi tiết lỗi + retry
+
+Background sync:
+  - Queue-based, retry 3 lần
+  - Dedup bằng idempotency_key
+  - Scope: bookings, payments, expenses
+
+---
+
+### 8. P&L REPORT (/reports/pl)
+
+3-level drill-down:
+  Level 1: Toàn chuỗi = Revenue - Expenses - Fixed Costs
+  Level 2: Per-property (click to expand)
+  Level 3: Per-room within property
+
+Dòng đặc biệt:
+  - "Chi phí chung" (property_id = NULL): Hiển thị riêng ở Level 1
+  - "Hoàn tiền" (refund_amount): Trừ vào Revenue → Doanh thu thuần
+  - "Chi phí cố định" = SUM(monthly_rent) theo kỳ
+
+KPI: Revenue | DT Thuần | Expenses | Profit | Margin%
+
+---
+
+### 9. DASHBOARD (/dashboard)
+
+Date filter động → cập nhật TẤT CẢ cards + charts
+
+KPI: Doanh thu | Lượt khách | Công suất TB | Booking mới
+
+Charts:
+- Doanh thu theo cơ sở (Bar grouped)
+- Doanh thu 30 ngày (Line)
+- Cơ cấu hình thức phòng (Pie)
+- Nguồn khách (Donut)
+- Thời gian lưu trú TB (Histogram)
+
+Staff Performance Table:
+Tên | Booking | Doanh thu | Công nợ chưa thu | Commission | Hoa hồng
+
+---
+
+## RBAC MATRIX (v2)
+
+| Action                | Admin | Manager | Staff    | Investor | Housekeeper |
+|-----------------------|-------|---------|----------|----------|-------------|
+| Create booking        | ✅    | ✅      | ✅       | ❌       | ❌          |
+| Check-in              | ✅    | ✅      | ✅       | ❌       | ❌          |
+| Check-out             | ✅    | ✅      | ✅       | ❌       | ❌          |
+| Mark no-show          | ✅    | ✅      | ✅       | ❌       | ❌          |
+| Edit own booking      | ✅    | ✅      | Own only | ❌       | ❌          |
+| Delete booking        | ✅    | ✅      | Own only | ❌       | ❌          |
+| Override check-in     | ✅    | ✅      | ❌       | ❌       | ❌          |
+| (khi phòng chưa sạch)
+| View P&L              | ✅    | ✅      | ❌       | Own CS   | ❌          |
+| Manage expenses       | ✅    | ✅      | ❌       | ❌       | ❌          |
+| Upload cleaning photos| ✅    | ✅      | ❌       | ❌       | ✅          |
+| System settings       | ✅    | ❌      | ❌       | ❌       | ❌          |
+| Google Sheets setup   | ✅    | ❌      | ❌       | ❌       | ❌          |
+
+Session timeout: 2 tiếng không thao tác → tự động đăng xuất.
+
+---
+
+## REAL-TIME (WebSocket — Supabase Realtime)
+
+1. room.status → Timeline dots + Housekeeping board
+2. booking INSERT/UPDATE → Timeline blocks + Table KPI
+3. payment INSERT → Table "Chưa TT" + KPI cards
+4. cleaning_assignments → Housekeeping board movements
+5. sync_queue → SyncStatusIndicator 🆕
+
+---
+
+## EDGE CASES — CODE REQUIREMENTS
+
+1. Check-in blocked nếu room.status != 'clean'
+   (Admin/Manager có thể override với confirm dialog)
+
+2. Cancellation → chọn refund type → ghi refund_amount
+   → P&L hiển thị doanh thu gộp vs thuần
+
+3. No-show sau 2h → alert → confirm → room về clean (skip Housekeeping)
+
+4. Late check-out → block cam nháy trên Timeline → gia hạn/miễn phí
+
+5. Buffer runtime: Cron mỗi 15p, nếu phòng Bẩn + booking trong 60p → alert
+
+6. Shared expenses (NULL property) → hiện riêng dòng "Chi phí chung" ở P&L
+
+7. Inactive staff: Soft-delete, reassign modal, giữ historical data
+
+8. Idempotency: UUID per modal session, backend ON CONFLICT DO NOTHING
+
+9. Google Sheets sync fail: Retry 3x → alert admin → manual retry button
+
+10. KPI "Chưa TT": Exclude cancelled + no_show bookings
+
+---
+
+## DESIGN TOKENS
+
+```css
+--color-primary:         #4F46E5;
+--color-sidebar-bg:      #1a1f2e;
+--color-sidebar-text:    #94a3b8;
+--color-sidebar-active:  #ffffff;
+--color-surface:         #ffffff;
+--color-surface-alt:     #f8fafc;
+--color-border:          #e2e8f0;
+--color-text-primary:    #0f172a;
+--color-text-secondary:  #64748b;
+
+/* Booking Status */
+--status-confirmed:  #94A3B8;
+--status-deposited:  #3B82F6;
+--status-checkedin:  #10B981;
+--status-checkedout: #6B7280;
+--status-cancelled:  #E2E8F0;
+--status-noshow:     #F59E0B;
+
+/* Room Status */
+--room-clean:    #10B981;
+--room-dirty:    #EF4444;
+--room-cleaning: #F59E0B;
+```
+
+---
+
+## BUILD ORDER FOR ANTIGRAVITY
+
+Priority 1 (Core):
+  1. Project setup: Next.js 14 + TS + Tailwind + shadcn + Supabase
+  2. Run SQL schema → verify all tables
+  3. Auth: Login page + session management (2h timeout)
+  4. GlobalSidebar + layout shell
+
+Priority 2 (Hero Features):
+  5. Timeline View — Gantt chart với booking blocks
+  6. AddBookingModal — full form + pricing calc + payment
+  7. BookingDetailsModal — check-in/out/no-show actions
+  8. Table View — data grid + KPI cards
+
+Priority 3 (Operations):
+  9. Housekeeping Board — Kanban + photo upload
+  10. ReceiptModal — phiếu thu in được
+  11. Expense Management
+
+Priority 4 (Analytics):
+  12. P&L Report — drill-down 3 cấp
+  13. Dashboard — charts + staff KPI
+
+Priority 5 (Settings & Integration):
+  14. System Settings (dynamic config)
+  15. Property & Room management
+  16. Staff management + RBAC
+  17. Google Sheets integration
+
+=================================================================
+END OF MASTER PROMPT v2.0
