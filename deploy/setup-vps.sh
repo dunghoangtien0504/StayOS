@@ -78,10 +78,14 @@ NODE_ENV=production
 PORT=3002
 NEXT_PUBLIC_APP_URL=https://stayos.hoangtiendung.com
 
-# Pancake API (get from app.pancake.vn > Settings > API)
-PANCAKE_API_KEY=
-PANCAKE_API_SECRET=
-PANCAKE_API_BASE=https://api.pancake.vn
+# Pancake – comma-separated page tokens (JWT, from pancake.vn > Cai dat > Cong cu)
+PANCAKE_PAGE_TOKENS=
+PANCAKE_API_BASE=https://pages.fm/api
+
+# GoClaw AI Agent (optional)
+GOCLAW_API_URL=http://localhost:18790
+GOCLAW_API_KEY=
+GOCLAW_AGENT_KEY=ta-thong-dong
 
 # Add more when needed
 # DATABASE_URL=
