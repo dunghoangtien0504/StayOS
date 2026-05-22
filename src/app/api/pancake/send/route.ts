@@ -7,9 +7,13 @@ import { PANCAKE_API_BASE, getTokenForPage } from '@/lib/pancake';
  *
  * Body: { pageId, conversationId, message, customerId? }
  *
- * Pancake endpoint:
- *   POST /v1/pages/{page_id}/conversations/{conversation_id}/messages
+ * Pancake endpoint (verified):
+ *   POST /public_api/v1/pages/{page_id}/conversations/{cid}/messages
  *        ?access_token={page_token}
+ *   Required body: action='reply_inbox', message
+ *
+ * NOTE: Pancake returns HTTP 200 even on logical errors, with
+ * { success: false, message, error_code } — must check data.success.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     const url =
-      `${PANCAKE_API_BASE}/v1/pages/${pageId}` +
+      `${PANCAKE_API_BASE}/public_api/v1/pages/${pageId}` +
       `/conversations/${conversationId}/messages` +
       `?access_token=${page.token}`;
 
@@ -40,8 +44,8 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message,
         action: 'reply_inbox',
+        message,
         ...(customerId ? { customer_id: customerId } : {}),
       }),
       cache: 'no-store',
@@ -49,10 +53,16 @@ export async function POST(request: NextRequest) {
 
     const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
+    // Pancake returns 200 + success:false on logical errors
+    if (!res.ok || data.success === false) {
       return NextResponse.json(
-        { error: `Pancake send failed: ${res.status}`, details: data },
-        { status: res.status }
+        {
+          error:
+            data.message ||
+            `Pancake send failed: HTTP ${res.status}`,
+          error_code: data.error_code,
+        },
+        { status: 502 }
       );
     }
 
