@@ -123,6 +123,8 @@ export interface Message {
   content: string;
   timestamp: Date;
   isFromGuest: boolean;
+  /** Image/file attachment URLs from Pancake (type: photo, video, file) */
+  attachments?: string[];
 }
 
 export interface Settings {

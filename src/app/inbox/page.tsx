@@ -10,7 +10,7 @@ import {
   Phone, User, MessageSquare,
   MessageCircle, Image as ImageIcon,
   Smile, Paperclip, CheckCheck,
-  RefreshCw, Loader2, AlertCircle, Sparkles,
+  RefreshCw, Loader2, AlertCircle, Sparkles, Bot,
 } from 'lucide-react';
 import { cn, formatVNTime } from '@/lib/utils';
 import { AddBookingModal } from '@/components/booking/AddBookingModal';
@@ -82,6 +82,8 @@ export default function SmartInboxPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [autoReply, setAutoReply] = useState(false);
+  const autoReplyRef = useRef(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +92,53 @@ export default function SmartInboxPage() {
     t.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Keep ref in sync so the interval callback always sees latest value
+  useEffect(() => { autoReplyRef.current = autoReply; }, [autoReply]);
+
+  // ── Auto-reply: call agent and send to Pancake ────────────────
+  const triggerAutoReply = useCallback(async (thread: ReturnType<typeof syncItemToThread>) => {
+    if (!thread.pageId) return;
+    try {
+      // Fetch full messages for context
+      const params = new URLSearchParams({
+        pageId: thread.pageId,
+        conversationId: thread.id,
+        ...(thread.customerId ? { customerId: thread.customerId } : {}),
+      });
+      const msgRes = await fetch(`/api/pancake/messages?${params}`);
+      const msgData = await msgRes.json();
+      if (!msgData.success) return;
+
+      const msgs: { role: string; content: string }[] = (msgData.messages as { isFromGuest: boolean; content: string }[])
+        .slice(-6)
+        .map(m => ({ role: m.isFromGuest ? 'user' : 'assistant', content: m.content }));
+
+      const lastUser = [...msgs].reverse().find(m => m.role === 'user');
+      if (!lastUser) return;
+
+      const aiRes = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: lastUser.content, history: msgs.slice(0, -1) }),
+      });
+      const aiData = await aiRes.json();
+      if (!aiData.reply) return;
+
+      await fetch('/api/pancake/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pageId: thread.pageId,
+          conversationId: thread.id,
+          customerId: thread.customerId,
+          message: aiData.reply,
+        }),
+      });
+    } catch {
+      // silent — auto-reply failures shouldn't break the UI
+    }
+  }, []);
 
   // ── Sync conversations from Pancake ──────────────────────────
   const runSync = useCallback(async () => {
@@ -104,12 +153,20 @@ export default function SmartInboxPage() {
       const threads = (data.messages as SyncItem[]).map(syncItemToThread);
       syncPancakeThreads(threads);
       setLastSyncAt(new Date());
+
+      // Auto-reply: process threads with unread guest messages
+      if (autoReplyRef.current) {
+        const unread = threads.filter(t => t.unreadCount > 0);
+        for (const t of unread) {
+          triggerAutoReply(t);
+        }
+      }
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Lỗi không xác định');
     } finally {
       setIsSyncing(false);
     }
-  }, [syncPancakeThreads]);
+  }, [syncPancakeThreads, triggerAutoReply]);
 
   // Auto-sync on mount + every 5 minutes
   useEffect(() => {
@@ -425,6 +482,20 @@ export default function SmartInboxPage() {
                       Tạo booking
                     </button>
                   )}
+                  {/* Auto-reply toggle */}
+                  <button
+                    onClick={() => setAutoReply(v => !v)}
+                    title={autoReply ? 'Tắt tự động trả lời' : 'Bật tự động trả lời (Ta Thong Dong)'}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs transition-all',
+                      autoReply
+                        ? 'bg-violet-500 text-white shadow-md shadow-violet-200'
+                        : 'bg-muted text-muted-foreground hover:bg-violet-100 hover:text-violet-600'
+                    )}
+                  >
+                    <Bot size={14} />
+                    {autoReply ? 'AI đang trả lời' : 'Tự động trả lời'}
+                  </button>
                   <button className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground"><Phone size={20} /></button>
                   <button className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground"><User size={20} /></button>
                 </div>
@@ -458,12 +529,34 @@ export default function SmartInboxPage() {
                       )}
                     >
                       <div className={cn(
-                        "p-4 rounded-[1.5rem] shadow-sm relative group",
+                        "rounded-[1.5rem] shadow-sm relative group overflow-hidden",
                         msg.isFromGuest
                           ? "bg-white text-foreground border rounded-bl-none"
-                          : "bg-primary text-white rounded-br-none"
+                          : "bg-primary text-white rounded-br-none",
+                        // no padding when image-only
+                        (msg.content || (msg.attachments && msg.attachments.length === 0)) && "p-4"
                       )}>
-                        <p className="text-sm font-bold leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        {msg.content ? (
+                          <p className="text-sm font-bold leading-relaxed whitespace-pre-wrap px-4 pt-4 pb-2">
+                            {msg.content}
+                          </p>
+                        ) : null}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className={cn(
+                            "flex flex-wrap gap-1.5",
+                            msg.content ? "px-4 pb-4" : ""
+                          )}>
+                            {msg.attachments.map((url, i) => (
+                              <img
+                                key={i}
+                                src={url}
+                                alt="ảnh đính kèm"
+                                className="max-w-[260px] max-h-[260px] rounded-2xl object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => window.open(url, '_blank')}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="mt-1.5 flex items-center gap-2 px-1">
                         <span className="text-[10px] font-bold text-muted-foreground opacity-60">

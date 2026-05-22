@@ -57,16 +57,24 @@ export async function GET(request: NextRequest) {
     const messages = raw
       .map((m: Record<string, unknown>) => {
         const from = (m.from || {}) as { id?: string; name?: string };
+        // Extract image/file attachment URLs (type: photo, image, video, file, sticker)
+        const rawAttachments = Array.isArray(m.attachments) ? m.attachments : [];
+        const attachments: string[] = rawAttachments
+          .filter((a: Record<string, unknown>) => typeof a.url === 'string')
+          .map((a: Record<string, unknown>) => a.url as string);
         return {
           id: m.id as string,
           sender: from.name || 'Khách',
           content: stripHtml(m.message as string),
           timestamp: parsePancakeDate(m.inserted_at as string),
-          // page messages have from.id === pageId
           isFromGuest: String(from.id) !== String(pageId),
+          attachments,
         };
       })
-      .filter((m: { content: string }) => m.content.length > 0);
+      // Keep message if it has text OR attachments (image-only messages have empty content)
+      .filter((m: { content: string; attachments: string[] }) =>
+        m.content.length > 0 || m.attachments.length > 0
+      );
 
     return NextResponse.json({
       success: true,
