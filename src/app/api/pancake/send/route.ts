@@ -5,12 +5,15 @@ import { PANCAKE_API_BASE, getTokenForPage } from '@/lib/pancake';
  * POST /api/pancake/send
  * Reply to a guest through Pancake.
  *
- * Body: { pageId, conversationId, message, customerId? }
+ * Body: { pageId, conversationId, message?, contentUrl?, customerId? }
+ *   message    — text to send
+ *   contentUrl — public image URL to send as attachment (uses Pancake content_url)
+ *   At least one of message or contentUrl must be provided.
  *
  * Pancake endpoint (verified):
  *   POST /public_api/v1/pages/{page_id}/conversations/{cid}/messages
  *        ?access_token={page_token}
- *   Required body: action='reply_inbox', message
+ *   Required body: action='reply_inbox', message | content_url
  *
  * NOTE: Pancake returns HTTP 200 even on logical errors, with
  * { success: false, message, error_code } — must check data.success.
@@ -18,11 +21,11 @@ import { PANCAKE_API_BASE, getTokenForPage } from '@/lib/pancake';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { pageId, conversationId, message, customerId } = body || {};
+    const { pageId, conversationId, message, contentUrl, customerId } = body || {};
 
-    if (!pageId || !conversationId || !message) {
+    if (!pageId || !conversationId || (!message && !contentUrl)) {
       return NextResponse.json(
-        { error: 'pageId, conversationId and message are required' },
+        { error: 'pageId, conversationId, and message or contentUrl are required' },
         { status: 400 }
       );
     }
@@ -45,7 +48,8 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'reply_inbox',
-        message,
+        ...(message ? { message } : {}),
+        ...(contentUrl ? { content_url: contentUrl } : {}),
         ...(customerId ? { customer_id: customerId } : {}),
       }),
       cache: 'no-store',

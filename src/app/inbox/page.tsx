@@ -10,8 +10,16 @@ import {
   Phone, User, MessageSquare,
   MessageCircle, Image as ImageIcon,
   Smile, Paperclip, CheckCheck,
-  RefreshCw, Loader2, AlertCircle, Sparkles, Bot,
+  RefreshCw, Loader2, AlertCircle, Sparkles, Bot, X,
 } from 'lucide-react';
+
+const EMOJIS = [
+  '😊','😄','😂','🥰','😍','😘','🤩','😎',
+  '👍','👏','🙏','❤️','🔥','✨','🎉','💯',
+  '😢','😅','🤣','😇','🥳','🤗','😏','🫶',
+  '🏠','🛏️','🚿','📅','💰','📞','✅','⭐',
+  '🙂','😐','🤔','😬','😴','🤑','😋','🫡',
+];
 import { cn, formatVNTime } from '@/lib/utils';
 import { AddBookingModal } from '@/components/booking/AddBookingModal';
 import { Plus, Link as LinkIcon } from 'lucide-react';
@@ -82,6 +90,9 @@ export default function SmartInboxPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [autoReply, setAutoReply] = useState(false);
   const autoReplyRef = useRef(false);
 
@@ -277,6 +288,48 @@ export default function SmartInboxPage() {
       setAiError(err instanceof Error ? err.message : 'Lỗi AI');
     } finally {
       setIsAiLoading(false);
+    }
+  };
+
+  // ── Upload & send image ──────────────────────────────────────
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedThread?.pageId) return;
+    e.target.value = '';
+
+    setIsUploadingImage(true);
+    setSendError(null);
+    try {
+      // 1. Upload to our server
+      const form = new FormData();
+      form.append('file', file);
+      const upRes = await fetch('/api/upload', { method: 'POST', body: form });
+      const upData = await upRes.json();
+      if (!upRes.ok || !upData.url) throw new Error(upData.error || 'Upload thất bại');
+
+      // 2. Build absolute URL for Pancake
+      const absoluteUrl = `${window.location.origin}${upData.url}`;
+
+      // 3. Send via Pancake
+      const res = await fetch('/api/pancake/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pageId: selectedThread.pageId,
+          conversationId: selectedThread.id,
+          customerId: selectedThread.customerId,
+          contentUrl: absoluteUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Gửi ảnh thất bại');
+
+      // 4. Append locally
+      sendMessage(selectedThread.id, `[Ảnh: ${file.name}]`);
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Lỗi gửi ảnh');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -627,14 +680,66 @@ export default function SmartInboxPage() {
                     <span>{aiError}</span>
                   </div>
                 )}
+
+                {/* Emoji Picker */}
+                {showEmojiPicker && (
+                  <div className="bg-white border rounded-2xl shadow-xl p-3 relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(false)}
+                      className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="grid grid-cols-8 gap-1">
+                      {EMOJIS.map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setInputText(t => t + emoji)}
+                          className="text-xl p-1.5 rounded-xl hover:bg-muted transition-colors"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Hidden image input */}
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+
                 <form
                   onSubmit={handleSend}
                   className="bg-muted/30 p-2 rounded-[2rem] border focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5 transition-all flex items-center gap-2"
                 >
                   <div className="flex items-center px-2">
-                    <button type="button" className="p-2 text-muted-foreground hover:text-primary transition-colors"><Paperclip size={20} /></button>
-                    <button type="button" className="p-2 text-muted-foreground hover:text-primary transition-colors"><ImageIcon size={20} /></button>
-                    <button type="button" className="p-2 text-muted-foreground hover:text-primary transition-colors"><Smile size={20} /></button>
+                    <button type="button" className="p-2 text-muted-foreground hover:text-primary transition-colors" title="Đính kèm file (sắp có)">
+                      <Paperclip size={20} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={isUploadingImage || !selectedThread?.pageId}
+                      title="Gửi ảnh"
+                      className="p-2 text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
+                    >
+                      {isUploadingImage ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(v => !v)}
+                      title="Chọn emoji"
+                      className={cn("p-2 transition-colors", showEmojiPicker ? "text-primary" : "text-muted-foreground hover:text-primary")}
+                    >
+                      <Smile size={20} />
+                    </button>
                   </div>
                   <input
                     type="text"
