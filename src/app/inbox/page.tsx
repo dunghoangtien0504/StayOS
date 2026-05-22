@@ -11,9 +11,11 @@ import {
   MessageCircle, Image as ImageIcon,
   Smile, Paperclip, CheckCheck,
   RefreshCw, Loader2, AlertCircle, Sparkles, Bot, X,
-  Zap, Pencil, Trash2, Plus, Check,
+  Zap, Pencil, Trash2, Plus, Check, Link as LinkIcon,
 } from 'lucide-react';
 import { getQuickReplies, saveQuickReplies, type QuickReply } from '@/lib/quickReplies';
+import { cn, formatVNTime } from '@/lib/utils';
+import { AddBookingModal } from '@/components/booking/AddBookingModal';
 
 const EMOJIS = [
   '😊','😄','😂','🥰','😍','😘','🤩','😎',
@@ -22,9 +24,6 @@ const EMOJIS = [
   '🏠','🛏️','🚿','📅','💰','📞','✅','⭐',
   '🙂','😐','🤔','😬','😴','🤑','😋','🫡',
 ];
-import { cn, formatVNTime } from '@/lib/utils';
-import { AddBookingModal } from '@/components/booking/AddBookingModal';
-import { Plus, Link as LinkIcon } from 'lucide-react';
 
 /** Pancake channel -> ChatThread source (with safe fallback) */
 function toSource(channel: string): ChatSource {
