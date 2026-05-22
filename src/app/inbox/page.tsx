@@ -10,7 +10,7 @@ import {
   Phone, User, MessageSquare,
   MessageCircle, Image as ImageIcon,
   Smile, Paperclip, CheckCheck,
-  RefreshCw, Loader2, AlertCircle,
+  RefreshCw, Loader2, AlertCircle, Sparkles,
 } from 'lucide-react';
 import { cn, formatVNTime } from '@/lib/utils';
 import { AddBookingModal } from '@/components/booking/AddBookingModal';
@@ -80,6 +80,8 @@ export default function SmartInboxPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -174,6 +176,38 @@ export default function SmartInboxPage() {
       markThreadAsRead(selectedThreadId);
     }
   }, [selectedThread?.messages.length, selectedThreadId, markThreadAsRead]);
+
+  // ── AI suggest reply ─────────────────────────────────────────
+  const handleAiSuggest = async () => {
+    if (!selectedThread || isAiLoading) return;
+    const msgs = selectedThread.messages;
+    if (msgs.length === 0) return;
+
+    setIsAiLoading(true);
+    setAiError(null);
+    try {
+      // Build history from last 6 messages
+      const history = msgs.slice(-6).map(m => ({
+        role: m.isFromGuest ? 'user' : 'assistant',
+        content: m.content,
+      }));
+      const lastGuest = [...msgs].reverse().find(m => m.isFromGuest);
+      if (!lastGuest) return;
+
+      const res = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: lastGuest.content, history: history.slice(0, -1) }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.reply) throw new Error(data.error || 'AI không trả về kết quả');
+      setInputText(data.reply);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Lỗi AI');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   // ── Send a reply ─────────────────────────────────────────────
   const handleSend = async (e: React.FormEvent) => {
@@ -453,6 +487,12 @@ export default function SmartInboxPage() {
                     <span>{sendError}</span>
                   </div>
                 )}
+                {aiError && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-orange-600 px-2">
+                    <AlertCircle size={14} />
+                    <span>{aiError}</span>
+                  </div>
+                )}
                 <form
                   onSubmit={handleSend}
                   className="bg-muted/30 p-2 rounded-[2rem] border focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5 transition-all flex items-center gap-2"
@@ -470,6 +510,20 @@ export default function SmartInboxPage() {
                     disabled={isSending}
                     className="flex-1 bg-transparent border-none outline-none text-sm font-bold py-2 placeholder:text-muted-foreground/60 disabled:opacity-50"
                   />
+                  <button
+                    type="button"
+                    onClick={handleAiSuggest}
+                    disabled={isAiLoading || !selectedThread?.messages.some(m => m.isFromGuest)}
+                    title="Để Ta Thong Dong gợi ý câu trả lời"
+                    className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center transition-all",
+                      "bg-violet-100 text-violet-600 hover:bg-violet-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    {isAiLoading
+                      ? <Loader2 size={18} className="animate-spin" />
+                      : <Sparkles size={18} />}
+                  </button>
                   <button
                     type="submit"
                     disabled={isSending}
