@@ -426,209 +426,216 @@ export default function SmartInboxPage() {
 
   return (
     <Shell title="Smart Inbox">
-      <div className="h-full flex overflow-hidden bg-white">
-        {/* Sidebar: Thread List */}
-        <div className="w-[400px] border-r flex flex-col h-full bg-muted/5">
-          <div className="p-6 space-y-6">
+      <div className="h-full flex overflow-hidden" style={{ background: '#f5f6fa' }}>
+
+        {/* ── Sidebar ── */}
+        <div className="w-[320px] border-r flex flex-col h-full bg-white">
+
+          {/* Sidebar header */}
+          <div className="px-4 pt-4 pb-3 border-b space-y-3">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-black tracking-tight">Tin nhắn</h1>
-              <div className="flex items-center gap-2">
-                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-black">
-                  {totalUnread} mới
-                </span>
+              <span className="text-base font-semibold text-gray-800">Hội thoại</span>
+              <div className="flex items-center gap-1">
+                {totalUnread > 0 && (
+                  <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                    {totalUnread}
+                  </span>
+                )}
                 <button
                   onClick={runSync}
                   disabled={isSyncing}
                   title={lastSyncAt ? `Đồng bộ lúc ${formatVNTime(lastSyncAt)}` : 'Đồng bộ Pancake'}
-                  className="p-2 rounded-xl hover:bg-primary/10 text-primary transition-colors disabled:opacity-50"
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw size={16} className={cn(isSyncing && 'animate-spin')} />
+                  <RefreshCw size={15} className={cn(isSyncing && 'animate-spin')} />
                 </button>
               </div>
             </div>
-
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
               <input
                 type="text"
                 placeholder="Tìm hội thoại..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-2xl border bg-white focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-sm"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-primary/50 outline-none text-sm text-gray-700 placeholder:text-gray-400 transition-all"
               />
             </div>
-
             {syncError && (
-              <div className="flex items-start gap-2 text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">
-                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2.5">
+                <AlertCircle size={13} className="shrink-0 mt-0.5" />
                 <span>{syncError}</span>
               </div>
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto px-3 space-y-1 pb-6">
+          {/* Thread list */}
+          <div className="flex-1 overflow-y-auto">
             {isSyncing && chatThreads.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-                <Loader2 size={28} className="animate-spin" />
-                <span className="text-xs font-bold">Đang đồng bộ Pancake...</span>
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+                <Loader2 size={24} className="animate-spin" />
+                <span className="text-xs">Đang đồng bộ...</span>
               </div>
             )}
-
             {!isSyncing && chatThreads.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground text-center px-6">
-                <MessageSquare size={28} className="opacity-30" />
-                <span className="text-xs font-bold">Chưa có hội thoại nào</span>
+              <div className="flex flex-col items-center justify-center py-16 gap-2 text-gray-400 text-center px-6">
+                <MessageSquare size={28} className="opacity-40" />
+                <span className="text-xs">Chưa có hội thoại nào</span>
               </div>
             )}
-
             {filteredThreads.map(thread => (
               <div
                 key={thread.id}
                 onClick={() => setSelectedThreadId(thread.id)}
                 className={cn(
-                  "p-4 rounded-[1.5rem] cursor-pointer transition-all flex gap-4 group relative",
+                  "px-4 py-3 cursor-pointer transition-colors flex gap-3 relative border-b border-gray-100",
                   selectedThreadId === thread.id
-                    ? "bg-white shadow-md ring-1 ring-primary/5"
-                    : "hover:bg-white/50"
+                    ? "bg-primary/5 border-l-[3px] border-l-primary"
+                    : "hover:bg-gray-50 border-l-[3px] border-l-transparent"
                 )}
               >
+                {/* Avatar */}
                 <div className="relative shrink-0">
-                  <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary font-black text-xl border-2 border-white shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center text-primary font-semibold text-sm">
                     {thread.guestName.charAt(0)}
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm border">
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-gray-200">
                     {getSourceIcon(thread.source)}
                   </div>
                 </div>
 
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className={cn("text-sm truncate", thread.unreadCount > 0 ? "font-black" : "font-bold text-foreground")}>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-1 mb-0.5">
+                    <span className={cn("text-sm truncate", thread.unreadCount > 0 ? "font-semibold text-gray-900" : "font-medium text-gray-700")}>
                       {thread.guestName}
-                    </h3>
-                    <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">
+                    </span>
+                    <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0">
                       {formatVNTime(thread.lastMessageAt)}
                     </span>
                   </div>
                   <p className={cn(
-                    "text-xs truncate",
-                    thread.unreadCount > 0 ? "text-foreground font-black" : "text-muted-foreground font-medium"
+                    "text-xs truncate leading-snug",
+                    thread.unreadCount > 0 ? "text-gray-800 font-medium" : "text-gray-400"
                   )}>
-                    {thread.lastMessage}
+                    {thread.lastMessage || '📷 Hình ảnh'}
                   </p>
                 </div>
 
-                {/* Per-thread auto-reply toggle */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
-                  title={perThreadAutoReply.has(thread.id) ? 'Tắt AI tự động trả lời khách này' : 'Bật AI tự động trả lời khách này'}
-                  className={cn(
-                    'absolute right-3 bottom-3 w-5 h-5 rounded-full flex items-center justify-center transition-all z-10',
-                    perThreadAutoReply.has(thread.id)
-                      ? 'bg-violet-500 text-white shadow-sm shadow-violet-300'
-                      : 'bg-muted/0 text-muted-foreground/0 group-hover:bg-muted group-hover:text-muted-foreground'
+                {/* Badges */}
+                <div className="flex flex-col items-end justify-between gap-1 shrink-0">
+                  {thread.unreadCount > 0 && !perThreadAutoReply.has(thread.id) && (
+                    <span className="w-2 h-2 rounded-full bg-primary mt-1" />
                   )}
-                >
-                  <Bot size={11} />
-                </button>
-                {thread.unreadCount > 0 && !perThreadAutoReply.has(thread.id) && (
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary rounded-full shadow-sm shadow-primary/30" />
-                )}
+                  {perThreadAutoReply.has(thread.id) && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
+                      className="w-5 h-5 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center hover:bg-violet-200 transition-colors"
+                      title="AI tự động BẬT — bấm để tắt"
+                    >
+                      <Bot size={11} />
+                    </button>
+                  )}
+                  {!perThreadAutoReply.has(thread.id) && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
+                      className="w-5 h-5 rounded-full text-gray-300 flex items-center justify-center hover:bg-gray-100 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-all"
+                      title="Bật AI tự động cho khách này"
+                    >
+                      <Bot size={11} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Chat Window */}
-        <div className="flex-1 flex flex-col h-full relative">
+        {/* ── Chat Window ── */}
+        <div className="flex-1 flex flex-col h-full">
           {selectedThread ? (
             <>
-              {/* Chat Header */}
-              <div className="h-20 border-b flex items-center justify-between px-8 shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-black text-sm">
-                    {selectedThread.guestName.charAt(0)}
+              {/* Chat Header — Pancake style */}
+              <div className="border-b bg-white flex items-center justify-between px-5 py-3 shrink-0 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-primary font-semibold text-sm">
+                      {selectedThread.guestName.charAt(0)}
+                    </div>
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-sm font-black flex items-center gap-2">
-                        {selectedThread.guestName}
-                        <span className="w-2 h-2 bg-green-500 rounded-full" />
-                      </h2>
+                    <div className="flex items-center gap-2 leading-tight">
+                      <span className="text-sm font-semibold text-gray-900">{selectedThread.guestName}</span>
                       {selectedThread.linkedBookingId && (
                         <Link
                           href={`/bookings/table?focus=${selectedThread.linkedBookingId}`}
-                          className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase hover:bg-primary/20 transition-colors"
+                          className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium hover:bg-primary/20 transition-colors"
                         >
-                          <LinkIcon size={10} />
+                          <LinkIcon size={9} />
                           #{selectedThread.linkedBookingId.split('-')[1]}
                         </Link>
                       )}
                     </div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
                       {getSourceIcon(selectedThread.source)}
-                      <span>{selectedThread.source}</span>
-                      {selectedThread.guestPhone && (
-                        <span>• {selectedThread.guestPhone}</span>
-                      )}
-                    </p>
+                      <span className="uppercase tracking-wide">{selectedThread.source}</span>
+                      {selectedThread.guestPhone && <span>• {selectedThread.guestPhone}</span>}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="flex items-center gap-1.5">
                   {!selectedThread.linkedBookingId && (
                     <button
                       onClick={() => setIsAddBookingOpen(true)}
-                      className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl font-bold text-xs hover:bg-primary/20 transition-all mr-2"
+                      className="flex items-center gap-1.5 border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 transition-all"
                     >
-                      <Plus size={14} />
+                      <Plus size={13} />
                       Tạo booking
                     </button>
                   )}
-                  {/* Per-thread auto-reply toggle */}
                   <button
                     onClick={() => selectedThread && togglePerThreadAutoReply(selectedThread.id)}
-                    title={selectedThread && perThreadAutoReply.has(selectedThread.id) ? 'Tắt AI riêng khách này' : 'Bật AI riêng khách này'}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs transition-all',
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
                       selectedThread && perThreadAutoReply.has(selectedThread.id)
-                        ? 'bg-violet-500 text-white shadow-md shadow-violet-200'
-                        : 'bg-muted text-muted-foreground hover:bg-violet-100 hover:text-violet-600'
+                        ? 'bg-violet-500 text-white border-violet-500'
+                        : 'border-gray-200 text-gray-500 hover:border-violet-300 hover:text-violet-600'
                     )}
                   >
-                    <Bot size={14} />
-                    {selectedThread && perThreadAutoReply.has(selectedThread.id) ? 'AI riêng: BẬT' : 'AI riêng'}
+                    <Bot size={13} />
+                    AI riêng
                   </button>
-                  {/* Global auto-reply toggle */}
                   <button
                     onClick={() => setAutoReply(v => !v)}
-                    title={autoReply ? 'Tắt tự động trả lời tất cả' : 'Bật tự động trả lời tất cả'}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs transition-all',
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
                       autoReply
-                        ? 'bg-orange-500 text-white shadow-md shadow-orange-200'
-                        : 'bg-muted text-muted-foreground hover:bg-orange-100 hover:text-orange-600'
+                        ? 'bg-orange-500 text-white border-orange-500'
+                        : 'border-gray-200 text-gray-500 hover:border-orange-300 hover:text-orange-600'
                     )}
                   >
-                    <Bot size={14} />
-                    {autoReply ? 'AI tất cả: BẬT' : 'Tự động trả lời'}
+                    <Bot size={13} />
+                    Tự động trả lời
                   </button>
-                  <button className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground"><Phone size={20} /></button>
-                  <button className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground"><User size={20} /></button>
+                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"><Phone size={17} /></button>
+                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"><User size={17} /></button>
                 </div>
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-muted/5">
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3" style={{ background: '#f0f2f5' }}>
                 {isLoadingMessages && (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
-                    <Loader2 size={24} className="animate-spin" />
-                    <span className="text-xs font-bold">Đang tải tin nhắn...</span>
+                  <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-400">
+                    <Loader2 size={22} className="animate-spin" />
+                    <span className="text-xs">Đang tải tin nhắn...</span>
                   </div>
                 )}
 
-                {!isLoadingMessages && (
-                  <div className="text-center">
-                    <span className="px-4 py-1.5 bg-white border rounded-full text-[10px] font-black text-muted-foreground uppercase tracking-widest shadow-sm">
+                {!isLoadingMessages && selectedThread.messages.length === 0 && (
+                  <div className="flex justify-center py-4">
+                    <span className="px-3 py-1 bg-white/70 rounded-full text-[11px] text-gray-400 shadow-sm">
                       Bắt đầu hội thoại
                     </span>
                   </div>
@@ -636,50 +643,71 @@ export default function SmartInboxPage() {
 
                 {selectedThread.messages.map((msg, idx) => {
                   const isLast = idx === selectedThread.messages.length - 1;
+                  const hasText = msg.content && msg.content.trim().length > 0;
+                  const hasImages = msg.attachments && msg.attachments.length > 0;
                   return (
                     <div
                       key={msg.id}
                       className={cn(
-                        "flex flex-col max-w-[70%] animate-in fade-in slide-in-from-bottom-2 duration-300",
-                        msg.isFromGuest ? "mr-auto" : "ml-auto items-end text-right"
+                        "flex flex-col max-w-[72%]",
+                        msg.isFromGuest ? "mr-auto items-start" : "ml-auto items-end"
                       )}
                     >
+                      {/* Bubble */}
+                      {hasText && (
+                        <div className={cn(
+                          "rounded-2xl text-sm leading-relaxed",
+                          msg.isFromGuest
+                            ? "bg-white text-gray-800 shadow-sm rounded-tl-sm px-3.5 py-2.5"
+                            : "bg-primary text-white rounded-tr-sm px-3.5 py-2.5"
+                        )}>
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                      )}
+
+                      {/* Images — grid layout like Pancake */}
+                      {hasImages && (
+                        <div className={cn(
+                          "mt-1",
+                          hasText ? "mt-1.5" : ""
+                        )}>
+                          {msg.attachments!.length === 1 ? (
+                            <img
+                              src={msg.attachments![0]}
+                              alt="ảnh"
+                              className="max-w-[280px] max-h-[320px] rounded-2xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                              onClick={() => window.open(msg.attachments![0], '_blank')}
+                            />
+                          ) : msg.attachments!.length === 2 ? (
+                            <div className="grid grid-cols-2 gap-1">
+                              {msg.attachments!.map((url, i) => (
+                                <img key={i} src={url} alt="ảnh"
+                                  className="w-[140px] h-[140px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                                  onClick={() => window.open(url, '_blank')} />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-3 gap-1">
+                              {msg.attachments!.map((url, i) => (
+                                <img key={i} src={url} alt="ảnh"
+                                  className="w-[110px] h-[110px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                                  onClick={() => window.open(url, '_blank')} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Time + read receipt */}
                       <div className={cn(
-                        "rounded-[1.5rem] shadow-sm relative group overflow-hidden",
-                        msg.isFromGuest
-                          ? "bg-white text-foreground border rounded-bl-none"
-                          : "bg-primary text-white rounded-br-none",
-                        // no padding when image-only
-                        (msg.content || (msg.attachments && msg.attachments.length === 0)) && "p-4"
+                        "mt-1 flex items-center gap-1.5",
+                        msg.isFromGuest ? "" : "flex-row-reverse"
                       )}>
-                        {msg.content ? (
-                          <p className="text-sm font-bold leading-relaxed whitespace-pre-wrap px-4 pt-4 pb-2">
-                            {msg.content}
-                          </p>
-                        ) : null}
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className={cn(
-                            "flex flex-wrap gap-1.5",
-                            msg.content ? "px-4 pb-4" : ""
-                          )}>
-                            {msg.attachments.map((url, i) => (
-                              <img
-                                key={i}
-                                src={url}
-                                alt="ảnh đính kèm"
-                                className="max-w-[260px] max-h-[260px] rounded-2xl object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => window.open(url, '_blank')}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-2 px-1">
-                        <span className="text-[10px] font-bold text-muted-foreground opacity-60">
+                        <span className="text-[11px] text-gray-400">
                           {formatVNTime(msg.timestamp)}
                         </span>
                         {!msg.isFromGuest && isLast && (
-                          <CheckCheck size={12} className="text-primary" />
+                          <CheckCheck size={13} className="text-primary" />
                         )}
                       </div>
                     </div>
@@ -689,38 +717,35 @@ export default function SmartInboxPage() {
               </div>
 
               {/* Input Area */}
-              <div className="p-6 border-t bg-white shrink-0 space-y-2">
-                {sendError && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-red-600 px-2">
-                    <AlertCircle size={14} />
-                    <span>{sendError}</span>
-                  </div>
-                )}
-                {aiError && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-orange-600 px-2">
-                    <AlertCircle size={14} />
-                    <span>{aiError}</span>
+              <div className="bg-white border-t shrink-0">
+                {/* Errors */}
+                {(sendError || aiError) && (
+                  <div className="px-4 pt-2 space-y-1">
+                    {sendError && (
+                      <div className="flex items-center gap-2 text-xs text-red-500">
+                        <AlertCircle size={13} /><span>{sendError}</span>
+                      </div>
+                    )}
+                    {aiError && (
+                      <div className="flex items-center gap-2 text-xs text-orange-500">
+                        <AlertCircle size={13} /><span>{aiError}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Emoji Picker */}
                 {showEmojiPicker && (
-                  <div className="bg-white border rounded-2xl shadow-xl p-3 relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowEmojiPicker(false)}
-                      className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X size={14} />
+                  <div className="mx-4 mt-3 bg-white border rounded-xl shadow-lg p-3 relative">
+                    <button type="button" onClick={() => setShowEmojiPicker(false)}
+                      className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                      <X size={13} />
                     </button>
-                    <div className="grid grid-cols-8 gap-1">
+                    <div className="grid grid-cols-10 gap-0.5">
                       {EMOJIS.map(emoji => (
-                        <button
-                          key={emoji}
-                          type="button"
+                        <button key={emoji} type="button"
                           onClick={() => setInputText(t => t + emoji)}
-                          className="text-xl p-1.5 rounded-xl hover:bg-muted transition-colors"
-                        >
+                          className="text-lg p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
                           {emoji}
                         </button>
                       ))}
@@ -730,55 +755,35 @@ export default function SmartInboxPage() {
 
                 {/* Quick Reply Panel */}
                 {showQuickReply && (
-                  <div className="bg-white border rounded-2xl shadow-xl overflow-hidden">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-                      <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Mẫu trả lời nhanh</span>
+                  <div className="mx-4 mt-3 bg-white border rounded-xl shadow-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50">
+                      <span className="text-xs font-semibold text-gray-600">Mẫu trả lời nhanh</span>
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
+                        <button type="button"
                           onClick={() => { setIsAddingQR(true); setEditingField({ shortcut: '', message: '' }); setEditingQR(null); }}
-                          className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-xs font-black hover:bg-primary/20 transition-colors"
-                        >
-                          <Plus size={12} /> Thêm mẫu
+                          className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20 transition-colors">
+                          <Plus size={11} /> Thêm
                         </button>
-                        <button type="button" onClick={() => setShowQuickReply(false)} className="text-muted-foreground hover:text-foreground">
-                          <X size={14} />
+                        <button type="button" onClick={() => setShowQuickReply(false)} className="text-gray-400 hover:text-gray-600">
+                          <X size={13} />
                         </button>
                       </div>
                     </div>
-
-                    {/* Search */}
                     <div className="px-3 py-2 border-b">
-                      <input
-                        type="text"
-                        placeholder="Tìm theo ký tự tắt hoặc nội dung..."
-                        value={qrSearch}
+                      <input type="text" placeholder="Tìm mẫu..." value={qrSearch}
                         onChange={e => setQrSearch(e.target.value)}
-                        className="w-full text-xs font-medium px-3 py-2 rounded-xl bg-muted/30 border outline-none focus:ring-2 focus:ring-primary/20"
-                      />
+                        className="w-full text-xs px-3 py-1.5 rounded-lg bg-gray-50 border outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
-
-                    {/* Add / Edit form */}
                     {(isAddingQR || editingQR) && (
-                      <div className="px-4 py-3 bg-primary/5 border-b space-y-2">
+                      <div className="px-3 py-2 bg-primary/5 border-b">
                         <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Ký tự tắt (VD: BG)"
-                            value={editingField.shortcut}
+                          <input type="text" placeholder="Tắt (VD: BG)" value={editingField.shortcut}
                             onChange={e => setEditingField(f => ({ ...f, shortcut: e.target.value.toUpperCase() }))}
-                            className="w-28 text-xs font-bold px-3 py-2 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 bg-white"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Nội dung tin nhắn..."
-                            value={editingField.message}
+                            className="w-24 text-xs px-2.5 py-1.5 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 bg-white" />
+                          <input type="text" placeholder="Nội dung..." value={editingField.message}
                             onChange={e => setEditingField(f => ({ ...f, message: e.target.value }))}
-                            className="flex-1 text-xs font-medium px-3 py-2 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 bg-white"
-                          />
-                          <button
-                            type="button"
+                            className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 bg-white" />
+                          <button type="button"
                             onClick={() => {
                               if (!editingField.shortcut.trim() || !editingField.message.trim()) return;
                               if (editingQR) {
@@ -788,56 +793,42 @@ export default function SmartInboxPage() {
                               }
                               setEditingQR(null); setIsAddingQR(false); setEditingField({ shortcut: '', message: '' });
                             }}
-                            className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-black hover:bg-primary/90 transition-colors"
-                          >
-                            <Check size={14} />
+                            className="px-2.5 py-1.5 bg-primary text-white rounded-lg text-xs hover:bg-primary/90">
+                            <Check size={13} />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => { setEditingQR(null); setIsAddingQR(false); }}
-                            className="px-3 py-2 bg-muted text-muted-foreground rounded-xl text-xs hover:bg-muted/80 transition-colors"
-                          >
-                            <X size={14} />
+                          <button type="button" onClick={() => { setEditingQR(null); setIsAddingQR(false); }}
+                            className="px-2.5 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs hover:bg-gray-200">
+                            <X size={13} />
                           </button>
                         </div>
                       </div>
                     )}
-
-                    {/* List */}
-                    <div className="max-h-64 overflow-y-auto divide-y">
+                    <div className="max-h-52 overflow-y-auto divide-y divide-gray-50">
                       {filteredQR.length === 0 && (
-                        <div className="text-center py-6 text-xs text-muted-foreground font-medium">Không tìm thấy mẫu nào</div>
+                        <div className="text-center py-5 text-xs text-gray-400">Không tìm thấy</div>
                       )}
                       {filteredQR.map((qr, i) => (
-                        <div
-                          key={qr.id}
-                          className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer group transition-colors"
+                        <div key={qr.id}
+                          className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer group transition-colors"
                           onClick={() => {
                             if (editingQR?.id === qr.id) return;
-                            setInputText(qr.message);
-                            setShowQuickReply(false);
-                            setQrSearch('');
-                          }}
-                        >
-                          <span className="text-[10px] text-muted-foreground w-5 shrink-0">{i + 1}.</span>
-                          <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-md text-[10px] font-black uppercase shrink-0 min-w-[3rem] text-center">
+                            setInputText(qr.message); setShowQuickReply(false); setQrSearch('');
+                          }}>
+                          <span className="text-[10px] text-gray-300 w-4 shrink-0">{i + 1}</span>
+                          <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-semibold shrink-0 min-w-[2.5rem] text-center">
                             {qr.shortcut}
                           </span>
-                          <p className="flex-1 text-xs font-medium text-foreground truncate">{qr.message}</p>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                            <button
-                              type="button"
+                          <p className="flex-1 text-xs text-gray-600 truncate">{qr.message}</p>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                            <button type="button"
                               onClick={() => { setEditingQR(qr); setEditingField({ shortcut: qr.shortcut, message: qr.message }); setIsAddingQR(false); }}
-                              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              <Pencil size={12} />
+                              className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-primary">
+                              <Pencil size={11} />
                             </button>
-                            <button
-                              type="button"
+                            <button type="button"
                               onClick={() => saveQR(quickReplies.filter(q => q.id !== qr.id))}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 size={12} />
+                              className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500">
+                              <Trash2 size={11} />
                             </button>
                           </div>
                         </div>
@@ -847,94 +838,71 @@ export default function SmartInboxPage() {
                 )}
 
                 {/* Hidden image input */}
-                <input
-                  ref={imageInputRef}
-                  type="file"
+                <input ref={imageInputRef} type="file"
                   accept="image/jpeg,image/png,image/gif,image/webp"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
+                  className="hidden" onChange={handleImageUpload} />
 
-                <form
-                  onSubmit={handleSend}
-                  className="bg-muted/30 p-2 rounded-[2rem] border focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5 transition-all flex items-center gap-2"
-                >
-                  <div className="flex items-center px-2">
-                    <button
-                      type="button"
-                      onClick={() => { setShowQuickReply(v => !v); setShowEmojiPicker(false); }}
-                      title="Mẫu trả lời nhanh"
-                      className={cn("p-2 transition-colors", showQuickReply ? "text-primary" : "text-muted-foreground hover:text-primary")}
-                    >
-                      <Zap size={20} />
-                    </button>
-                    <button type="button" className="p-2 text-muted-foreground hover:text-primary transition-colors" title="Đính kèm file (sắp có)">
-                      <Paperclip size={20} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => imageInputRef.current?.click()}
-                      disabled={isUploadingImage || !selectedThread?.pageId}
-                      title="Gửi ảnh"
-                      className="p-2 text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
-                    >
-                      {isUploadingImage ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowEmojiPicker(v => !v); setShowQuickReply(false); }}
-                      title="Chọn emoji"
-                      className={cn("p-2 transition-colors", showEmojiPicker ? "text-primary" : "text-muted-foreground hover:text-primary")}
-                    >
-                      <Smile size={20} />
-                    </button>
-                  </div>
+                {/* Toolbar + input */}
+                <div className="px-4 pt-2 pb-1 flex items-center gap-1 border-b border-gray-100">
+                  <button type="button"
+                    onClick={() => { setShowQuickReply(v => !v); setShowEmojiPicker(false); }}
+                    title="Mẫu trả lời nhanh"
+                    className={cn("p-1.5 rounded-lg transition-colors", showQuickReply ? "text-primary bg-primary/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}>
+                    <Zap size={18} />
+                  </button>
+                  <button type="button" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100" title="Đính kèm file">
+                    <Paperclip size={18} />
+                  </button>
+                  <button type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={isUploadingImage || !selectedThread?.pageId}
+                    title="Gửi ảnh"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-40">
+                    {isUploadingImage ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
+                  </button>
+                  <button type="button"
+                    onClick={() => { setShowEmojiPicker(v => !v); setShowQuickReply(false); }}
+                    title="Chọn emoji"
+                    className={cn("p-1.5 rounded-lg transition-colors", showEmojiPicker ? "text-primary bg-primary/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}>
+                    <Smile size={18} />
+                  </button>
+                </div>
+
+                {/* Text input row */}
+                <form onSubmit={handleSend} className="flex items-end gap-2 px-4 py-3">
                   <input
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    placeholder="Viết câu trả lời..."
+                    placeholder="Aa"
                     disabled={isSending}
-                    className="flex-1 bg-transparent border-none outline-none text-sm font-bold py-2 placeholder:text-muted-foreground/60 disabled:opacity-50"
+                    className="flex-1 bg-gray-100 rounded-2xl px-4 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-gray-400 disabled:opacity-50 transition-all"
                   />
-                  <button
-                    type="button"
-                    onClick={handleAiSuggest}
+                  <button type="button" onClick={handleAiSuggest}
                     disabled={isAiLoading || !selectedThread?.messages.some(m => m.isFromGuest)}
-                    title="Để Ta Thong Dong gợi ý câu trả lời"
-                    className={cn(
-                      "w-12 h-12 rounded-full flex items-center justify-center transition-all",
-                      "bg-violet-100 text-violet-600 hover:bg-violet-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                    )}
-                  >
-                    {isAiLoading
-                      ? <Loader2 size={18} className="animate-spin" />
-                      : <Sparkles size={18} />}
+                    title="AI gợi ý"
+                    className="w-9 h-9 rounded-full bg-violet-100 text-violet-500 flex items-center justify-center hover:bg-violet-200 disabled:opacity-40 transition-colors shrink-0">
+                    {isAiLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                   </button>
-                  <button
-                    type="submit"
-                    disabled={isSending}
+                  <button type="submit" disabled={isSending || !inputText.trim()}
                     className={cn(
-                      "w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg",
-                      inputText.trim() && !isSending ? "bg-primary text-white scale-100" : "bg-muted text-muted-foreground scale-90 opacity-50"
-                    )}
-                  >
-                    {isSending
-                      ? <Loader2 size={20} className="animate-spin" />
-                      : <Send size={20} className={cn(inputText.trim() && "translate-x-0.5 -translate-y-0.5")} />}
+                      "w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0",
+                      inputText.trim() && !isSending ? "bg-primary text-white hover:bg-primary/90" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    )}>
+                    {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className={cn(inputText.trim() && "translate-x-0.5 -translate-y-0.5")} />}
                   </button>
                 </form>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-6 text-center p-12">
-              <div className="w-24 h-24 bg-muted/30 rounded-[2.5rem] flex items-center justify-center text-muted-foreground/20">
-                <MessageSquare size={48} />
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <MessageSquare size={32} className="text-gray-300" />
               </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black">Chọn một cuộc hội thoại</h2>
-                <p className="text-muted-foreground font-medium max-w-sm">
-                  Kết nối với khách hàng của bạn qua nhiều kênh (Facebook, Instagram, TikTok, Zalo) tại một nơi duy nhất.
+              <div className="space-y-1">
+                <h2 className="text-base font-semibold text-gray-700">Chọn một cuộc hội thoại</h2>
+                <p className="text-sm text-gray-400 max-w-xs">
+                  Kết nối với khách qua Facebook, Instagram, TikTok, Zalo tại một nơi.
                 </p>
               </div>
             </div>
