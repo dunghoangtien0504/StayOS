@@ -11,7 +11,9 @@ import {
   MessageCircle, Image as ImageIcon,
   Smile, Paperclip, CheckCheck,
   RefreshCw, Loader2, AlertCircle, Sparkles, Bot, X,
+  Zap, Pencil, Trash2, Plus, Check,
 } from 'lucide-react';
+import { getQuickReplies, saveQuickReplies, type QuickReply } from '@/lib/quickReplies';
 
 const EMOJIS = [
   '😊','😄','😂','🥰','😍','😘','🤩','😎',
@@ -93,6 +95,27 @@ export default function SmartInboxPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Quick replies
+  const [showQuickReply, setShowQuickReply] = useState(false);
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const [qrSearch, setQrSearch] = useState('');
+  const [editingQR, setEditingQR] = useState<QuickReply | null>(null);
+  const [editingField, setEditingField] = useState<{ shortcut: string; message: string }>({ shortcut: '', message: '' });
+  const [isAddingQR, setIsAddingQR] = useState(false);
+
+  // Load quick replies from localStorage on mount
+  useEffect(() => { setQuickReplies(getQuickReplies()); }, []);
+
+  const saveQR = (updated: QuickReply[]) => {
+    setQuickReplies(updated);
+    saveQuickReplies(updated);
+  };
+
+  const filteredQR = quickReplies.filter(q =>
+    q.shortcut.toLowerCase().includes(qrSearch.toLowerCase()) ||
+    q.message.toLowerCase().includes(qrSearch.toLowerCase())
+  );
   const [autoReply, setAutoReply] = useState(false);
   const autoReplyRef = useRef(false);
 
@@ -706,6 +729,124 @@ export default function SmartInboxPage() {
                   </div>
                 )}
 
+                {/* Quick Reply Panel */}
+                {showQuickReply && (
+                  <div className="bg-white border rounded-2xl shadow-xl overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+                      <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Mẫu trả lời nhanh</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setIsAddingQR(true); setEditingField({ shortcut: '', message: '' }); setEditingQR(null); }}
+                          className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-xs font-black hover:bg-primary/20 transition-colors"
+                        >
+                          <Plus size={12} /> Thêm mẫu
+                        </button>
+                        <button type="button" onClick={() => setShowQuickReply(false)} className="text-muted-foreground hover:text-foreground">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search */}
+                    <div className="px-3 py-2 border-b">
+                      <input
+                        type="text"
+                        placeholder="Tìm theo ký tự tắt hoặc nội dung..."
+                        value={qrSearch}
+                        onChange={e => setQrSearch(e.target.value)}
+                        className="w-full text-xs font-medium px-3 py-2 rounded-xl bg-muted/30 border outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+
+                    {/* Add / Edit form */}
+                    {(isAddingQR || editingQR) && (
+                      <div className="px-4 py-3 bg-primary/5 border-b space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Ký tự tắt (VD: BG)"
+                            value={editingField.shortcut}
+                            onChange={e => setEditingField(f => ({ ...f, shortcut: e.target.value.toUpperCase() }))}
+                            className="w-28 text-xs font-bold px-3 py-2 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 bg-white"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Nội dung tin nhắn..."
+                            value={editingField.message}
+                            onChange={e => setEditingField(f => ({ ...f, message: e.target.value }))}
+                            className="flex-1 text-xs font-medium px-3 py-2 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!editingField.shortcut.trim() || !editingField.message.trim()) return;
+                              if (editingQR) {
+                                saveQR(quickReplies.map(q => q.id === editingQR.id ? { ...q, ...editingField } : q));
+                              } else {
+                                saveQR([...quickReplies, { id: Date.now().toString(), ...editingField }]);
+                              }
+                              setEditingQR(null); setIsAddingQR(false); setEditingField({ shortcut: '', message: '' });
+                            }}
+                            className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-black hover:bg-primary/90 transition-colors"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setEditingQR(null); setIsAddingQR(false); }}
+                            className="px-3 py-2 bg-muted text-muted-foreground rounded-xl text-xs hover:bg-muted/80 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* List */}
+                    <div className="max-h-64 overflow-y-auto divide-y">
+                      {filteredQR.length === 0 && (
+                        <div className="text-center py-6 text-xs text-muted-foreground font-medium">Không tìm thấy mẫu nào</div>
+                      )}
+                      {filteredQR.map((qr, i) => (
+                        <div
+                          key={qr.id}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer group transition-colors"
+                          onClick={() => {
+                            if (editingQR?.id === qr.id) return;
+                            setInputText(qr.message);
+                            setShowQuickReply(false);
+                            setQrSearch('');
+                          }}
+                        >
+                          <span className="text-[10px] text-muted-foreground w-5 shrink-0">{i + 1}.</span>
+                          <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-md text-[10px] font-black uppercase shrink-0 min-w-[3rem] text-center">
+                            {qr.shortcut}
+                          </span>
+                          <p className="flex-1 text-xs font-medium text-foreground truncate">{qr.message}</p>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => { setEditingQR(qr); setEditingField({ shortcut: qr.shortcut, message: qr.message }); setIsAddingQR(false); }}
+                              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => saveQR(quickReplies.filter(q => q.id !== qr.id))}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Hidden image input */}
                 <input
                   ref={imageInputRef}
@@ -720,6 +861,14 @@ export default function SmartInboxPage() {
                   className="bg-muted/30 p-2 rounded-[2rem] border focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5 transition-all flex items-center gap-2"
                 >
                   <div className="flex items-center px-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowQuickReply(v => !v); setShowEmojiPicker(false); }}
+                      title="Mẫu trả lời nhanh"
+                      className={cn("p-2 transition-colors", showQuickReply ? "text-primary" : "text-muted-foreground hover:text-primary")}
+                    >
+                      <Zap size={20} />
+                    </button>
                     <button type="button" className="p-2 text-muted-foreground hover:text-primary transition-colors" title="Đính kèm file (sắp có)">
                       <Paperclip size={20} />
                     </button>
@@ -734,7 +883,7 @@ export default function SmartInboxPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowEmojiPicker(v => !v)}
+                      onClick={() => { setShowEmojiPicker(v => !v); setShowQuickReply(false); }}
                       title="Chọn emoji"
                       className={cn("p-2 transition-colors", showEmojiPicker ? "text-primary" : "text-muted-foreground hover:text-primary")}
                     >
