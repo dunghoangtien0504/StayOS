@@ -85,6 +85,10 @@ export default function SmartInboxPage() {
   const [autoReply, setAutoReply] = useState(false);
   const autoReplyRef = useRef(false);
 
+  // Per-thread auto-reply: set of threadIds that have individual auto-reply on
+  const [perThreadAutoReply, setPerThreadAutoReply] = useState<Set<string>>(new Set());
+  const perThreadAutoReplyRef = useRef<Set<string>>(new Set());
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const selectedThread = chatThreads.find(t => t.id === selectedThreadId);
@@ -93,8 +97,18 @@ export default function SmartInboxPage() {
     t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Keep ref in sync so the interval callback always sees latest value
+  // Keep refs in sync so interval callbacks always see latest values
   useEffect(() => { autoReplyRef.current = autoReply; }, [autoReply]);
+  useEffect(() => { perThreadAutoReplyRef.current = perThreadAutoReply; }, [perThreadAutoReply]);
+
+  const togglePerThreadAutoReply = (threadId: string) => {
+    setPerThreadAutoReply(prev => {
+      const next = new Set(prev);
+      if (next.has(threadId)) next.delete(threadId);
+      else next.add(threadId);
+      return next;
+    });
+  };
 
   // ── Auto-reply: call agent and send to Pancake ────────────────
   const triggerAutoReply = useCallback(async (thread: ReturnType<typeof syncItemToThread>) => {
@@ -154,10 +168,10 @@ export default function SmartInboxPage() {
       syncPancakeThreads(threads);
       setLastSyncAt(new Date());
 
-      // Auto-reply: process threads with unread guest messages
-      if (autoReplyRef.current) {
-        const unread = threads.filter(t => t.unreadCount > 0);
-        for (const t of unread) {
+      // Auto-reply: global (all unread) OR per-thread (specific threads)
+      const unread = threads.filter(t => t.unreadCount > 0);
+      for (const t of unread) {
+        if (autoReplyRef.current || perThreadAutoReplyRef.current.has(t.id)) {
           triggerAutoReply(t);
         }
       }
@@ -429,7 +443,20 @@ export default function SmartInboxPage() {
                   </p>
                 </div>
 
-                {thread.unreadCount > 0 && (
+                {/* Per-thread auto-reply toggle */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
+                  title={perThreadAutoReply.has(thread.id) ? 'Tắt AI tự động trả lời khách này' : 'Bật AI tự động trả lời khách này'}
+                  className={cn(
+                    'absolute right-3 bottom-3 w-5 h-5 rounded-full flex items-center justify-center transition-all z-10',
+                    perThreadAutoReply.has(thread.id)
+                      ? 'bg-violet-500 text-white shadow-sm shadow-violet-300'
+                      : 'bg-muted/0 text-muted-foreground/0 group-hover:bg-muted group-hover:text-muted-foreground'
+                  )}
+                >
+                  <Bot size={11} />
+                </button>
+                {thread.unreadCount > 0 && !perThreadAutoReply.has(thread.id) && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary rounded-full shadow-sm shadow-primary/30" />
                 )}
               </div>
@@ -482,19 +509,33 @@ export default function SmartInboxPage() {
                       Tạo booking
                     </button>
                   )}
-                  {/* Auto-reply toggle */}
+                  {/* Per-thread auto-reply toggle */}
                   <button
-                    onClick={() => setAutoReply(v => !v)}
-                    title={autoReply ? 'Tắt tự động trả lời' : 'Bật tự động trả lời (Ta Thong Dong)'}
+                    onClick={() => selectedThread && togglePerThreadAutoReply(selectedThread.id)}
+                    title={selectedThread && perThreadAutoReply.has(selectedThread.id) ? 'Tắt AI riêng khách này' : 'Bật AI riêng khách này'}
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs transition-all',
-                      autoReply
+                      selectedThread && perThreadAutoReply.has(selectedThread.id)
                         ? 'bg-violet-500 text-white shadow-md shadow-violet-200'
                         : 'bg-muted text-muted-foreground hover:bg-violet-100 hover:text-violet-600'
                     )}
                   >
                     <Bot size={14} />
-                    {autoReply ? 'AI đang trả lời' : 'Tự động trả lời'}
+                    {selectedThread && perThreadAutoReply.has(selectedThread.id) ? 'AI riêng: BẬT' : 'AI riêng'}
+                  </button>
+                  {/* Global auto-reply toggle */}
+                  <button
+                    onClick={() => setAutoReply(v => !v)}
+                    title={autoReply ? 'Tắt tự động trả lời tất cả' : 'Bật tự động trả lời tất cả'}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs transition-all',
+                      autoReply
+                        ? 'bg-orange-500 text-white shadow-md shadow-orange-200'
+                        : 'bg-muted text-muted-foreground hover:bg-orange-100 hover:text-orange-600'
+                    )}
+                  >
+                    <Bot size={14} />
+                    {autoReply ? 'AI tất cả: BẬT' : 'Tự động trả lời'}
                   </button>
                   <button className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground"><Phone size={20} /></button>
                   <button className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground"><User size={20} /></button>
