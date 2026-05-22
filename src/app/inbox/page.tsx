@@ -12,8 +12,7 @@ import {
   Smile, Paperclip, CheckCheck,
   RefreshCw, Loader2, AlertCircle,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { cn, formatVNTime } from '@/lib/utils';
 import { AddBookingModal } from '@/components/booking/AddBookingModal';
 import { Plus, Link as LinkIcon } from 'lucide-react';
 
@@ -260,7 +259,7 @@ export default function SmartInboxPage() {
                 <button
                   onClick={runSync}
                   disabled={isSyncing}
-                  title={lastSyncAt ? `Đồng bộ lúc ${format(lastSyncAt, 'HH:mm')}` : 'Đồng bộ Pancake'}
+                  title={lastSyncAt ? `Đồng bộ lúc ${formatVNTime(lastSyncAt)}` : 'Đồng bộ Pancake'}
                   className="p-2 rounded-xl hover:bg-primary/10 text-primary transition-colors disabled:opacity-50"
                 >
                   <RefreshCw size={16} className={cn(isSyncing && 'animate-spin')} />
@@ -328,7 +327,7 @@ export default function SmartInboxPage() {
                       {thread.guestName}
                     </h3>
                     <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">
-                      {format(thread.lastMessageAt, 'HH:mm')}
+                      {formatVNTime(thread.lastMessageAt)}
                     </span>
                   </div>
                   <p className={cn(
@@ -434,7 +433,7 @@ export default function SmartInboxPage() {
                       </div>
                       <div className="mt-1.5 flex items-center gap-2 px-1">
                         <span className="text-[10px] font-bold text-muted-foreground opacity-60">
-                          {format(msg.timestamp, 'HH:mm')}
+                          {formatVNTime(msg.timestamp)}
                         </span>
                         {!msg.isFromGuest && isLast && (
                           <CheckCheck size={12} className="text-primary" />
