@@ -32,9 +32,10 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${GOCLAW_KEY}`,
+        'X-GoClaw-User-Id': 'stayos',
       },
       body: JSON.stringify({
-        model: AGENT_KEY,
+        model: `goclaw:${AGENT_KEY}`,
         messages,
         stream: false,
       }),
