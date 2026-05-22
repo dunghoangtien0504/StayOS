@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Shell } from '@/components/layout/Shell';
@@ -18,11 +18,11 @@ import { cn, formatVNTime } from '@/lib/utils';
 import { AddBookingModal } from '@/components/booking/AddBookingModal';
 
 const EMOJIS = [
-  'ðŸ˜Š','ðŸ˜„','ðŸ˜‚','ðŸ¥°','ðŸ˜','ðŸ˜˜','ðŸ¤©','ðŸ˜Ž',
-  'ðŸ‘','ðŸ‘','ðŸ™','â¤ï¸','ðŸ”¥','âœ¨','ðŸŽ‰','ðŸ’¯',
-  'ðŸ˜¢','ðŸ˜…','ðŸ¤£','ðŸ˜‡','ðŸ¥³','ðŸ¤—','ðŸ˜','ðŸ«¶',
-  'ðŸ ','ðŸ›ï¸','ðŸš¿','ðŸ“…','ðŸ’°','ðŸ“ž','âœ…','â­',
-  'ðŸ™‚','ðŸ˜','ðŸ¤”','ðŸ˜¬','ðŸ˜´','ðŸ¤‘','ðŸ˜‹','ðŸ«¡',
+  '😊','😄','😂','🥰','😍','😘','🤩','😎',
+  '👍','👏','🙏','❤️','🔥','✨','🎉','💯',
+  '😢','😅','🤣','😇','🥳','🤗','😏','🫶',
+  '🏠','🛏️','🚿','📅','💰','📞','✅','⭐',
+  '🙂','😐','🤔','😬','😴','🤑','😋','🫡',
 ];
 
 /** Pancake channel -> ChatThread source (with safe fallback) */
@@ -55,7 +55,7 @@ interface SyncItem {
 function syncItemToThread(item: SyncItem): ChatThread {
   return {
     id: item.conversationId || item.id,
-    guestName: item.guestName || 'KhÃ¡ch',
+    guestName: item.guestName || 'Khách',
     guestPhone: item.guestPhone || '',
     lastMessage: item.message || '',
     lastMessageAt: new Date(item.timestamp),
@@ -139,8 +139,8 @@ export default function SmartInboxPage() {
     t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Collect all image URLs already sent/received via Pancake (deduped)
-  const pancakeImages: string[] = React.useMemo(() => {
+  // All image URLs already sent/received via Pancake (deduped, newest first)
+  const pancakeImages = React.useMemo(() => {
     const seen = new Set<string>();
     const urls: string[] = [];
     for (const thread of chatThreads) {
@@ -150,7 +150,7 @@ export default function SmartInboxPage() {
         }
       }
     }
-    return urls.reverse(); // newest first
+    return urls.reverse();
   }, [chatThreads]);
 
   // Send a quick reply immediately (text + images)
@@ -160,7 +160,7 @@ export default function SmartInboxPage() {
 
     const hasImages = qr.imageUrls && qr.imageUrls.length > 0;
 
-    // No Pancake thread or no images â†’ just fill input
+    // No Pancake thread or no images → just fill input
     if (!selectedThread?.pageId || !hasImages) {
       setInputText(qr.message);
       return;
@@ -182,7 +182,7 @@ export default function SmartInboxPage() {
           }),
         });
         const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || 'Gá»­i text tháº¥t báº¡i');
+        if (!res.ok || !data.success) throw new Error(data.error || 'Gửi text thất bại');
         sendMessage(selectedThread.id, qr.message);
       }
       // 2. Send each image
@@ -201,11 +201,11 @@ export default function SmartInboxPage() {
           }),
         });
         const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || 'Gá»­i áº£nh tháº¥t báº¡i');
-        sendMessage(selectedThread.id, '[áº¢nh]');
+        if (!res.ok || !data.success) throw new Error(data.error || 'Gửi ảnh thất bại');
+        sendMessage(selectedThread.id, '[Ảnh]');
       }
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Gá»­i tháº¥t báº¡i');
+      setSendError(err instanceof Error ? err.message : 'Gửi thất bại');
     } finally {
       setIsSending(false);
     }
@@ -224,7 +224,7 @@ export default function SmartInboxPage() {
     });
   };
 
-  // â”€â”€ Auto-reply: call agent and send to Pancake â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Auto-reply: call agent and send to Pancake ────────────────
   const triggerAutoReply = useCallback(async (thread: ReturnType<typeof syncItemToThread>) => {
     if (!thread.pageId) return;
     try {
@@ -264,11 +264,11 @@ export default function SmartInboxPage() {
         }),
       });
     } catch {
-      // silent â€” auto-reply failures shouldn't break the UI
+      // silent — auto-reply failures shouldn't break the UI
     }
   }, []);
 
-  // â”€â”€ Sync conversations from Pancake â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Sync conversations from Pancake ──────────────────────────
   const runSync = useCallback(async () => {
     setIsSyncing(true);
     setSyncError(null);
@@ -276,7 +276,7 @@ export default function SmartInboxPage() {
       const res = await fetch('/api/pancake/sync');
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || `Sync tháº¥t báº¡i (HTTP ${res.status})`);
+        throw new Error(data.error || `Sync thất bại (HTTP ${res.status})`);
       }
       const threads = (data.messages as SyncItem[]).map(syncItemToThread);
       syncPancakeThreads(threads);
@@ -290,7 +290,7 @@ export default function SmartInboxPage() {
         }
       }
     } catch (err) {
-      setSyncError(err instanceof Error ? err.message : 'Lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh');
+      setSyncError(err instanceof Error ? err.message : 'Lỗi không xác định');
     } finally {
       setIsSyncing(false);
     }
@@ -313,7 +313,7 @@ export default function SmartInboxPage() {
     }
   }, [chatThreads, selectedThreadId]);
 
-  // â”€â”€ Load full message history for the selected thread â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load full message history for the selected thread ────────
   useEffect(() => {
     const thread = chatThreads.find(t => t.id === selectedThreadId);
     if (!thread || !thread.pageId || thread.messagesLoaded) return;
@@ -332,7 +332,7 @@ export default function SmartInboxPage() {
       .then(res => res.json())
       .then((data) => {
         if (cancelled) return;
-        if (!data.success) throw new Error(data.error || 'KhÃ´ng táº£i Ä‘Æ°á»£c tin nháº¯n');
+        if (!data.success) throw new Error(data.error || 'Không tải được tin nhắn');
         const msgs: Message[] = (data.messages as Message[]).map(m => ({
           ...m,
           timestamp: new Date(m.timestamp),
@@ -341,7 +341,7 @@ export default function SmartInboxPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setSendError(err instanceof Error ? err.message : 'Lá»—i táº£i tin nháº¯n');
+          setSendError(err instanceof Error ? err.message : 'Lỗi tải tin nhắn');
         }
       })
       .finally(() => {
@@ -362,7 +362,7 @@ export default function SmartInboxPage() {
     }
   }, [selectedThread?.messages.length, selectedThreadId, markThreadAsRead]);
 
-  // â”€â”€ AI suggest reply â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── AI suggest reply ─────────────────────────────────────────
   const handleAiSuggest = async () => {
     if (!selectedThread || isAiLoading) return;
     const msgs = selectedThread.messages;
@@ -385,16 +385,16 @@ export default function SmartInboxPage() {
         body: JSON.stringify({ message: lastGuest.content, history: history.slice(0, -1) }),
       });
       const data = await res.json();
-      if (!res.ok || !data.reply) throw new Error(data.error || 'AI khÃ´ng tráº£ vá» káº¿t quáº£');
+      if (!res.ok || !data.reply) throw new Error(data.error || 'AI không trả về kết quả');
       setInputText(data.reply);
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'Lá»—i AI');
+      setAiError(err instanceof Error ? err.message : 'Lỗi AI');
     } finally {
       setIsAiLoading(false);
     }
   };
 
-  // â”€â”€ Upload & send image directly to Pancake (multipart) â”€â”€â”€â”€â”€
+  // ── Upload & send image directly to Pancake (multipart) ─────
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedThread?.pageId) return;
@@ -412,30 +412,30 @@ export default function SmartInboxPage() {
 
       const res = await fetch('/api/pancake/send-image', { method: 'POST', body: form });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Gá»­i áº£nh tháº¥t báº¡i');
+      if (!res.ok || !data.success) throw new Error(data.error || 'Gửi ảnh thất bại');
 
-      sendMessage(selectedThread.id, `[áº¢nh: ${file.name}]`);
+      sendMessage(selectedThread.id, `[Ảnh: ${file.name}]`);
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Lá»—i gá»­i áº£nh');
+      setSendError(err instanceof Error ? err.message : 'Lỗi gửi ảnh');
     } finally {
       setIsUploadingImage(false);
     }
   };
 
-  // â”€â”€ Send a reply â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Send a reply ─────────────────────────────────────────────
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = inputText.trim();
     if (!text || !selectedThread) return;
 
-    // Local-only thread (mock) â€” just append
+    // Local-only thread (mock) — just append
     if (!selectedThread.pageId) {
       sendMessage(selectedThread.id, text);
       setInputText('');
       return;
     }
 
-    // Pancake thread â€” send through the API
+    // Pancake thread — send through the API
     setIsSending(true);
     setSendError(null);
     try {
@@ -451,12 +451,12 @@ export default function SmartInboxPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || `Gá»­i tháº¥t báº¡i (HTTP ${res.status})`);
+        throw new Error(data.error || `Gửi thất bại (HTTP ${res.status})`);
       }
       sendMessage(selectedThread.id, text);
       setInputText('');
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Gá»­i tin nháº¯n tháº¥t báº¡i');
+      setSendError(err instanceof Error ? err.message : 'Gửi tin nhắn thất bại');
     } finally {
       setIsSending(false);
     }
@@ -495,13 +495,13 @@ export default function SmartInboxPage() {
     <Shell title="Smart Inbox">
       <div className="h-full flex overflow-hidden" style={{ background: '#f5f6fa' }}>
 
-        {/* â”€â”€ Sidebar â”€â”€ */}
+        {/* ── Sidebar ── */}
         <div className="w-[320px] border-r flex flex-col h-full bg-white">
 
           {/* Sidebar header */}
           <div className="px-4 pt-4 pb-3 border-b space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-base font-semibold text-gray-800">Há»™i thoáº¡i</span>
+              <span className="text-base font-semibold text-gray-800">Hội thoại</span>
               <div className="flex items-center gap-1">
                 {totalUnread > 0 && (
                   <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[11px] font-semibold">
@@ -511,7 +511,7 @@ export default function SmartInboxPage() {
                 <button
                   onClick={runSync}
                   disabled={isSyncing}
-                  title={lastSyncAt ? `Äá»“ng bá»™ lÃºc ${formatVNTime(lastSyncAt)}` : 'Äá»“ng bá»™ Pancake'}
+                  title={lastSyncAt ? `Đồng bộ lúc ${formatVNTime(lastSyncAt)}` : 'Đồng bộ Pancake'}
                   className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors disabled:opacity-50"
                 >
                   <RefreshCw size={15} className={cn(isSyncing && 'animate-spin')} />
@@ -522,7 +522,7 @@ export default function SmartInboxPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
               <input
                 type="text"
-                placeholder="TÃ¬m há»™i thoáº¡i..."
+                placeholder="Tìm hội thoại..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-primary/50 outline-none text-sm text-gray-700 placeholder:text-gray-400 transition-all"
@@ -541,13 +541,13 @@ export default function SmartInboxPage() {
             {isSyncing && chatThreads.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
                 <Loader2 size={24} className="animate-spin" />
-                <span className="text-xs">Äang Ä‘á»“ng bá»™...</span>
+                <span className="text-xs">Đang đồng bộ...</span>
               </div>
             )}
             {!isSyncing && chatThreads.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-2 text-gray-400 text-center px-6">
                 <MessageSquare size={28} className="opacity-40" />
-                <span className="text-xs">ChÆ°a cÃ³ há»™i thoáº¡i nÃ o</span>
+                <span className="text-xs">Chưa có hội thoại nào</span>
               </div>
             )}
             {filteredThreads.map(thread => (
@@ -585,7 +585,7 @@ export default function SmartInboxPage() {
                     "text-xs truncate leading-snug",
                     thread.unreadCount > 0 ? "text-gray-800 font-medium" : "text-gray-400"
                   )}>
-                    {thread.lastMessage || 'ðŸ“· HÃ¬nh áº£nh'}
+                    {thread.lastMessage || '📷 Hình ảnh'}
                   </p>
                 </div>
 
@@ -598,7 +598,7 @@ export default function SmartInboxPage() {
                     <button
                       onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
                       className="w-5 h-5 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center hover:bg-violet-200 transition-colors"
-                      title="AI tá»± Ä‘á»™ng Báº¬T â€” báº¥m Ä‘á»ƒ táº¯t"
+                      title="AI tự động BẬT — bấm để tắt"
                     >
                       <Bot size={11} />
                     </button>
@@ -607,7 +607,7 @@ export default function SmartInboxPage() {
                     <button
                       onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
                       className="w-5 h-5 rounded-full text-gray-300 flex items-center justify-center hover:bg-gray-100 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-all"
-                      title="Báº­t AI tá»± Ä‘á»™ng cho khÃ¡ch nÃ y"
+                      title="Bật AI tự động cho khách này"
                     >
                       <Bot size={11} />
                     </button>
@@ -618,11 +618,11 @@ export default function SmartInboxPage() {
           </div>
         </div>
 
-        {/* â”€â”€ Chat Window â”€â”€ */}
+        {/* ── Chat Window ── */}
         <div className="flex-1 flex flex-col h-full">
           {selectedThread ? (
             <>
-              {/* Chat Header â€” Pancake style */}
+              {/* Chat Header — Pancake style */}
               <div className="border-b bg-white flex items-center justify-between px-5 py-3 shrink-0 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -647,7 +647,7 @@ export default function SmartInboxPage() {
                     <div className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
                       {getSourceIcon(selectedThread.source)}
                       <span className="uppercase tracking-wide">{selectedThread.source}</span>
-                      {selectedThread.guestPhone && <span>â€¢ {selectedThread.guestPhone}</span>}
+                      {selectedThread.guestPhone && <span>• {selectedThread.guestPhone}</span>}
                     </div>
                   </div>
                 </div>
@@ -659,7 +659,7 @@ export default function SmartInboxPage() {
                       className="flex items-center gap-1.5 border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 transition-all"
                     >
                       <Plus size={13} />
-                      Táº¡o booking
+                      Tạo booking
                     </button>
                   )}
                   <button
@@ -672,7 +672,7 @@ export default function SmartInboxPage() {
                     )}
                   >
                     <Bot size={13} />
-                    AI riÃªng
+                    AI riêng
                   </button>
                   <button
                     onClick={() => setAutoReply(v => !v)}
@@ -684,7 +684,7 @@ export default function SmartInboxPage() {
                     )}
                   >
                     <Bot size={13} />
-                    Tá»± Ä‘á»™ng tráº£ lá»i
+                    Tự động trả lời
                   </button>
                   <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"><Phone size={17} /></button>
                   <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"><User size={17} /></button>
@@ -696,14 +696,14 @@ export default function SmartInboxPage() {
                 {isLoadingMessages && (
                   <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-400">
                     <Loader2 size={22} className="animate-spin" />
-                    <span className="text-xs">Äang táº£i tin nháº¯n...</span>
+                    <span className="text-xs">Đang tải tin nhắn...</span>
                   </div>
                 )}
 
                 {!isLoadingMessages && selectedThread.messages.length === 0 && (
                   <div className="flex justify-center py-4">
                     <span className="px-3 py-1 bg-white/70 rounded-full text-[11px] text-gray-400 shadow-sm">
-                      Báº¯t Ä‘áº§u há»™i thoáº¡i
+                      Bắt đầu hội thoại
                     </span>
                   </div>
                 )}
@@ -732,7 +732,7 @@ export default function SmartInboxPage() {
                         </div>
                       )}
 
-                      {/* Images â€” grid layout like Pancake */}
+                      {/* Images — grid layout like Pancake */}
                       {hasImages && (
                         <div className={cn(
                           "mt-1",
@@ -741,14 +741,14 @@ export default function SmartInboxPage() {
                           {msg.attachments!.length === 1 ? (
                             <img
                               src={msg.attachments![0]}
-                              alt="áº£nh"
+                              alt="ảnh"
                               className="max-w-[280px] max-h-[320px] rounded-2xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
                               onClick={() => window.open(msg.attachments![0], '_blank')}
                             />
                           ) : msg.attachments!.length === 2 ? (
                             <div className="grid grid-cols-2 gap-1">
                               {msg.attachments!.map((url, i) => (
-                                <img key={i} src={url} alt="áº£nh"
+                                <img key={i} src={url} alt="ảnh"
                                   className="w-[140px] h-[140px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
                                   onClick={() => window.open(url, '_blank')} />
                               ))}
@@ -756,7 +756,7 @@ export default function SmartInboxPage() {
                           ) : (
                             <div className="grid grid-cols-3 gap-1">
                               {msg.attachments!.map((url, i) => (
-                                <img key={i} src={url} alt="áº£nh"
+                                <img key={i} src={url} alt="ảnh"
                                   className="w-[110px] h-[110px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
                                   onClick={() => window.open(url, '_blank')} />
                               ))}
@@ -825,12 +825,12 @@ export default function SmartInboxPage() {
                   <div className="mx-4 mt-3 bg-white border rounded-xl shadow-lg overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50">
-                      <span className="text-xs font-semibold text-gray-600">Máº«u tráº£ lá»i nhanh</span>
+                      <span className="text-xs font-semibold text-gray-600">Mẫu trả lời nhanh</span>
                       <div className="flex items-center gap-2">
                         <button type="button"
                           onClick={() => startEditQR(null)}
                           className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20 transition-colors">
-                          <Plus size={11} /> ThÃªm
+                          <Plus size={11} /> Thêm
                         </button>
                         <button type="button" onClick={() => setShowQuickReply(false)} className="text-gray-400 hover:text-gray-600">
                           <X size={13} />
@@ -840,7 +840,7 @@ export default function SmartInboxPage() {
 
                     {/* Search */}
                     <div className="px-3 py-2 border-b">
-                      <input type="text" placeholder="TÃ¬m máº«u..." value={qrSearch}
+                      <input type="text" placeholder="Tìm mẫu..." value={qrSearch}
                         onChange={e => setQrSearch(e.target.value)}
                         className="w-full text-xs px-3 py-1.5 rounded-lg bg-gray-50 border outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
@@ -850,10 +850,10 @@ export default function SmartInboxPage() {
                       <div className="px-3 py-3 bg-primary/5 border-b space-y-2">
                         {/* Row 1: shortcut + message + save/cancel */}
                         <div className="flex gap-2">
-                          <input type="text" placeholder="Táº¯t (BG)" value={editingField.shortcut}
+                          <input type="text" placeholder="Tắt (BG)" value={editingField.shortcut}
                             onChange={e => setEditingField(f => ({ ...f, shortcut: e.target.value.toUpperCase() }))}
                             className="w-20 text-xs px-2.5 py-1.5 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 bg-white font-semibold" />
-                          <input type="text" placeholder="Ná»™i dung tin nháº¯n..."  value={editingField.message}
+                          <input type="text" placeholder="Nội dung tin nhắn..."  value={editingField.message}
                             onChange={e => setEditingField(f => ({ ...f, message: e.target.value }))}
                             className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 bg-white" />
                           <button type="button"
@@ -906,34 +906,25 @@ export default function SmartInboxPage() {
                               <span className="text-[11px] text-gray-400">{editingImages.length} ảnh đã chọn</span>
                             )}
                           </div>
-
-                          {/* Pancake image picker grid */}
                           {showQRImagePicker && (
                             <div className="border rounded-xl bg-gray-50 p-2">
                               {pancakeImages.length === 0 ? (
                                 <p className="text-xs text-gray-400 text-center py-4">
-                                  Chưa có ảnh từ Pancake. Mở một hội thoại có ảnh để load.
+                                  Chưa có ảnh từ Pancake. Mở hội thoại có ảnh để load trước.
                                 </p>
                               ) : (
                                 <div className="grid grid-cols-6 gap-1.5 max-h-48 overflow-y-auto">
                                   {pancakeImages.map((url, i) => {
                                     const selected = editingImages.includes(url);
                                     return (
-                                      <button
-                                        key={i}
-                                        type="button"
-                                        onClick={() => {
-                                          if (selected) {
-                                            setEditingImages(imgs => imgs.filter(u => u !== url));
-                                          } else {
-                                            setEditingImages(imgs => [...imgs, url]);
-                                          }
-                                        }}
+                                      <button key={i} type="button"
+                                        onClick={() => setEditingImages(imgs =>
+                                          selected ? imgs.filter(u => u !== url) : [...imgs, url]
+                                        )}
                                         className={cn(
                                           "relative rounded-lg overflow-hidden aspect-square transition-all",
                                           selected ? "ring-2 ring-primary scale-95" : "hover:opacity-80"
-                                        )}
-                                      >
+                                        )}>
                                         <img src={url} alt="" className="w-full h-full object-cover" />
                                         {selected && (
                                           <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
@@ -954,7 +945,7 @@ export default function SmartInboxPage() {
                     {/* List */}
                     <div className="max-h-56 overflow-y-auto divide-y divide-gray-50">
                       {filteredQR.length === 0 && (
-                        <div className="text-center py-5 text-xs text-gray-400">KhÃ´ng tÃ¬m tháº¥y</div>
+                        <div className="text-center py-5 text-xs text-gray-400">Không tìm thấy</div>
                       )}
                       {filteredQR.map((qr, i) => (
                         <div key={qr.id}
@@ -974,7 +965,7 @@ export default function SmartInboxPage() {
                               +{qr.imageUrls.length}
                             </span>
                           )}
-                          <p className="flex-1 text-xs text-gray-600 truncate">{qr.message || <span className="text-gray-400 italic">chá»‰ áº£nh</span>}</p>
+                          <p className="flex-1 text-xs text-gray-600 truncate">{qr.message || <span className="text-gray-400 italic">chỉ ảnh</span>}</p>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={e => e.stopPropagation()}>
                             <button type="button"
                               onClick={() => startEditQR(qr)}
@@ -1002,23 +993,23 @@ export default function SmartInboxPage() {
                 <div className="px-4 pt-2 pb-1 flex items-center gap-1 border-b border-gray-100">
                   <button type="button"
                     onClick={() => { setShowQuickReply(v => !v); setShowEmojiPicker(false); }}
-                    title="Máº«u tráº£ lá»i nhanh"
+                    title="Mẫu trả lời nhanh"
                     className={cn("p-1.5 rounded-lg transition-colors", showQuickReply ? "text-primary bg-primary/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}>
                     <Zap size={18} />
                   </button>
-                  <button type="button" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100" title="ÄÃ­nh kÃ¨m file">
+                  <button type="button" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100" title="Đính kèm file">
                     <Paperclip size={18} />
                   </button>
                   <button type="button"
                     onClick={() => imageInputRef.current?.click()}
                     disabled={isUploadingImage || !selectedThread?.pageId}
-                    title="Gá»­i áº£nh"
+                    title="Gửi ảnh"
                     className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-40">
                     {isUploadingImage ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
                   </button>
                   <button type="button"
                     onClick={() => { setShowEmojiPicker(v => !v); setShowQuickReply(false); }}
-                    title="Chá»n emoji"
+                    title="Chọn emoji"
                     className={cn("p-1.5 rounded-lg transition-colors", showEmojiPicker ? "text-primary bg-primary/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}>
                     <Smile size={18} />
                   </button>
@@ -1036,7 +1027,7 @@ export default function SmartInboxPage() {
                   />
                   <button type="button" onClick={handleAiSuggest}
                     disabled={isAiLoading || !selectedThread?.messages.some(m => m.isFromGuest)}
-                    title="AI gá»£i Ã½"
+                    title="AI gợi ý"
                     className="w-9 h-9 rounded-full bg-violet-100 text-violet-500 flex items-center justify-center hover:bg-violet-200 disabled:opacity-40 transition-colors shrink-0">
                     {isAiLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                   </button>
@@ -1056,9 +1047,9 @@ export default function SmartInboxPage() {
                 <MessageSquare size={32} className="text-gray-300" />
               </div>
               <div className="space-y-1">
-                <h2 className="text-base font-semibold text-gray-700">Chá»n má»™t cuá»™c há»™i thoáº¡i</h2>
+                <h2 className="text-base font-semibold text-gray-700">Chọn một cuộc hội thoại</h2>
                 <p className="text-sm text-gray-400 max-w-xs">
-                  Káº¿t ná»‘i vá»›i khÃ¡ch qua Facebook, Instagram, TikTok, Zalo táº¡i má»™t nÆ¡i.
+                  Kết nối với khách qua Facebook, Instagram, TikTok, Zalo tại một nơi.
                 </p>
               </div>
             </div>
@@ -1075,5 +1066,3 @@ export default function SmartInboxPage() {
     </Shell>
   );
 }
-
-
