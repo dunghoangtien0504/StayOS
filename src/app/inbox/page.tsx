@@ -101,6 +101,9 @@ export default function SmartInboxPage() {
   const [qrSearch, setQrSearch] = useState('');
   const [editingQR, setEditingQR] = useState<QuickReply | null>(null);
   const [editingField, setEditingField] = useState<{ shortcut: string; message: string }>({ shortcut: '', message: '' });
+  const [editingImages, setEditingImages] = useState<string[]>([]);
+  const [isUploadingQRImage, setIsUploadingQRImage] = useState(false);
+  const qrImageInputRef = useRef<HTMLInputElement>(null);
   const [isAddingQR, setIsAddingQR] = useState(false);
 
   // Load quick replies from localStorage on mount
@@ -109,6 +112,33 @@ export default function SmartInboxPage() {
   const saveQR = (updated: QuickReply[]) => {
     setQuickReplies(updated);
     saveQuickReplies(updated);
+  };
+
+  const startEditQR = (qr: QuickReply | null) => {
+    setEditingQR(qr);
+    setEditingField({ shortcut: qr?.shortcut ?? '', message: qr?.message ?? '' });
+    setEditingImages(qr?.imageUrls ?? []);
+    setIsAddingQR(qr === null);
+  };
+
+  // Upload an image for a QR template (stores relative URL)
+  const handleQRImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setIsUploadingQRImage(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Upload thất bại');
+      setEditingImages(prev => [...prev, data.url as string]);
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Upload ảnh thất bại');
+    } finally {
+      setIsUploadingQRImage(false);
+    }
   };
 
   const filteredQR = quickReplies.filter(q =>
@@ -129,6 +159,64 @@ export default function SmartInboxPage() {
     t.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Send a quick reply immediately (text + images)
+  const handleQRSend = useCallback(async (qr: QuickReply) => {
+    setShowQuickReply(false);
+    setQrSearch('');
+
+    const hasImages = qr.imageUrls && qr.imageUrls.length > 0;
+
+    // No Pancake thread or no images → just fill input
+    if (!selectedThread?.pageId || !hasImages) {
+      setInputText(qr.message);
+      return;
+    }
+
+    setIsSending(true);
+    setSendError(null);
+    try {
+      // 1. Send text
+      if (qr.message.trim()) {
+        const res = await fetch('/api/pancake/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pageId: selectedThread.pageId,
+            conversationId: selectedThread.id,
+            customerId: selectedThread.customerId,
+            message: qr.message,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Gửi text thất bại');
+        sendMessage(selectedThread.id, qr.message);
+      }
+      // 2. Send each image
+      for (const imgUrl of qr.imageUrls!) {
+        const absoluteUrl = imgUrl.startsWith('http')
+          ? imgUrl
+          : `${window.location.origin}${imgUrl}`;
+        const res = await fetch('/api/pancake/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pageId: selectedThread.pageId,
+            conversationId: selectedThread.id,
+            customerId: selectedThread.customerId,
+            contentUrl: absoluteUrl,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Gửi ảnh thất bại');
+        sendMessage(selectedThread.id, '[Ảnh]');
+      }
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Gửi thất bại');
+    } finally {
+      setIsSending(false);
+    }
+  }, [selectedThread, sendMessage]);
 
   // Keep refs in sync so interval callbacks always see latest values
   useEffect(() => { autoReplyRef.current = autoReply; }, [autoReply]);
@@ -756,11 +844,12 @@ export default function SmartInboxPage() {
                 {/* Quick Reply Panel */}
                 {showQuickReply && (
                   <div className="mx-4 mt-3 bg-white border rounded-xl shadow-lg overflow-hidden">
+                    {/* Header */}
                     <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50">
                       <span className="text-xs font-semibold text-gray-600">Mẫu trả lời nhanh</span>
                       <div className="flex items-center gap-2">
                         <button type="button"
-                          onClick={() => { setIsAddingQR(true); setEditingField({ shortcut: '', message: '' }); setEditingQR(null); }}
+                          onClick={() => startEditQR(null)}
                           className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20 transition-colors">
                           <Plus size={11} /> Thêm
                         </button>
@@ -769,41 +858,80 @@ export default function SmartInboxPage() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Search */}
                     <div className="px-3 py-2 border-b">
                       <input type="text" placeholder="Tìm mẫu..." value={qrSearch}
                         onChange={e => setQrSearch(e.target.value)}
                         className="w-full text-xs px-3 py-1.5 rounded-lg bg-gray-50 border outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
+
+                    {/* Add / Edit form */}
                     {(isAddingQR || editingQR) && (
-                      <div className="px-3 py-2 bg-primary/5 border-b">
+                      <div className="px-3 py-3 bg-primary/5 border-b space-y-2">
+                        {/* Row 1: shortcut + message + save/cancel */}
                         <div className="flex gap-2">
-                          <input type="text" placeholder="Tắt (VD: BG)" value={editingField.shortcut}
+                          <input type="text" placeholder="Tắt (BG)" value={editingField.shortcut}
                             onChange={e => setEditingField(f => ({ ...f, shortcut: e.target.value.toUpperCase() }))}
-                            className="w-24 text-xs px-2.5 py-1.5 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 bg-white" />
-                          <input type="text" placeholder="Nội dung..." value={editingField.message}
+                            className="w-20 text-xs px-2.5 py-1.5 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 bg-white font-semibold" />
+                          <input type="text" placeholder="Nội dung tin nhắn..."  value={editingField.message}
                             onChange={e => setEditingField(f => ({ ...f, message: e.target.value }))}
                             className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 bg-white" />
                           <button type="button"
                             onClick={() => {
-                              if (!editingField.shortcut.trim() || !editingField.message.trim()) return;
+                              if (!editingField.shortcut.trim()) return;
+                              const entry = { ...editingField, imageUrls: editingImages };
                               if (editingQR) {
-                                saveQR(quickReplies.map(q => q.id === editingQR.id ? { ...q, ...editingField } : q));
+                                saveQR(quickReplies.map(q => q.id === editingQR.id ? { ...q, ...entry } : q));
                               } else {
-                                saveQR([...quickReplies, { id: Date.now().toString(), ...editingField }]);
+                                saveQR([...quickReplies, { id: Date.now().toString(), ...entry }]);
                               }
-                              setEditingQR(null); setIsAddingQR(false); setEditingField({ shortcut: '', message: '' });
+                              setEditingQR(null); setIsAddingQR(false);
+                              setEditingField({ shortcut: '', message: '' }); setEditingImages([]);
                             }}
-                            className="px-2.5 py-1.5 bg-primary text-white rounded-lg text-xs hover:bg-primary/90">
+                            className="px-2.5 py-1.5 bg-primary text-white rounded-lg text-xs hover:bg-primary/90 shrink-0">
                             <Check size={13} />
                           </button>
-                          <button type="button" onClick={() => { setEditingQR(null); setIsAddingQR(false); }}
-                            className="px-2.5 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs hover:bg-gray-200">
+                          <button type="button"
+                            onClick={() => { setEditingQR(null); setIsAddingQR(false); setEditingImages([]); }}
+                            className="px-2.5 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs hover:bg-gray-200 shrink-0">
                             <X size={13} />
                           </button>
                         </div>
+
+                        {/* Row 2: image upload + thumbnails */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <input ref={qrImageInputRef} type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            className="hidden" onChange={handleQRImageUpload} />
+                          <button type="button"
+                            onClick={() => qrImageInputRef.current?.click()}
+                            disabled={isUploadingQRImage}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-gray-300 text-gray-500 text-xs hover:border-primary hover:text-primary transition-colors disabled:opacity-50">
+                            {isUploadingQRImage
+                              ? <Loader2 size={13} className="animate-spin" />
+                              : <ImageIcon size={13} />}
+                            {isUploadingQRImage ? 'Đang tải...' : 'Thêm ảnh'}
+                          </button>
+                          {editingImages.map((url, i) => (
+                            <div key={i} className="relative group">
+                              <img src={url} alt="" className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                              <button type="button"
+                                onClick={() => setEditingImages(imgs => imgs.filter((_, j) => j !== i))}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <X size={9} />
+                              </button>
+                            </div>
+                          ))}
+                          {editingImages.length > 0 && (
+                            <span className="text-[11px] text-gray-400">{editingImages.length} ảnh đính kèm</span>
+                          )}
+                        </div>
                       </div>
                     )}
-                    <div className="max-h-52 overflow-y-auto divide-y divide-gray-50">
+
+                    {/* List */}
+                    <div className="max-h-56 overflow-y-auto divide-y divide-gray-50">
                       {filteredQR.length === 0 && (
                         <div className="text-center py-5 text-xs text-gray-400">Không tìm thấy</div>
                       )}
@@ -812,16 +940,23 @@ export default function SmartInboxPage() {
                           className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer group transition-colors"
                           onClick={() => {
                             if (editingQR?.id === qr.id) return;
-                            setInputText(qr.message); setShowQuickReply(false); setQrSearch('');
+                            handleQRSend(qr);
                           }}>
-                          <span className="text-[10px] text-gray-300 w-4 shrink-0">{i + 1}</span>
+                          <span className="text-[10px] text-gray-300 w-4 shrink-0 text-center">{i + 1}</span>
                           <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-semibold shrink-0 min-w-[2.5rem] text-center">
                             {qr.shortcut}
                           </span>
-                          <p className="flex-1 text-xs text-gray-600 truncate">{qr.message}</p>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                          {/* Image count badge */}
+                          {qr.imageUrls && qr.imageUrls.length > 0 && (
+                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-50 text-orange-500 rounded text-[10px] font-medium shrink-0">
+                              <ImageIcon size={10} />
+                              +{qr.imageUrls.length}
+                            </span>
+                          )}
+                          <p className="flex-1 text-xs text-gray-600 truncate">{qr.message || <span className="text-gray-400 italic">chỉ ảnh</span>}</p>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={e => e.stopPropagation()}>
                             <button type="button"
-                              onClick={() => { setEditingQR(qr); setEditingField({ shortcut: qr.shortcut, message: qr.message }); setIsAddingQR(false); }}
+                              onClick={() => startEditQR(qr)}
                               className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-primary">
                               <Pencil size={11} />
                             </button>

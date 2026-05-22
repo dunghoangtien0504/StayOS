@@ -1,7 +1,8 @@
 export interface QuickReply {
   id: string;
-  shortcut: string;   // e.g. "BG", "HG", "XACNHAN"
-  message: string;    // template text
+  shortcut: string;    // e.g. "BG", "HG", "XACNHAN"
+  message: string;     // template text
+  imageUrls?: string[]; // optional attached image paths (relative or absolute)
 }
 
 const STORAGE_KEY = 'stayos_quick_replies';
