@@ -20,7 +20,9 @@ import {
   List,
   TrendingDown,
   BarChart3,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Menu,
+  X,
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { NotificationBell } from './NotificationBell';
@@ -47,6 +49,7 @@ export const Shell = ({ children, title }: ShellProps) => {
     settings,
   } = useTimelineStore();
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   // Monitoring refs to avoid duplicate notifications in same session
   const notifiedBookings = useRef(new Set<string>());
@@ -142,9 +145,24 @@ export const Shell = ({ children, title }: ShellProps) => {
     : `${properties.length} cơ sở · ${selectedRoomCount} phòng`;
 
   return (
-    <div className="flex h-screen bg-[#F8F9FB] text-foreground font-sans overflow-hidden">
+    <div className="flex h-dvh bg-[#F8F9FB] text-foreground font-sans overflow-hidden">
+
+      {/* Mobile overlay backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-[55] md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r flex flex-col shadow-sm z-[60]">
+      <aside className={`
+        fixed md:relative inset-y-0 left-0 z-[60]
+        w-72 bg-white border-r flex flex-col shadow-sm
+        transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}>
         <div className="p-6 border-b">
           <div className="flex items-center gap-3">
             <div
@@ -172,6 +190,7 @@ export const Shell = ({ children, title }: ShellProps) => {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all group relative
                   ${pathname === item.href ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}`}
               >
@@ -195,6 +214,7 @@ export const Shell = ({ children, title }: ShellProps) => {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all group
                   ${pathname === item.href ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}`}
               >
@@ -244,47 +264,57 @@ export const Shell = ({ children, title }: ShellProps) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="h-20 bg-white border-b flex items-center px-8 flex-shrink-0 z-50 shadow-sm">
-          <div className="flex items-center gap-4 flex-1">
-            <h2 className="text-xl font-black tracking-tight">{title}</h2>
-            <div className="h-6 w-px bg-muted mx-2" />
-            <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-xl border border-muted focus-within:border-primary/50 transition-colors">
+        <header className="h-14 md:h-20 bg-white border-b flex items-center px-3 md:px-8 flex-shrink-0 z-50 shadow-sm gap-3">
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={() => setSidebarOpen(v => !v)}
+            className="md:hidden p-2 rounded-xl hover:bg-muted/50 text-muted-foreground transition-colors shrink-0"
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
+          <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+            <h2 className="text-base md:text-xl font-black tracking-tight truncate">{title}</h2>
+            <div className="h-6 w-px bg-muted mx-1 md:mx-2 hidden md:block" />
+            {/* Search — hidden on mobile */}
+            <div className="hidden md:flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-xl border border-muted focus-within:border-primary/50 transition-colors">
               <Search size={18} className="text-muted-foreground" />
-              <input 
-                type="text" 
-                placeholder="Tìm khách hàng, booking... (⌘K)" 
+              <input
+                type="text"
+                placeholder="Tìm khách hàng, booking... (⌘K)"
                 className="bg-transparent border-none outline-none text-sm font-medium w-64 placeholder:text-muted-foreground/60"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-6 shrink-0">
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-black leading-none">{user?.name || 'User'}</p>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight mt-1">{user?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</p>
-                <button 
+                <button
                   onClick={() => logout()}
                   className="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline mt-1"
                 >
                   Đăng xuất
                 </button>
               </div>
-              <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-black text-sm border-2 border-white shadow-sm ring-1 ring-primary/20">
+              <div className="w-9 h-9 md:w-10 md:h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-black text-sm border-2 border-white shadow-sm ring-1 ring-primary/20">
                 {user?.avatar || 'U'}
               </div>
             </div>
 
-            <div className="h-8 w-px bg-muted" />
+            <div className="h-8 w-px bg-muted hidden sm:block" />
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <NotificationBell />
-              <button 
+              <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-primary/25 hover:scale-[1.02] active:scale-95 transition-all"
+                className="flex items-center gap-1.5 md:gap-2 bg-primary text-white px-3 md:px-6 py-2 md:py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-primary/25 hover:scale-[1.02] active:scale-95 transition-all"
               >
-                <Plus size={18} />
-                Tạo đặt phòng
+                <Plus size={16} className="md:hidden" />
+                <Plus size={18} className="hidden md:block" />
+                <span className="hidden sm:inline">Tạo đặt phòng</span>
               </button>
             </div>
           </div>
