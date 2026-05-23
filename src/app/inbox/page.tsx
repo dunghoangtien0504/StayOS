@@ -11,7 +11,7 @@ import {
   MessageCircle, Image as ImageIcon,
   Smile, Paperclip, CheckCheck,
   RefreshCw, Loader2, AlertCircle, Sparkles, Bot, X,
-  Zap, Pencil, Trash2, Plus, Check, Link as LinkIcon,
+  Zap, Pencil, Trash2, Plus, Check, Link as LinkIcon, ChevronLeft,
 } from 'lucide-react';
 import { getQuickReplies, saveQuickReplies, type QuickReply } from '@/lib/quickReplies';
 import { cn, formatVNTime } from '@/lib/utils';
@@ -493,10 +493,13 @@ export default function SmartInboxPage() {
 
   return (
     <Shell title="Smart Inbox">
-      <div className="h-full flex overflow-hidden" style={{ background: '#f5f6fa' }}>
+      <div className="h-full flex overflow-hidden relative" style={{ background: '#f5f6fa' }}>
 
         {/* ── Sidebar ── */}
-        <div className="w-[320px] border-r flex flex-col h-full bg-white">
+        <div className={cn(
+          "border-r flex-col h-full bg-white w-full md:w-[320px] shrink-0",
+          selectedThreadId ? "hidden md:flex" : "flex"
+        )}>
 
           {/* Sidebar header */}
           <div className="px-4 pt-4 pb-3 border-b space-y-3">
@@ -619,12 +622,22 @@ export default function SmartInboxPage() {
         </div>
 
         {/* ── Chat Window ── */}
-        <div className="flex-1 flex flex-col h-full">
+        <div className={cn(
+          "flex-col h-full",
+          selectedThread ? "flex flex-1" : "hidden md:flex md:flex-1"
+        )}>
           {selectedThread ? (
             <>
               {/* Chat Header — Pancake style */}
-              <div className="border-b bg-white flex items-center justify-between px-5 py-3 shrink-0 shadow-sm">
-                <div className="flex items-center gap-3">
+              <div className="border-b bg-white flex items-center justify-between px-3 md:px-5 py-3 shrink-0 shadow-sm">
+                <div className="flex items-center gap-2 md:gap-3">
+                  {/* Back button — mobile only */}
+                  <button
+                    onClick={() => setSelectedThreadId(null)}
+                    className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors shrink-0"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
                   <div className="relative">
                     <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-primary font-semibold text-sm">
                       {selectedThread.guestName.charAt(0)}
@@ -652,39 +665,39 @@ export default function SmartInboxPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 md:gap-1.5">
                   {!selectedThread.linkedBookingId && (
                     <button
                       onClick={() => setIsAddBookingOpen(true)}
-                      className="flex items-center gap-1.5 border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 transition-all"
+                      className="flex items-center gap-1.5 border border-gray-200 text-gray-600 px-2 md:px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 transition-all"
                     >
                       <Plus size={13} />
-                      Tạo booking
+                      <span className="hidden sm:inline">Tạo booking</span>
                     </button>
                   )}
                   <button
                     onClick={() => selectedThread && togglePerThreadAutoReply(selectedThread.id)}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                      'flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
                       selectedThread && perThreadAutoReply.has(selectedThread.id)
                         ? 'bg-violet-500 text-white border-violet-500'
                         : 'border-gray-200 text-gray-500 hover:border-violet-300 hover:text-violet-600'
                     )}
                   >
                     <Bot size={13} />
-                    AI riêng
+                    <span className="hidden sm:inline">AI riêng</span>
                   </button>
                   <button
                     onClick={() => setAutoReply(v => !v)}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                      'flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
                       autoReply
                         ? 'bg-orange-500 text-white border-orange-500'
                         : 'border-gray-200 text-gray-500 hover:border-orange-300 hover:text-orange-600'
                     )}
                   >
                     <Bot size={13} />
-                    Tự động trả lời
+                    <span className="hidden sm:inline">Tự động trả lời</span>
                   </button>
                   <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"><Phone size={17} /></button>
                   <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"><User size={17} /></button>
@@ -692,7 +705,7 @@ export default function SmartInboxPage() {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3" style={{ background: '#f0f2f5' }}>
+              <div className="flex-1 overflow-y-auto px-3 py-3 md:px-6 md:py-4 space-y-3" style={{ background: '#f0f2f5' }}>
                 {isLoadingMessages && (
                   <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-400">
                     <Loader2 size={22} className="animate-spin" />
@@ -716,7 +729,7 @@ export default function SmartInboxPage() {
                     <div
                       key={msg.id}
                       className={cn(
-                        "flex flex-col max-w-[72%]",
+                        "flex flex-col max-w-[85%] md:max-w-[72%]",
                         msg.isFromGuest ? "mr-auto items-start" : "ml-auto items-end"
                       )}
                     >
@@ -742,22 +755,22 @@ export default function SmartInboxPage() {
                             <img
                               src={msg.attachments![0]}
                               alt="ảnh"
-                              className="max-w-[280px] max-h-[320px] rounded-2xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                              className="max-w-[240px] md:max-w-[280px] max-h-[320px] rounded-2xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
                               onClick={() => window.open(msg.attachments![0], '_blank')}
                             />
                           ) : msg.attachments!.length === 2 ? (
-                            <div className="grid grid-cols-2 gap-1">
+                            <div className="grid grid-cols-2 gap-1 w-[200px] md:w-[280px]">
                               {msg.attachments!.map((url, i) => (
                                 <img key={i} src={url} alt="ảnh"
-                                  className="w-[140px] h-[140px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                                  className="w-full aspect-square rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
                                   onClick={() => window.open(url, '_blank')} />
                               ))}
                             </div>
                           ) : (
-                            <div className="grid grid-cols-3 gap-1">
+                            <div className="grid grid-cols-3 gap-1 w-[200px] md:w-[280px]">
                               {msg.attachments!.map((url, i) => (
                                 <img key={i} src={url} alt="ảnh"
-                                  className="w-[110px] h-[110px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                                  className="w-full aspect-square rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
                                   onClick={() => window.open(url, '_blank')} />
                               ))}
                             </div>
