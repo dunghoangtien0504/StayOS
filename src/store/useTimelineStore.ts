@@ -692,9 +692,9 @@ export const useTimelineStore = create<TimelineState>()(
     }),
     {
       name: 'stayos-store',
-      version: 4,
+      version: 5,
       migrate: (_persistedState, fromVersion) => {
-        console.log(`[StayOS] Store migrated from v${fromVersion} → v4. Resetting to complete data.`);
+        console.log(`[StayOS] Store migrated from v${fromVersion} → v5. Fix UTC timestamps.`);
         return undefined; // undefined = dùng initialState
       },
       storage: createJSONStorage(() => localStorage),
