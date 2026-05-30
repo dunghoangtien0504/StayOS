@@ -13,14 +13,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { 
-  MoreHorizontal, 
-  Eye, 
-  Edit, 
+import {
+  MoreHorizontal,
+  Eye,
+  Edit,
   Trash2,
   Phone,
   Calendar,
-  CreditCard
+  CreditCard,
+  CheckSquare,
+  XCircle,
+  Download,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -35,12 +38,39 @@ import { BookingDetailsModal } from '@/components/booking/BookingDetailsModal';
 import { Booking } from '@/lib/types';
 
 export const BookingTable = () => {
-  const { bookings, rooms, selectedPropertyId } = useTimelineStore();
+  const { bookings, rooms, selectedPropertyId, updateBooking } = useTimelineStore();
   const [activeBooking, setActiveBooking] = React.useState<Booking | null>(null);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
 
-  const filteredBookings = selectedPropertyId 
+  const filteredBookings = (selectedPropertyId
     ? bookings.filter(b => b.propertyId === selectedPropertyId)
-    : bookings;
+    : bookings).sort((a, b) => b.checkIn.getTime() - a.checkIn.getTime());
+
+  const allSelected = filteredBookings.length > 0 && filteredBookings.every(b => selected.has(b.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(filteredBookings.map(b => b.id)));
+  const toggleOne = (id: string) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+
+  const bulkCancel = () => {
+    if (!confirm(`Hủy ${selected.size} booking đã chọn?`)) return;
+    selected.forEach(id => updateBooking(id, { status: 'cancelled' }));
+    setSelected(new Set());
+  };
+
+  const bulkExportCSV = () => {
+    const rows = filteredBookings.filter(b => selected.has(b.id));
+    const headers = ['ID', 'Khách', 'SĐT', 'Phòng', 'Check-in', 'Check-out', 'Trạng thái', 'Tổng tiền', 'Đã trả'];
+    const csv = [headers, ...rows.map(b => [
+      b.id, b.guestName, b.guestPhone,
+      rooms.find(r => r.id === b.roomId)?.name ?? b.roomId,
+      b.checkIn.toLocaleDateString('vi-VN'), b.checkOut.toLocaleDateString('vi-VN'),
+      b.status, b.totalPrice, b.amountPaid,
+    ])].map(r => r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = `bookings_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
+    a.click();
+    setSelected(new Set());
+  };
 
   const getRoomName = (roomId: string) => {
     return rooms.find(r => r.id === roomId)?.name || 'N/A';
@@ -69,10 +99,29 @@ export const BookingTable = () => {
 
   return (
     <div className="bg-white rounded-[2rem] border-2 shadow-2xl shadow-slate-200/50 overflow-hidden">
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 px-6 py-3 bg-primary/5 border-b border-primary/10">
+          <span className="text-sm font-black text-primary">Đã chọn {selected.size} booking</span>
+          <button onClick={bulkExportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border text-xs font-bold hover:bg-muted/50 transition-colors">
+            <Download size={13} /> Xuất CSV
+          </button>
+          <button onClick={bulkCancel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs font-bold hover:bg-red-100 transition-colors">
+            <XCircle size={13} /> Hủy tất cả
+          </button>
+          <button onClick={() => setSelected(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground font-bold">
+            Bỏ chọn
+          </button>
+        </div>
+      )}
       <Table>
         <TableHeader className="bg-muted/30">
           <TableRow className="hover:bg-transparent border-b-2">
-            <TableHead className="w-[250px] font-black text-[10px] uppercase tracking-widest text-muted-foreground py-6 pl-8">Khách hàng</TableHead>
+            <TableHead className="w-12 py-6 pl-6">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                className="w-4 h-4 rounded cursor-pointer accent-primary" />
+            </TableHead>
+            <TableHead className="w-[250px] font-black text-[10px] uppercase tracking-widest text-muted-foreground py-6">Khách hàng</TableHead>
             <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-6">Phòng & Lịch trình</TableHead>
             <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-6">Trạng thái</TableHead>
             <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-6 text-right">Thanh toán</TableHead>
@@ -90,13 +139,17 @@ export const BookingTable = () => {
               </TableCell>
             </TableRow>
           ) : (
-            filteredBookings.sort((a, b) => b.checkIn.getTime() - a.checkIn.getTime()).map((booking) => (
-              <TableRow 
-                key={booking.id} 
-                className="group hover:bg-slate-50/50 transition-colors border-b last:border-0 cursor-pointer"
+            filteredBookings.map((booking) => (
+              <TableRow
+                key={booking.id}
+                className={cn("group hover:bg-slate-50/50 transition-colors border-b last:border-0 cursor-pointer", selected.has(booking.id) && "bg-primary/5")}
                 onClick={() => setActiveBooking(booking)}
               >
-                <TableCell className="py-6 pl-8">
+                <TableCell className="py-6 pl-6" onClick={e => { e.stopPropagation(); toggleOne(booking.id); }}>
+                  <input type="checkbox" checked={selected.has(booking.id)} onChange={() => toggleOne(booking.id)}
+                    className="w-4 h-4 rounded cursor-pointer accent-primary" />
+                </TableCell>
+                <TableCell className="py-6">
                   <div className="flex items-center gap-4">
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-sm", sourceColors[booking.source])}>
                       {booking.guestName.split(' ').map(n => n[0]).join('')}

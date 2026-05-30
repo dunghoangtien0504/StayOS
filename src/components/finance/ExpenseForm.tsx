@@ -57,6 +57,7 @@ export const ExpenseForm = ({ isOpen, onClose }: ExpenseFormProps) => {
   const [propertyId, setPropertyId] = useState<string>('all');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [recurring, setRecurring] = useState<'none' | 'monthly' | 'yearly'>('none');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,11 +69,13 @@ export const ExpenseForm = ({ isOpen, onClose }: ExpenseFormProps) => {
       propertyId: propertyId === 'all' ? undefined : propertyId,
       note,
       date: new Date(date),
+      recurring: recurring === 'none' ? undefined : recurring,
     });
-    
+
     onClose();
     setAmount(0);
     setNote('');
+    setRecurring('none');
   };
 
   return (
@@ -159,14 +162,27 @@ export const ExpenseForm = ({ isOpen, onClose }: ExpenseFormProps) => {
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Ngày chi</Label>
                 <div className="relative group">
                   <CalendarIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <Input 
-                    type="date" 
-                    value={date} 
+                  <Input
+                    type="date" value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="pl-10 rounded-xl border-2 h-11 font-bold"
-                    required
+                    className="pl-10 rounded-xl border-2 h-11 font-bold" required
                   />
                 </div>
+              </div>
+
+              {/* Recurring */}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Lặp lại định kỳ</Label>
+                <Select value={recurring} onValueChange={(v) => setRecurring(v as 'none' | 'monthly' | 'yearly')}>
+                  <SelectTrigger className="rounded-xl border-2 h-11 font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Không lặp lại</SelectItem>
+                    <SelectItem value="monthly">Hàng tháng 🔁</SelectItem>
+                    <SelectItem value="yearly">Hàng năm 📅</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Note */}

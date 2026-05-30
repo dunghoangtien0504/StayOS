@@ -68,61 +68,83 @@ export const AdminHub = () => {
         </div>
 
         <Tabs defaultValue="branding" className="w-full">
-          <TabsList className="grid grid-cols-4 lg:grid-cols-8 w-full">
+          <TabsList className="grid grid-cols-4 lg:grid-cols-9 w-full">
             <TabsTrigger value="branding">Thương hiệu</TabsTrigger>
             <TabsTrigger value="theme">Giao diện</TabsTrigger>
             <TabsTrigger value="nav">Menu</TabsTrigger>
             <TabsTrigger value="widgets">Widget</TabsTrigger>
             <TabsTrigger value="notif">Thông báo</TabsTrigger>
             <TabsTrigger value="sources">Nguồn booking</TabsTrigger>
+            <TabsTrigger value="pricing">Giá phòng</TabsTrigger>
             <TabsTrigger value="categories">Chi phí</TabsTrigger>
             <TabsTrigger value="cleaning">Dọn phòng</TabsTrigger>
           </TabsList>
 
           {/* Branding */}
-          <TabsContent value="branding" className="bg-white p-8 rounded-2xl border space-y-4 mt-4">
+          <TabsContent value="branding" className="bg-white p-8 rounded-2xl border space-y-6 mt-4">
             <h2 className="text-xl font-black">Thương hiệu</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="brand-name">Tên thương hiệu</Label>
-                <Input
-                  id="brand-name"
-                  value={settings.branding.name}
-                  onChange={(e) => updateSettings({ branding: { ...settings.branding, name: e.target.value } })}
-                />
+                <Input id="brand-name" value={settings.branding.name}
+                  onChange={(e) => updateSettings({ branding: { ...settings.branding, name: e.target.value } })} />
               </div>
               <div>
                 <Label htmlFor="brand-logo">Logo URL</Label>
-                <Input
-                  id="brand-logo"
-                  placeholder="https://..."
-                  value={settings.branding.logoUrl ?? ''}
-                  onChange={(e) => updateSettings({ branding: { ...settings.branding, logoUrl: e.target.value || undefined } })}
-                />
+                <Input id="brand-logo" placeholder="https://..." value={settings.branding.logoUrl ?? ''}
+                  onChange={(e) => updateSettings({ branding: { ...settings.branding, logoUrl: e.target.value || undefined } })} />
               </div>
               <div>
                 <Label htmlFor="brand-color">Màu chủ đạo</Label>
                 <div className="flex gap-2 items-center">
-                  <Input
-                    id="brand-color"
-                    type="color"
-                    value={settings.branding.primaryColor}
+                  <Input id="brand-color" type="color" value={settings.branding.primaryColor}
                     onChange={(e) => updateSettings({ branding: { ...settings.branding, primaryColor: e.target.value } })}
-                    className="w-20 h-10 p-1"
-                  />
-                  <Input
-                    value={settings.branding.primaryColor}
-                    onChange={(e) => updateSettings({ branding: { ...settings.branding, primaryColor: e.target.value } })}
-                  />
+                    className="w-20 h-10 p-1" />
+                  <Input value={settings.branding.primaryColor}
+                    onChange={(e) => updateSettings({ branding: { ...settings.branding, primaryColor: e.target.value } })} />
                 </div>
               </div>
               <div>
                 <Label htmlFor="brand-tz">Múi giờ</Label>
-                <Input
-                  id="brand-tz"
-                  value={settings.branding.timezone}
-                  onChange={(e) => updateSettings({ branding: { ...settings.branding, timezone: e.target.value } })}
-                />
+                <Input id="brand-tz" value={settings.branding.timezone}
+                  onChange={(e) => updateSettings({ branding: { ...settings.branding, timezone: e.target.value } })} />
+              </div>
+              <div>
+                <Label htmlFor="brand-address">Địa chỉ (hiện trên hóa đơn)</Label>
+                <Input id="brand-address" placeholder="Số nhà, đường, tỉnh thành..."
+                  value={settings.branding.address ?? ''}
+                  onChange={(e) => updateSettings({ branding: { ...settings.branding, address: e.target.value } })} />
+              </div>
+              <div>
+                <Label htmlFor="brand-phone">Số điện thoại (hiện trên hóa đơn)</Label>
+                <Input id="brand-phone" placeholder="0900 000 000"
+                  value={settings.branding.phone ?? ''}
+                  onChange={(e) => updateSettings({ branding: { ...settings.branding, phone: e.target.value } })} />
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <h3 className="text-base font-black mb-1">Tài khoản ngân hàng (QR hóa đơn)</h3>
+              <p className="text-xs text-muted-foreground mb-4">Điền để tự động tạo QR VietQR trên hóa đơn khi khách còn nợ</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="bank-id">Mã ngân hàng</Label>
+                  <Input id="bank-id" placeholder="VCB / TCB / MB / ACB / VPB..."
+                    value={settings.bankInfo?.bankId ?? ''}
+                    onChange={(e) => updateSettings({ bankInfo: { ...(settings.bankInfo || { accountNo: '', accountName: '' }), bankId: e.target.value } })} />
+                </div>
+                <div>
+                  <Label htmlFor="bank-no">Số tài khoản</Label>
+                  <Input id="bank-no" placeholder="1234567890"
+                    value={settings.bankInfo?.accountNo ?? ''}
+                    onChange={(e) => updateSettings({ bankInfo: { ...(settings.bankInfo || { bankId: '', accountName: '' }), accountNo: e.target.value } })} />
+                </div>
+                <div>
+                  <Label htmlFor="bank-name">Tên chủ tài khoản</Label>
+                  <Input id="bank-name" placeholder="NGUYEN VAN A"
+                    value={settings.bankInfo?.accountName ?? ''}
+                    onChange={(e) => updateSettings({ bankInfo: { ...(settings.bankInfo || { bankId: '', accountNo: '' }), accountName: e.target.value } })} />
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -215,6 +237,99 @@ export const AdminHub = () => {
           </TabsContent>
 
           {/* Custom expense categories */}
+          {/* Pricing */}
+          <TabsContent value="pricing" className="bg-white p-8 rounded-2xl border space-y-6 mt-4">
+            <div>
+              <h2 className="text-xl font-black">Quy tắc giá phòng</h2>
+              <p className="text-sm text-muted-foreground">Áp hệ số tự động cho cuối tuần và ngày lễ</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-muted/30 rounded-2xl p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🗓️</span>
+                  <div>
+                    <p className="font-black text-sm">Giá cuối tuần</p>
+                    <p className="text-xs text-muted-foreground">Thứ 6, Thứ 7, Chủ nhật</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number" min={1} max={5} step={0.05}
+                    value={settings.pricing?.weekendMultiplier ?? 1}
+                    onChange={e => updateSettings({ pricing: { ...(settings.pricing ?? { peakDates: [], peakMultiplier: 1 }), weekendMultiplier: parseFloat(e.target.value) || 1 } })}
+                    className="w-24"
+                  />
+                  <span className="text-sm text-muted-foreground font-bold">× giá gốc</span>
+                  {(settings.pricing?.weekendMultiplier ?? 1) > 1 && (
+                    <span className="text-xs font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+                      +{(((settings.pricing?.weekendMultiplier ?? 1) - 1) * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-muted/30 rounded-2xl p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🎉</span>
+                  <div>
+                    <p className="font-black text-sm">Giá ngày lễ / cao điểm</p>
+                    <p className="text-xs text-muted-foreground">Các ngày khai báo bên dưới</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number" min={1} max={5} step={0.05}
+                    value={settings.pricing?.peakMultiplier ?? 1}
+                    onChange={e => updateSettings({ pricing: { ...(settings.pricing ?? { peakDates: [], weekendMultiplier: 1 }), peakMultiplier: parseFloat(e.target.value) || 1 } })}
+                    className="w-24"
+                  />
+                  <span className="text-sm text-muted-foreground font-bold">× giá gốc</span>
+                  {(settings.pricing?.peakMultiplier ?? 1) > 1 && (
+                    <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                      +{(((settings.pricing?.peakMultiplier ?? 1) - 1) * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Ngày lễ / cao điểm tùy chỉnh</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="date"
+                  id="peak-date-input"
+                  className="w-48"
+                />
+                <Button onClick={() => {
+                  const input = document.getElementById('peak-date-input') as HTMLInputElement;
+                  const val = input?.value;
+                  if (!val) return;
+                  const existing = settings.pricing?.peakDates ?? [];
+                  if (existing.includes(val)) return;
+                  updateSettings({ pricing: { ...(settings.pricing ?? { weekendMultiplier: 1, peakMultiplier: 1.5 }), peakDates: [...existing, val].sort() } });
+                  input.value = '';
+                }}>
+                  <Plus size={16} /> Thêm ngày
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(settings.pricing?.peakDates ?? []).map(d => (
+                  <div key={d} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold">
+                    {d}
+                    <button onClick={() => updateSettings({ pricing: { ...(settings.pricing ?? { weekendMultiplier: 1, peakMultiplier: 1.5 }), peakDates: (settings.pricing?.peakDates ?? []).filter(x => x !== d) } })}>
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                ))}
+                {(settings.pricing?.peakDates ?? []).length === 0 && (
+                  <p className="text-xs italic text-muted-foreground">Chưa có ngày cao điểm nào</p>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
           <TabsContent value="categories" className="bg-white p-8 rounded-2xl border space-y-4 mt-4">
             <h2 className="text-xl font-black">Danh mục chi phí tùy chỉnh</h2>
             <p className="text-sm text-muted-foreground">Bổ sung ngoài các danh mục mặc định (điện, nước, lương, ...)</p>

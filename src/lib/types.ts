@@ -77,11 +77,12 @@ export type ExpenseCategory = 'electricity' | 'water' | 'laundry' | 'salary' | '
 
 export interface Expense {
   id: string;
-  propertyId?: string; // Optional: can be a general expense
+  propertyId?: string;
   amount: number;
   category: ExpenseCategory | string;
   date: Date;
   note: string;
+  recurring?: 'monthly' | 'yearly'; // nếu có → tự tạo lại mỗi kỳ
 }
 
 export interface Guest {
@@ -133,9 +134,21 @@ export interface Settings {
     logoUrl?: string;
     primaryColor: string;
     timezone: string;
+    address?: string;
+    phone?: string;
   };
   theme: {
     colorScheme: 'light' | 'dark' | 'system';
+  };
+  bankInfo?: {
+    bankId: string;
+    accountNo: string;
+    accountName: string;
+  };
+  pricing?: {
+    weekendMultiplier: number;   // e.g. 1.3 = +30% thứ 6-7-CN
+    peakDates: string[];         // YYYY-MM-DD: ngày lễ/cao điểm tùy chỉnh
+    peakMultiplier: number;      // e.g. 1.5 = +50% ngày lễ
   };
   hiddenNavItems: string[];
   hiddenWidgets: string[];

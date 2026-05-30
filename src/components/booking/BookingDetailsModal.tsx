@@ -39,6 +39,8 @@ import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { PaymentForm } from './PaymentForm';
 import { calculateNights } from '@/lib/pricing';
+import { printInvoice } from '@/lib/invoice';
+import { Printer } from 'lucide-react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -70,7 +72,8 @@ interface BookingDetailsModalProps {
 }
 
 export const BookingDetailsModal = ({ booking, isOpen, onClose }: BookingDetailsModalProps) => {
-  const { rooms, chatThreads, checkInBooking, checkOutBooking, addPayment, markAsNoShow, updateBooking } = useTimelineStore();
+  const { rooms, properties, chatThreads, checkInBooking, checkOutBooking, addPayment, markAsNoShow, updateBooking, settings } = useTimelineStore();
+  const property = properties.find(p => p.id === booking.propertyId);
   const [isEditing, setIsEditing] = React.useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<EditValues>({
@@ -450,8 +453,12 @@ export const BookingDetailsModal = ({ booking, isOpen, onClose }: BookingDetails
                       <LogOut size={18} /> Trả phòng & Check-out
                     </Button>
                   )}
-                  <Button variant="secondary" className="rounded-xl font-black h-11 px-6 gap-2">
-                    <ExternalLink size={18} /> In hóa đơn
+                  <Button
+                    variant="secondary"
+                    className="rounded-xl font-black h-11 px-6 gap-2"
+                    onClick={() => printInvoice(booking, room, property, settings)}
+                  >
+                    <Printer size={18} /> In hóa đơn
                   </Button>
                 </>
               )}

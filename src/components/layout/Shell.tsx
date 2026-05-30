@@ -22,11 +22,10 @@ import {
   FileSpreadsheet,
   Menu,
   X,
-  BookOpen,
-  UserCircle,
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { NotificationBell } from './NotificationBell';
+import { CommandPalette } from './CommandPalette';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -52,55 +51,20 @@ export const Shell = ({ children, title }: ShellProps) => {
   } = useTimelineStore();
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
+  const [cmdOpen, setCmdOpen] = useState(false);
 
-  // Close search dropdown when clicking outside
+  // ⌘K / Ctrl+K opens command palette
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearchOpen(false);
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(v => !v);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  const searchResults = useCallback(() => {
-    if (!searchQuery.trim()) return [];
-    const q = searchQuery.toLowerCase();
-    const bookingMatches = bookings
-      .filter(b =>
-        b.guestName.toLowerCase().includes(q) ||
-        b.guestPhone.includes(q)
-      )
-      .slice(0, 4)
-      .map(b => {
-        const room = rooms.find(r => r.id === b.roomId);
-        return {
-          type: 'booking' as const,
-          id: b.id,
-          label: b.guestName,
-          sub: `${room?.name ?? b.roomId} · ${b.checkIn.toLocaleDateString('vi-VN')}`,
-          href: `/bookings/table?focus=${b.id}`,
-        };
-      });
-    const guestMatches = guests
-      .filter(g =>
-        g.name.toLowerCase().includes(q) ||
-        g.phone.includes(q)
-      )
-      .slice(0, 3)
-      .map(g => ({
-        type: 'guest' as const,
-        id: g.id,
-        label: g.name,
-        sub: g.phone,
-        href: `/guests`,
-      }));
-    return [...bookingMatches, ...guestMatches];
-  }, [searchQuery, bookings, rooms, guests]);
 
   // Monitoring refs to avoid duplicate notifications in same session
   const notifiedBookings = useRef(new Set<string>());
@@ -327,54 +291,15 @@ export const Shell = ({ children, title }: ShellProps) => {
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
             <h2 className="text-base md:text-xl font-black tracking-tight truncate">{title}</h2>
             <div className="h-6 w-px bg-muted mx-1 md:mx-2 hidden md:block" />
-            {/* Search — hidden on mobile */}
-            <div ref={searchRef} className="hidden md:block relative">
-              <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-xl border border-muted focus-within:border-primary/50 transition-colors">
-                <Search size={18} className="text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
-                  onFocus={() => setSearchOpen(true)}
-                  placeholder="Tìm khách hàng, booking... (⌘K)"
-                  className="bg-transparent border-none outline-none text-sm font-medium w-64 placeholder:text-muted-foreground/60"
-                />
-                {searchQuery && (
-                  <button onClick={() => { setSearchQuery(''); setSearchOpen(false); }}>
-                    <X size={14} className="text-muted-foreground hover:text-foreground" />
-                  </button>
-                )}
-              </div>
-              {searchOpen && searchQuery.trim().length > 0 && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-2xl border shadow-xl z-[200] overflow-hidden">
-                  {searchResults().length === 0 ? (
-                    <div className="px-4 py-6 text-center text-sm text-muted-foreground">Không tìm thấy kết quả</div>
-                  ) : (
-                    <div className="py-1.5">
-                      {searchResults().map(item => (
-                        <Link
-                          key={`${item.type}-${item.id}`}
-                          href={item.href}
-                          onClick={() => { setSearchQuery(''); setSearchOpen(false); }}
-                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                            {item.type === 'booking' ? <BookOpen size={15} /> : <UserCircle size={15} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold truncate">{item.label}</div>
-                            <div className="text-[11px] text-muted-foreground truncate">{item.sub}</div>
-                          </div>
-                          <span className="text-[10px] font-bold uppercase text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {item.type === 'booking' ? 'Booking' : 'Khách'}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* Search — opens ⌘K command palette */}
+            <button
+              onClick={() => setCmdOpen(true)}
+              className="hidden md:flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-xl border border-muted hover:border-primary/40 transition-colors text-muted-foreground"
+            >
+              <Search size={18} />
+              <span className="text-sm font-medium w-52 text-left">Tìm khách, booking...</span>
+              <kbd className="ml-auto text-[11px] font-bold bg-white border rounded px-1.5 py-0.5">⌘K</kbd>
+            </button>
           </div>
 
           <div className="flex items-center gap-2 md:gap-6 shrink-0">
@@ -415,10 +340,11 @@ export const Shell = ({ children, title }: ShellProps) => {
         </main>
       </div>
 
-      <AddBookingModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
+      <AddBookingModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
       />
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
     </div>
   );
 };
