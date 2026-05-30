@@ -8,7 +8,8 @@ import {
   Activity,
   DollarSign,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Calendar
 } from 'lucide-react';
 import {
   AreaChart,
@@ -21,10 +22,10 @@ import {
 } from 'recharts';
 import { useTimelineStore } from '@/store/useTimelineStore';
 import { cn } from '@/lib/utils';
-import { startOfMonth, endOfMonth, startOfDay, endOfDay, subMonths, subDays, getDaysInMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfDay, endOfDay, subMonths, subDays, format } from 'date-fns';
 import { getRevenueByPeriod, getExpenseByPeriod, getLastNMonthsStats } from '@/lib/finance';
 
-type Period = 'today' | 'month';
+type Period = 'today' | 'month' | 'custom';
 
 function calcTrend(current: number, prev: number, asPercent = true): { label: string; up: boolean } {
   if (prev === 0) return current > 0 ? { label: 'Mới', up: true } : { label: '—', up: true };
@@ -47,11 +48,30 @@ export const DashboardView = () => {
   const now = new Date();
   const propertyId = selectedPropertyId || undefined;
 
+  // Custom date range
+  const [customFrom, setCustomFrom] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
+  const [customTo, setCustomTo]     = useState(format(now, 'yyyy-MM-dd'));
+
   // Period bounds
-  const periodStart = period === 'month' ? startOfMonth(now) : startOfDay(now);
-  const periodEnd   = period === 'month' ? endOfMonth(now)   : endOfDay(now);
-  const prevStart   = period === 'month' ? startOfMonth(subMonths(now, 1)) : startOfDay(subDays(now, 1));
-  const prevEnd     = period === 'month' ? endOfMonth(subMonths(now, 1))   : endOfDay(subDays(now, 1));
+  let periodStart: Date, periodEnd: Date, prevStart: Date, prevEnd: Date;
+  if (period === 'custom') {
+    periodStart = startOfDay(new Date(customFrom));
+    periodEnd   = endOfDay(new Date(customTo));
+    // Previous = same-length window immediately before
+    const len = periodEnd.getTime() - periodStart.getTime();
+    prevEnd   = new Date(periodStart.getTime() - 1);
+    prevStart = new Date(prevEnd.getTime() - len);
+  } else if (period === 'month') {
+    periodStart = startOfMonth(now);
+    periodEnd   = endOfMonth(now);
+    prevStart   = startOfMonth(subMonths(now, 1));
+    prevEnd     = endOfMonth(subMonths(now, 1));
+  } else {
+    periodStart = startOfDay(now);
+    periodEnd   = endOfDay(now);
+    prevStart   = startOfDay(subDays(now, 1));
+    prevEnd     = endOfDay(subDays(now, 1));
+  }
 
   // Filter by property
   const filteredBookings = selectedPropertyId
@@ -90,16 +110,26 @@ export const DashboardView = () => {
       }).length;
       prevOccupancyRate = Math.round((prevActive / totalRooms) * 100);
     } else {
-      const daysInMonth = getDaysInMonth(now);
-      const roomNights = bookingsInPeriod.reduce((sum, b) => {
+      // Range-based (month or custom): room-nights / (rooms × days in range)
+      const daysInRange = Math.max(1, Math.ceil((periodEnd.getTime() - periodStart.getTime()) / 86400000));
+      // Count any active booking overlapping the range, not just checkIn-in-range
+      const overlapping = filteredBookings.filter(b => {
+        const co = b.actualCheckOut || b.checkOut;
+        return active(b) && b.checkIn <= periodEnd && co >= periodStart;
+      });
+      const roomNights = overlapping.reduce((sum, b) => {
         const ci = b.checkIn < periodStart ? periodStart : b.checkIn;
         const co = (b.actualCheckOut || b.checkOut) > periodEnd ? periodEnd : (b.actualCheckOut || b.checkOut);
         return sum + Math.max(0, Math.ceil((co.getTime() - ci.getTime()) / 86400000));
       }, 0);
-      occupancyRate = Math.min(100, Math.round((roomNights / (totalRooms * daysInMonth)) * 100));
+      occupancyRate = Math.min(100, Math.round((roomNights / (totalRooms * daysInRange)) * 100));
 
-      const prevDays = getDaysInMonth(prevStart);
-      const prevNights = bookingsInPrevPeriod.reduce((sum, b) => {
+      const prevDays = Math.max(1, Math.ceil((prevEnd.getTime() - prevStart.getTime()) / 86400000));
+      const prevOverlap = filteredBookings.filter(b => {
+        const co = b.actualCheckOut || b.checkOut;
+        return active(b) && b.checkIn <= prevEnd && co >= prevStart;
+      });
+      const prevNights = prevOverlap.reduce((sum, b) => {
         const ci = b.checkIn < prevStart ? prevStart : b.checkIn;
         const co = (b.actualCheckOut || b.checkOut) > prevEnd ? prevEnd : (b.actualCheckOut || b.checkOut);
         return sum + Math.max(0, Math.ceil((co.getTime() - ci.getTime()) / 86400000));
@@ -115,7 +145,7 @@ export const DashboardView = () => {
   const bookingTrend   = calcTrend(bookingsInPeriod.length, bookingsInPrevPeriod.length, false);
   const occupancyTrend = calcTrend(occupancyRate, prevOccupancyRate);
   const revenueTrend   = calcTrend(totalRevenue, prevRevenue);
-  const periodLabel    = period === 'month' ? 'tháng trước' : 'hôm qua';
+  const periodLabel    = period === 'month' ? 'tháng trước' : period === 'today' ? 'hôm qua' : 'kỳ trước';
 
   const kpis = [
     {
@@ -125,7 +155,7 @@ export const DashboardView = () => {
       icon: Home, color: 'text-primary', bg: 'bg-primary/10',
     },
     {
-      id: 2, label: period === 'month' ? 'Booking tháng này' : 'Booking hôm nay',
+      id: 2, label: period === 'month' ? 'Booking tháng này' : period === 'today' ? 'Booking hôm nay' : 'Booking trong kỳ',
       value: bookingsInPeriod.length.toString(),
       trend: bookingTrend.label, trendUp: bookingTrend.up,
       icon: BookOpen, color: 'text-blue-500', bg: 'bg-blue-500/10',
@@ -153,13 +183,17 @@ export const DashboardView = () => {
 
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto bg-background/50">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-foreground">Tổng quan vận hành</h1>
-          <p className="text-muted-foreground font-medium">Báo cáo hiệu suất kinh doanh thời gian thực</p>
+          <p className="text-muted-foreground font-medium">
+            {period === 'custom'
+              ? `Từ ${format(periodStart, 'dd/MM/yyyy')} đến ${format(periodEnd, 'dd/MM/yyyy')}`
+              : 'Báo cáo hiệu suất kinh doanh thời gian thực'}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white p-1 rounded-2xl border shadow-sm mr-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border shadow-sm">
             <button
               onClick={() => setPeriod('today')}
               className={cn('px-4 py-2 rounded-xl font-bold text-sm transition-colors',
@@ -176,11 +210,37 @@ export const DashboardView = () => {
             >
               Tháng này
             </button>
+            <button
+              onClick={() => setPeriod('custom')}
+              className={cn('px-4 py-2 rounded-xl font-bold text-sm transition-colors',
+                period === 'custom' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Tùy chọn
+            </button>
           </div>
-          <button className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-all">
-            <BookOpen size={18} />
-            Đặt phòng mới
-          </button>
+
+          {/* Custom date range — only when 'custom' active */}
+          {period === 'custom' && (
+            <div className="flex items-center gap-2 bg-white border rounded-2xl px-3 py-2 shadow-sm">
+              <Calendar size={15} className="text-muted-foreground" />
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo}
+                onChange={e => setCustomFrom(e.target.value)}
+                className="text-xs font-bold outline-none bg-transparent"
+              />
+              <span className="text-muted-foreground text-xs">→</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom}
+                onChange={e => setCustomTo(e.target.value)}
+                className="text-xs font-bold outline-none bg-transparent"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -252,7 +312,7 @@ export const DashboardView = () => {
                   <Activity size={20} className="text-primary" />
                   Hiệu suất tài chính
                 </h3>
-                <p className="text-slate-400 text-sm font-medium mt-1">{period === 'month' ? 'Tháng này' : 'Hôm nay'}</p>
+                <p className="text-slate-400 text-sm font-medium mt-1">{period === 'month' ? 'Tháng này' : period === 'today' ? 'Hôm nay' : `${format(periodStart, 'dd/MM')} – ${format(periodEnd, 'dd/MM')}`}</p>
               </div>
 
               <div className="space-y-6">
