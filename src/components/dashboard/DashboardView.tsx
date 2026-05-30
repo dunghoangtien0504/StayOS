@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Home,
   BookOpen,
@@ -41,6 +42,7 @@ export const DashboardView = () => {
   const showWidget = (slug: string) => !hiddenWidgets.includes(slug);
 
   const [period, setPeriod] = useState<Period>('month');
+  const router = useRouter();
 
   const now = new Date();
   const propertyId = selectedPropertyId || undefined;
@@ -304,7 +306,7 @@ export const DashboardView = () => {
               </div>
 
               <div className="space-y-4">
-                <div className={cn("flex items-start gap-4 p-4 rounded-2xl border transition-all hover:translate-x-1 cursor-pointer", dirtyRoomsCount > 0 ? "bg-amber-50 border-amber-100" : "bg-green-50 border-green-100 opacity-50")}>
+                <div onClick={() => router.push('/housekeeping')} className={cn("flex items-start gap-4 p-4 rounded-2xl border transition-all hover:translate-x-1 cursor-pointer", dirtyRoomsCount > 0 ? "bg-amber-50 border-amber-100" : "bg-green-50 border-green-100 opacity-50")}>
                   <span className="text-lg">{dirtyRoomsCount > 0 ? '🟡' : '✅'}</span>
                   <div>
                     <div className="text-sm font-black">{dirtyRoomsCount} phòng cần dọn dẹp</div>
@@ -314,7 +316,7 @@ export const DashboardView = () => {
                   </div>
                 </div>
 
-                <div className={cn("flex items-start gap-4 p-4 rounded-2xl border transition-all hover:translate-x-1 cursor-pointer", pendingTasks > 0 ? "bg-rose-50 border-rose-100" : "bg-green-50 border-green-100 opacity-50")}>
+                <div onClick={() => router.push('/housekeeping')} className={cn("flex items-start gap-4 p-4 rounded-2xl border transition-all hover:translate-x-1 cursor-pointer", pendingTasks > 0 ? "bg-rose-50 border-rose-100" : "bg-green-50 border-green-100 opacity-50")}>
                   <span className="text-lg">{pendingTasks > 0 ? '🔴' : '✅'}</span>
                   <div>
                     <div className="text-sm font-black">{pendingTasks} công việc dọn phòng chưa xong</div>
@@ -324,7 +326,7 @@ export const DashboardView = () => {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border-blue-100 flex items-start gap-4 p-4 rounded-2xl border transition-all hover:translate-x-1 cursor-pointer">
+                <div onClick={() => router.push('/bookings/table')} className="bg-blue-50 border-blue-100 flex items-start gap-4 p-4 rounded-2xl border transition-all hover:translate-x-1 cursor-pointer">
                   <span className="text-lg">🔵</span>
                   <div>
                     <div className="text-sm font-black">{activeBookings} khách đang lưu trú</div>
@@ -332,7 +334,7 @@ export const DashboardView = () => {
                   </div>
                 </div>
 
-                <div className="bg-slate-50 border-slate-100 flex items-start gap-4 p-4 rounded-2xl border transition-all hover:translate-x-1 cursor-pointer">
+                <div onClick={() => router.push('/finance/reports')} className="bg-slate-50 border-slate-100 flex items-start gap-4 p-4 rounded-2xl border transition-all hover:translate-x-1 cursor-pointer">
                   <span className="text-lg">📊</span>
                   <div>
                     <div className="text-sm font-black">Lấp đầy: {occupancyRate}%</div>
@@ -351,14 +353,14 @@ export const DashboardView = () => {
             <div className="bg-white p-8 rounded-[2rem] border shadow-sm space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black tracking-tight">Đặt phòng mới nhất</h3>
-                <button className="text-xs font-bold text-primary hover:underline">Xem tất cả →</button>
+                <button onClick={() => router.push('/bookings/table')} className="text-xs font-bold text-primary hover:underline">Xem tất cả →</button>
               </div>
 
               <div className="space-y-4">
                 {recentBookings.length > 0 ? recentBookings.map((item) => {
                   const roomName = rooms.find((r) => r.id === item.roomId)?.name ?? item.roomId;
                   return (
-                    <div key={item.id} className="flex items-center gap-4 p-2 rounded-2xl hover:bg-muted/30 transition-colors">
+                    <div key={item.id} onClick={() => router.push(`/bookings/table?focus=${item.id}`)} className="flex items-center gap-4 p-2 rounded-2xl hover:bg-muted/30 transition-colors cursor-pointer">
                       <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center font-bold text-xs uppercase">
                         {item.guestName.split(' ').map(n => n[0]).join('')}
                       </div>
