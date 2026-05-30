@@ -11,12 +11,12 @@ export const mockProperties: Property[] = [
 ];
 
 export const mockRooms: Room[] = [
-  { id: 'r101', propertyId: 'p1', name: 'P.101', roomType: 'Standard', status: 'clean', floor: 1, basePrice: 749000 },
-  { id: 'r102', propertyId: 'p1', name: 'P.102', roomType: 'Standard', status: 'clean', floor: 1, basePrice: 749000 },
-  { id: 'r201', propertyId: 'p1', name: 'P.201', roomType: 'Deluxe', status: 'clean', floor: 2, basePrice: 819000 },
-  { id: 'r202', propertyId: 'p1', name: 'P.202', roomType: 'Deluxe', status: 'clean', floor: 2, basePrice: 819000 },
-  { id: 'r301', propertyId: 'p1', name: 'P.301', roomType: 'Studio', status: 'clean', floor: 3, basePrice: 1200000 },
-  { id: 'r302', propertyId: 'p1', name: 'P.302', roomType: 'Studio', status: 'clean', floor: 3, basePrice: 749000 },
+  { id: 'r101', propertyId: 'p1', name: 'P.101', roomType: 'Deluxe', status: 'clean', floor: 1, basePrice: 749000 },
+  { id: 'r102', propertyId: 'p1', name: 'P.102', roomType: 'Deluxe', status: 'clean', floor: 1, basePrice: 749000 },
+  { id: 'r201', propertyId: 'p1', name: 'P.201', roomType: 'VIP',    status: 'clean', floor: 2, basePrice: 819000 },
+  { id: 'r202', propertyId: 'p1', name: 'P.202', roomType: 'VIP',    status: 'clean', floor: 2, basePrice: 819000 },
+  { id: 'r301', propertyId: 'p1', name: 'P.301', roomType: 'VIP',    status: 'clean', floor: 3, basePrice: 819000 },
+  { id: 'r302', propertyId: 'p1', name: 'P.302', roomType: 'Deluxe', status: 'clean', floor: 3, basePrice: 749000 },
 ];
 
 export const mockBookings: Booking[] = [

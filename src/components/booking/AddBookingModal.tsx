@@ -25,7 +25,7 @@ import { format, addHours, startOfToday } from 'date-fns';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { calculateBookingTotal, calculateNights } from '@/lib/pricing';
+import { getPriceBreakdown, calculateNights } from '@/lib/pricing';
 import { useEffect } from 'react';
 import { useWatch } from 'react-hook-form';
 
@@ -87,15 +87,21 @@ export const AddBookingModal = ({
   const watchedCheckIn = useWatch({ control, name: 'checkIn' });
   const watchedCheckOut = useWatch({ control, name: 'checkOut' });
 
+  const { settings } = useTimelineStore();
   const selectedRoom = rooms.find(r => r.id === watchedRoomId);
-  const nights = (watchedCheckIn && watchedCheckOut) ? calculateNights(new Date(watchedCheckIn), new Date(watchedCheckOut)) : 0;
-  const suggestedTotal = (selectedRoom && watchedCheckIn && watchedCheckOut) ? calculateBookingTotal(selectedRoom, new Date(watchedCheckIn), new Date(watchedCheckOut)) : 0;
+  const nights = (watchedCheckIn && watchedCheckOut)
+    ? calculateNights(new Date(watchedCheckIn), new Date(watchedCheckOut))
+    : 0;
+
+  const breakdown = (selectedRoom && watchedCheckIn && watchedCheckOut)
+    ? getPriceBreakdown(selectedRoom, new Date(watchedCheckIn), new Date(watchedCheckOut), settings?.pricing)
+    : null;
 
   useEffect(() => {
-    if (suggestedTotal > 0) {
-      setValue('totalPrice', suggestedTotal);
+    if (breakdown && breakdown.total > 0) {
+      setValue('totalPrice', breakdown.total);
     }
-  }, [suggestedTotal, setValue]);
+  }, [breakdown?.total, setValue]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setError(null);
@@ -202,14 +208,30 @@ export const AddBookingModal = ({
               </div>
             </div>
 
+            {/* Price breakdown */}
+            {breakdown && (
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-2xl text-xs flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-black text-primary">{breakdown.tier}</span>
+                <span className="text-muted-foreground">·</span>
+                <span className="font-bold text-foreground">{breakdown.dayType === 'weekend' ? 'Cuối tuần' : 'Ngày thường'}</span>
+                <span className="text-muted-foreground">·</span>
+                <span className="font-bold text-foreground">{breakdown.slotLabel}</span>
+                {breakdown.nights > 1 && (
+                  <>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="font-bold">{breakdown.nights} đêm × {breakdown.basePrice.toLocaleString()}đ</span>
+                  </>
+                )}
+                <span className="ml-auto font-black text-primary text-sm">{breakdown.total.toLocaleString()}đ</span>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-6 p-4 bg-muted/30 rounded-2xl border border-muted">
               <div className="space-y-2">
                 <Label htmlFor="totalPrice" className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Tổng tiền phòng (VNĐ)</Label>
                 <Input id="totalPrice" type="number" {...register("totalPrice", { valueAsNumber: true })} className="rounded-xl border-none bg-white font-bold text-primary" />
-                {selectedRoom && watchedCheckIn && watchedCheckOut && (
-                  <p className="text-[10px] font-bold text-muted-foreground ml-1">
-                    Gợi ý: {nights} đêm × {selectedRoom.basePrice.toLocaleString()}đ = {suggestedTotal.toLocaleString()}đ
-                  </p>
+                {!breakdown && selectedRoom && (
+                  <p className="text-[10px] text-muted-foreground ml-1">Chọn phòng và giờ để tự tính giá</p>
                 )}
               </div>
               <div className="space-y-2">

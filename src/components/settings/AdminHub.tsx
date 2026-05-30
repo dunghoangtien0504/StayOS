@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { BookingSource, NotificationType } from '@/lib/types';
 import { Trash2, Plus } from 'lucide-react';
+import { PRICE_TABLE_DISPLAY } from '@/lib/pricing-display';
 
 const NAV_OPTIONS: { slug: string; label: string }[] = [
   { slug: 'dashboard', label: 'Tổng quan' },
@@ -236,96 +237,98 @@ export const AdminHub = () => {
             </div>
           </TabsContent>
 
-          {/* Custom expense categories */}
           {/* Pricing */}
-          <TabsContent value="pricing" className="bg-white p-8 rounded-2xl border space-y-6 mt-4">
+          <TabsContent value="pricing" className="bg-white p-8 rounded-2xl border space-y-6 mt-4 overflow-auto">
             <div>
-              <h2 className="text-xl font-black">Quy tắc giá phòng</h2>
-              <p className="text-sm text-muted-foreground">Áp hệ số tự động cho cuối tuần và ngày lễ</p>
+              <h2 className="text-xl font-black">Bảng giá phòng</h2>
+              <p className="text-sm text-muted-foreground">Giá tự động tính khi tạo booking · Phòng 101/102/302 = Deluxe · 201/202/301 = VIP</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-muted/30 rounded-2xl p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🗓️</span>
-                  <div>
-                    <p className="font-black text-sm">Giá cuối tuần</p>
-                    <p className="text-xs text-muted-foreground">Thứ 6, Thứ 7, Chủ nhật</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="number" min={1} max={5} step={0.05}
-                    value={settings.pricing?.weekendMultiplier ?? 1}
-                    onChange={e => updateSettings({ pricing: { ...(settings.pricing ?? { peakDates: [], peakMultiplier: 1 }), weekendMultiplier: parseFloat(e.target.value) || 1 } })}
-                    className="w-24"
-                  />
-                  <span className="text-sm text-muted-foreground font-bold">× giá gốc</span>
-                  {(settings.pricing?.weekendMultiplier ?? 1) > 1 && (
-                    <span className="text-xs font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg">
-                      +{(((settings.pricing?.weekendMultiplier ?? 1) - 1) * 100).toFixed(0)}%
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-muted/30 rounded-2xl p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🎉</span>
-                  <div>
-                    <p className="font-black text-sm">Giá ngày lễ / cao điểm</p>
-                    <p className="text-xs text-muted-foreground">Các ngày khai báo bên dưới</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="number" min={1} max={5} step={0.05}
-                    value={settings.pricing?.peakMultiplier ?? 1}
-                    onChange={e => updateSettings({ pricing: { ...(settings.pricing ?? { peakDates: [], weekendMultiplier: 1 }), peakMultiplier: parseFloat(e.target.value) || 1 } })}
-                    className="w-24"
-                  />
-                  <span className="text-sm text-muted-foreground font-bold">× giá gốc</span>
-                  {(settings.pricing?.peakMultiplier ?? 1) > 1 && (
-                    <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
-                      +{(((settings.pricing?.peakMultiplier ?? 1) - 1) * 100).toFixed(0)}%
-                    </span>
-                  )}
-                </div>
-              </div>
+            {/* Pricing table display */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-muted/40">
+                    <th className="text-left px-3 py-2 font-black text-muted-foreground border">Khung giờ</th>
+                    <th className="px-3 py-2 font-black border text-center bg-blue-50 text-blue-700">Deluxe T2-T5</th>
+                    <th className="px-3 py-2 font-black border text-center bg-purple-50 text-purple-700">VIP T2-T5</th>
+                    <th className="px-3 py-2 font-black border text-center bg-orange-50 text-orange-700">Deluxe T6-CN</th>
+                    <th className="px-3 py-2 font-black border text-center bg-red-50 text-red-700">VIP T6-CN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {PRICE_TABLE_DISPLAY.map(section => (
+                    <>
+                      <tr key={section.section}>
+                        <td colSpan={5} className="px-3 py-1.5 font-black text-[11px] uppercase tracking-widest text-muted-foreground bg-muted/20 border">
+                          {section.section}
+                        </td>
+                      </tr>
+                      {section.rows.map((row, i) => (
+                        <tr key={i} className="hover:bg-muted/20">
+                          <td className="px-3 py-2 border text-muted-foreground">{row.label}</td>
+                          <td className="px-3 py-2 border text-center font-bold text-blue-700">{row.deluxe_weekday.toLocaleString('vi-VN')}đ</td>
+                          <td className="px-3 py-2 border text-center font-bold text-purple-700">{row.vip_weekday.toLocaleString('vi-VN')}đ</td>
+                          <td className="px-3 py-2 border text-center font-bold text-orange-700">{row.deluxe_weekend.toLocaleString('vi-VN')}đ</td>
+                          <td className="px-3 py-2 border text-center font-bold text-red-700">{row.vip_weekend.toLocaleString('vi-VN')}đ</td>
+                        </tr>
+                      ))}
+                    </>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-[11px] text-muted-foreground">⏱ Thêm giờ: 70.000đ/giờ (từ 2 tiếng trở lên tính theo Combo)</p>
             </div>
 
-            <div className="space-y-3">
-              <Label>Ngày lễ / cao điểm tùy chỉnh</Label>
-              <div className="flex gap-2">
+            <div className="border-t pt-6 space-y-4">
+              <div>
+                <h3 className="font-black text-sm">🎉 Ngày lễ / Tết — hệ số tăng giá</h3>
+                <p className="text-xs text-muted-foreground mt-1">Theo quy tắc: +30% đến +50% tùy tỷ lệ trống phòng. Mặc định 1.4 (+40%)</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Label className="text-sm font-bold w-32">Hệ số ngày lễ</Label>
                 <Input
-                  type="date"
-                  id="peak-date-input"
-                  className="w-48"
+                  type="number" min={1} max={3} step={0.05}
+                  value={settings.pricing?.peakMultiplier ?? 1.4}
+                  onChange={e => updateSettings({ pricing: { ...(settings.pricing ?? { peakDates: [], weekendMultiplier: 1 }), peakMultiplier: parseFloat(e.target.value) || 1.4 } })}
+                  className="w-24"
                 />
-                <Button onClick={() => {
-                  const input = document.getElementById('peak-date-input') as HTMLInputElement;
-                  const val = input?.value;
-                  if (!val) return;
-                  const existing = settings.pricing?.peakDates ?? [];
-                  if (existing.includes(val)) return;
-                  updateSettings({ pricing: { ...(settings.pricing ?? { weekendMultiplier: 1, peakMultiplier: 1.5 }), peakDates: [...existing, val].sort() } });
-                  input.value = '';
-                }}>
-                  <Plus size={16} /> Thêm ngày
-                </Button>
+                <span className="text-sm text-muted-foreground font-bold">× giá bảng</span>
+                <span className={`text-xs font-black px-2 py-1 rounded-lg ${(settings.pricing?.peakMultiplier ?? 1.4) > 1 ? 'text-amber-600 bg-amber-50' : 'text-muted-foreground bg-muted'}`}>
+                  +{(((settings.pricing?.peakMultiplier ?? 1.4) - 1) * 100).toFixed(0)}%
+                </span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {(settings.pricing?.peakDates ?? []).map(d => (
-                  <div key={d} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold">
-                    {d}
-                    <button onClick={() => updateSettings({ pricing: { ...(settings.pricing ?? { weekendMultiplier: 1, peakMultiplier: 1.5 }), peakDates: (settings.pricing?.peakDates ?? []).filter(x => x !== d) } })}>
-                      <Trash2 size={11} />
-                    </button>
-                  </div>
-                ))}
-                {(settings.pricing?.peakDates ?? []).length === 0 && (
-                  <p className="text-xs italic text-muted-foreground">Chưa có ngày cao điểm nào</p>
-                )}
+
+              <div className="space-y-2">
+                <Label className="text-sm font-bold">Thêm ngày lễ / cao điểm</Label>
+                <div className="flex gap-2">
+                  <Input type="date" id="peak-date-input" className="w-48" />
+                  <Button onClick={() => {
+                    const input = document.getElementById('peak-date-input') as HTMLInputElement;
+                    const val = input?.value;
+                    if (!val) return;
+                    const existing = settings.pricing?.peakDates ?? [];
+                    if (existing.includes(val)) return;
+                    updateSettings({ pricing: { ...(settings.pricing ?? { weekendMultiplier: 1, peakMultiplier: 1.4 }), peakDates: [...existing, val].sort() } });
+                    input.value = '';
+                  }}>
+                    <Plus size={16} /> Thêm ngày
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(settings.pricing?.peakDates ?? []).map(d => (
+                    <div key={d} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold">
+                      {d}
+                      <button onClick={() => updateSettings({ pricing: { ...(settings.pricing ?? { weekendMultiplier: 1, peakMultiplier: 1.4 }), peakDates: (settings.pricing?.peakDates ?? []).filter(x => x !== d) } })}>
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  ))}
+                  {(settings.pricing?.peakDates ?? []).length === 0 && (
+                    <p className="text-xs italic text-muted-foreground">Chưa có ngày cao điểm nào. VD: 2026-04-30, 2026-05-01...</p>
+                  )}
+                </div>
               </div>
             </div>
           </TabsContent>
