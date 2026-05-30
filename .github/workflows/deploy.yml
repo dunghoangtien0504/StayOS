@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy to VPS (stayos.hoangtiendung.com)
+  build:
+    name: Build check (GitHub runner)
     runs-on: ubuntu-latest
 
     steps:
@@ -28,31 +28,10 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: 🚢 Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          port: 22
-          script: |
-            echo "=== Deploying StayOS ==="
-            cd /home/apps/StayOS
-
-            # Pull latest code
-            git pull origin main
-
-            # Install dependencies
-            npm ci --production=false
-
-            # Build
-            NODE_ENV=production npm run build
-
-            # Restart with PM2
-            pm2 restart stayos || pm2 start ecosystem.config.js
-
-            # Save PM2 state
-            pm2 save
-
-            echo "=== Deploy complete ==="
-            pm2 status
+      - name: ✅ Build success — trigger VPS webhook
+        run: |
+          echo "Build passed. VPS will pull and rebuild via webhook."
+          curl -s -X POST "${{ secrets.VPS_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{"secret":"${{ secrets.VPS_WEBHOOK_SECRET }}"}' \
+            || echo "Webhook call failed (VPS may pull manually)"
