@@ -37,14 +37,35 @@ import { Button } from "@/components/ui/button";
 import { BookingDetailsModal } from '@/components/booking/BookingDetailsModal';
 import { Booking } from '@/lib/types';
 
-export const BookingTable = () => {
+interface BookingTableProps {
+  fromDate?: Date;
+  toDate?: Date;
+  searchTerm?: string;
+}
+
+export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps = {}) => {
   const { bookings, rooms, selectedPropertyId, updateBooking } = useTimelineStore();
   const [activeBooking, setActiveBooking] = React.useState<Booking | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
 
-  const filteredBookings = (selectedPropertyId
+  let filteredBookings = (selectedPropertyId
     ? bookings.filter(b => b.propertyId === selectedPropertyId)
-    : bookings).sort((a, b) => b.checkIn.getTime() - a.checkIn.getTime());
+    : bookings);
+
+  if (fromDate && toDate) {
+    filteredBookings = filteredBookings.filter(b => b.checkIn >= fromDate && b.checkIn <= toDate);
+  }
+
+  if (searchTerm && searchTerm.trim()) {
+    const q = searchTerm.toLowerCase().trim();
+    filteredBookings = filteredBookings.filter(b =>
+      b.guestName.toLowerCase().includes(q) ||
+      (b.guestPhone || '').toLowerCase().includes(q) ||
+      b.id.toLowerCase().includes(q)
+    );
+  }
+
+  filteredBookings = filteredBookings.sort((a, b) => b.checkIn.getTime() - a.checkIn.getTime());
 
   const allSelected = filteredBookings.length > 0 && filteredBookings.every(b => selected.has(b.id));
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(filteredBookings.map(b => b.id)));

@@ -11,12 +11,19 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export const BookingKpiCards = () => {
+interface Props { fromDate?: Date; toDate?: Date; }
+
+export const BookingKpiCards = ({ fromDate, toDate }: Props = {}) => {
   const { bookings, selectedPropertyId } = useTimelineStore();
 
-  const filteredBookings = selectedPropertyId 
+  let filteredBookings = selectedPropertyId
     ? bookings.filter(b => b.propertyId === selectedPropertyId && b.status !== 'cancelled')
     : bookings.filter(b => b.status !== 'cancelled');
+
+  // Apply date range filter (by check-in date)
+  if (fromDate && toDate) {
+    filteredBookings = filteredBookings.filter(b => b.checkIn >= fromDate && b.checkIn <= toDate);
+  }
 
   const stats = {
     totalRevenue: filteredBookings.reduce((sum, b) => sum + b.totalPrice, 0),
