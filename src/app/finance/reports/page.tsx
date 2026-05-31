@@ -71,31 +71,33 @@ export default function ReportsPage() {
 
           {/* Date range picker */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1 bg-white border rounded-xl p-1 shadow-sm">
+            <div className="flex items-center gap-1 bg-white border-2 rounded-2xl p-1 shadow-sm">
               {(['month', 'quarter', 'year'] as const).map(p => (
                 <button
                   key={p}
                   onClick={() => setPreset(p)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  className="px-3 py-2 rounded-xl text-xs font-bold transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 >
                   {p === 'month' ? 'Tháng này' : p === 'quarter' ? 'Quý này' : 'Năm nay'}
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2 bg-white border rounded-xl px-3 py-2 shadow-sm">
-              <CalendarRange size={15} className="text-muted-foreground" />
+            <div className="flex items-center gap-2 bg-white border-2 rounded-2xl px-3 py-2 shadow-sm">
+              <CalendarRange size={15} className="text-muted-foreground flex-shrink-0" />
               <input
                 type="date"
                 value={fromDate}
+                max={toDate}
                 onChange={e => setFromDate(e.target.value)}
-                className="text-xs font-bold outline-none bg-transparent"
+                className="text-xs font-bold cursor-pointer"
               />
-              <span className="text-muted-foreground text-xs">—</span>
+              <span className="text-muted-foreground text-xs">→</span>
               <input
                 type="date"
                 value={toDate}
+                min={fromDate}
                 onChange={e => setToDate(e.target.value)}
-                className="text-xs font-bold outline-none bg-transparent"
+                className="text-xs font-bold cursor-pointer"
               />
             </div>
           </div>
