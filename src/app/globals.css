@@ -65,48 +65,64 @@
 }
 
 :root {
-  --background: hsl(25 15% 98%);
-  --foreground: hsl(25 10% 10%);
-  --card: hsl(25 15% 100%);
-  --card-foreground: hsl(25 10% 10%);
-  --popover: hsl(25 15% 100%);
-  --popover-foreground: hsl(25 10% 10%);
-  --primary: hsl(25 75% 45%);
-  --primary-foreground: hsl(25 10% 98%);
-  --secondary: hsl(142 30% 92%);
-  --secondary-foreground: hsl(142 30% 35%);
-  --muted: hsl(25 10% 95%);
-  --muted-foreground: hsl(25 5% 45%);
-  --accent: hsl(210 100% 50%);
-  --accent-foreground: hsl(210 10% 98%);
-  --destructive: hsl(0 75% 50%);
-  --destructive-foreground: hsl(0 10% 98%);
-  --border: hsl(25 10% 90%);
-  --input: hsl(25 10% 90%);
-  --ring: hsl(25 75% 45%);
+  /* ── Ta Thong Dong Brand Colors ── */
+  --background:           #F6F0E4;   /* kem ấm — nền toàn trang */
+  --foreground:           #1A1209;   /* gần đen ấm */
+  --card:                 #FFFFFF;
+  --card-foreground:      #1A1209;
+  --popover:              #FFFFFF;
+  --popover-foreground:   #1A1209;
+  --primary:              #C0390E;   /* cam đỏ — CTA chính */
+  --primary-foreground:   #FFFFFF;
+  --secondary:            #EAE4D8;   /* kem nhạt hơn nền */
+  --secondary-foreground: #3D6B4A;   /* xanh lá vừa */
+  --muted:                #EAE4D8;
+  --muted-foreground:     #7A7060;   /* text phụ ấm */
+  --accent:               #88860B;   /* olive — badge nhỏ */
+  --accent-foreground:    #FFFFFF;
+  --destructive:          #C0390E;
+  --destructive-foreground: #FFFFFF;
+  --border:               #D6CFC0;   /* đường viền kem */
+  --input:                #D6CFC0;
+  --ring:                 #C0390E;
   --radius: 0.75rem;
+
+  /* Sidebar — xanh rừng đậm */
+  --sidebar:              #0D2B1A;
+  --sidebar-foreground:   #E8DDD0;   /* chữ kem trên nền tối */
+  --sidebar-primary:      #C0390E;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:       #1A3D26;   /* hover nhẹ hơn nền sidebar */
+  --sidebar-accent-foreground: #F0E8DC;
+  --sidebar-border:       #1F3D28;
+  --sidebar-ring:         #C0390E;
 }
 
 .dark {
-  --background: hsl(25 10% 5%);
-  --foreground: hsl(25 10% 98%);
-  --card: hsl(25 10% 8%);
-  --card-foreground: hsl(25 10% 98%);
-  --popover: hsl(25 10% 8%);
-  --popover-foreground: hsl(25 10% 98%);
-  --primary: hsl(25 75% 50%);
-  --primary-foreground: hsl(25 10% 5%);
-  --secondary: hsl(142 20% 15%);
-  --secondary-foreground: hsl(142 30% 85%);
-  --muted: hsl(25 10% 12%);
-  --muted-foreground: hsl(25 5% 65%);
-  --accent: hsl(210 100% 60%);
-  --accent-foreground: hsl(210 10% 98%);
-  --destructive: hsl(0 75% 45%);
-  --destructive-foreground: hsl(0 10% 98%);
-  --border: hsl(25 10% 15%);
-  --input: hsl(25 10% 15%);
-  --ring: hsl(25 75% 50%);
+  --background:           #0F1A12;
+  --foreground:           #E8DDD0;
+  --card:                 #152019;
+  --card-foreground:      #E8DDD0;
+  --popover:              #152019;
+  --popover-foreground:   #E8DDD0;
+  --primary:              #D84012;
+  --primary-foreground:   #FFFFFF;
+  --secondary:            #1A3D26;
+  --secondary-foreground: #A8C8B0;
+  --muted:                #1A3D26;
+  --muted-foreground:     #8A9E90;
+  --accent:               #9A9A10;
+  --accent-foreground:    #FFFFFF;
+  --destructive:          #D84012;
+  --destructive-foreground: #FFFFFF;
+  --border:               #243D2A;
+  --input:                #243D2A;
+  --ring:                 #D84012;
+  --sidebar:              #071410;
+  --sidebar-foreground:   #C8C0B0;
+  --sidebar-accent:       #0D2B1A;
+  --sidebar-accent-foreground: #E8DDD0;
+  --sidebar-border:       #142010;
 }
 
 

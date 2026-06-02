@@ -173,16 +173,18 @@ export const Shell = ({ children, title }: ShellProps) => {
       {/* Sidebar */}
       <aside className={`
         fixed md:relative inset-y-0 left-0 z-[60]
-        w-72 bg-white border-r flex flex-col shadow-sm
+        w-72 flex flex-col shadow-xl
         transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0
-      `}>
-        <div className="p-6 border-b">
+      `}
+      style={{ backgroundColor: '#0D2B1A' }}
+      >
+        <div className="p-6" style={{ borderBottom: '1px solid #1F3D28' }}>
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden"
-              style={{ backgroundColor: settings?.branding?.primaryColor ?? '#E8843A' }}
+              style={{ backgroundColor: settings?.branding?.primaryColor ?? '#C0390E' }}
             >
               {settings?.branding?.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -192,51 +194,58 @@ export const Shell = ({ children, title }: ShellProps) => {
               )}
             </div>
             <div>
-              <h1 className="font-black text-xl tracking-tight leading-none uppercase">{settings?.branding?.name ?? 'StayOS'}</h1>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Management OS</p>
+              <h1 className="font-black text-xl tracking-tight leading-none uppercase text-white">{settings?.branding?.name ?? 'StayOS'}</h1>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: '#6A9478' }}>Management OS</p>
             </div>
           </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-8">
           <div className="space-y-1">
-            <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Menu chính</p>
+            <p className="px-4 text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#4A7A58' }}>Menu chính</p>
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all group relative
-                  ${pathname === item.href ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all group relative`}
+                style={pathname === item.href
+                  ? { backgroundColor: '#C0390E', color: '#FFFFFF' }
+                  : { color: '#A0C4B0' }
+                }
+                onMouseEnter={e => { if (pathname !== item.href) (e.currentTarget as HTMLElement).style.backgroundColor = '#1A3D26'; (e.currentTarget as HTMLElement).style.color = '#E8DDD0'; }}
+                onMouseLeave={e => { if (pathname !== item.href) { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#A0C4B0'; }}}
               >
-                <item.icon size={20} className={pathname === item.href ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} />
+                <item.icon size={20} style={{ color: 'inherit' }} />
                 {item.label}
                 {item.badge && (
                   <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                     {item.badge}
                   </span>
                 )}
-                {pathname === item.href && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full shadow-[0_0_8px_rgba(232,132,58,0.5)]" />
-                )}
               </Link>
             ))}
           </div>
 
           <div className="space-y-1">
-            <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Vận hành</p>
+            <p className="px-4 text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#4A7A58' }}>Vận hành</p>
             {opsItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all group
-                  ${pathname === item.href ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}`}
+                className="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all"
+                style={pathname === item.href
+                  ? { backgroundColor: '#C0390E', color: '#FFFFFF' }
+                  : { color: '#A0C4B0' }
+                }
+                onMouseEnter={e => { if (pathname !== item.href) { (e.currentTarget as HTMLElement).style.backgroundColor = '#1A3D26'; (e.currentTarget as HTMLElement).style.color = '#E8DDD0'; }}}
+                onMouseLeave={e => { if (pathname !== item.href) { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#A0C4B0'; }}}
               >
-                <item.icon size={20} />
+                <item.icon size={20} style={{ color: 'inherit' }} />
                 {item.label}
                 {item.badge && (
-                  <span className={`ml-auto ${item.badgeColor || 'bg-primary'} text-white text-[10px] font-bold px-2 py-0.5 rounded-full`}>
+                  <span className={`ml-auto ${item.badgeColor || 'bg-[#C0390E]'} text-white text-[10px] font-bold px-2 py-0.5 rounded-full`}>
                     {item.badge}
                   </span>
                 )}
@@ -245,16 +254,19 @@ export const Shell = ({ children, title }: ShellProps) => {
           </div>
         </nav>
 
-        <div className="p-4 border-t">
+        <div className="p-4" style={{ borderTop: '1px solid #1F3D28' }}>
           <DropdownMenu>
-            <DropdownMenuTrigger className="w-full text-left bg-muted/30 p-4 rounded-[1.5rem] border border-dashed border-muted-foreground/20 hover:border-primary/40 transition-colors">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Cơ sở đang xem</p>
-              <div className="flex items-center justify-between group">
+            <DropdownMenuTrigger
+              className="w-full text-left p-4 rounded-[1.5rem] transition-colors"
+              style={{ backgroundColor: '#1A3D26', border: '1px dashed #2A5038' }}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#4A7A58' }}>Cơ sở đang xem</p>
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-black text-foreground">{selectorLabel}</p>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">{selectorSubLabel}</p>
+                  <p className="text-sm font-black" style={{ color: '#E8DDD0' }}>{selectorLabel}</p>
+                  <p className="text-[10px] font-bold uppercase mt-0.5" style={{ color: '#6A9478' }}>{selectorSubLabel}</p>
                 </div>
-                <ChevronDown size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                <ChevronDown size={16} style={{ color: '#6A9478' }} />
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
@@ -279,7 +291,7 @@ export const Shell = ({ children, title }: ShellProps) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="h-14 md:h-20 bg-white border-b flex items-center px-3 md:px-8 flex-shrink-0 z-50 shadow-sm gap-3">
+        <header className="h-14 md:h-20 border-b flex items-center px-3 md:px-8 flex-shrink-0 z-50 gap-3" style={{ backgroundColor: '#FFFFFF', borderColor: '#D6CFC0' }}>
           {/* Hamburger — mobile only */}
           <button
             onClick={() => setSidebarOpen(v => !v)}
