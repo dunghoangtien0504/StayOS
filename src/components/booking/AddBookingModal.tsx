@@ -25,7 +25,7 @@ import { format, addHours, startOfToday } from 'date-fns';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getPriceBreakdown, calculateNights } from '@/lib/pricing';
+import { getPriceBreakdown } from '@/lib/pricing';
 import { useEffect } from 'react';
 import { useWatch } from 'react-hook-form';
 
@@ -89,9 +89,6 @@ export const AddBookingModal = ({
 
   const { settings } = useTimelineStore();
   const selectedRoom = rooms.find(r => r.id === watchedRoomId);
-  const nights = (watchedCheckIn && watchedCheckOut)
-    ? calculateNights(new Date(watchedCheckIn), new Date(watchedCheckOut))
-    : 0;
 
   const breakdown = (selectedRoom && watchedCheckIn && watchedCheckOut)
     ? getPriceBreakdown(selectedRoom, new Date(watchedCheckIn), new Date(watchedCheckOut), settings?.pricing)
