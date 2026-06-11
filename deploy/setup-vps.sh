@@ -76,7 +76,7 @@ cat << 'ENVTEMPLATE'
 # App
 NODE_ENV=production
 PORT=3002
-NEXT_PUBLIC_APP_URL=https://stayos.hoangtiendung.com
+NEXT_PUBLIC_APP_URL=https://stay.dunghoang.com
 
 # Pancake – comma-separated page tokens (JWT, from pancake.vn > Cai dat > Cong cu)
 PANCAKE_PAGE_TOKENS=
@@ -113,7 +113,7 @@ cp /home/apps/StayOS/deploy/nginx-temp.conf /etc/nginx/sites-available/stayos
 cat > /etc/nginx/sites-available/stayos-temp << 'NGINXTEMP'
 server {
     listen 80;
-    server_name stayos.hoangtiendung.com;
+    server_name stay.dunghoang.com;
 
     location / {
         proxy_pass http://127.0.0.1:3002;
@@ -129,7 +129,7 @@ nginx -t && systemctl reload nginx
 
 # ── 13. SSL with Let's Encrypt ───────────────────
 echo "🔒 Getting SSL certificate..."
-certbot --nginx -d stayos.hoangtiendung.com --non-interactive --agree-tos -m admin@hoangtiendung.com
+certbot --nginx -d stay.dunghoang.com --non-interactive --agree-tos -m admin@dunghoang.com
 
 # Apply full Nginx config with SSL
 cp /home/apps/StayOS/deploy/nginx.conf /etc/nginx/sites-available/stayos
@@ -141,6 +141,6 @@ echo "╔═══════════════════════�
 echo "║           ✅ Setup Complete!              ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
-echo "🌐 StayOS: https://stayos.hoangtiendung.com"
+echo "🌐 StayOS: https://stay.dunghoang.com"
 echo ""
 pm2 status
