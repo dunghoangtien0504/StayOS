@@ -1,5 +1,6 @@
 import { Booking, Room, Property, Settings } from './types';
 import { calculateNights } from './pricing';
+import { STATUS_LABELS as STATUS_LABEL, sourceLabel } from './labels';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
@@ -12,15 +13,6 @@ function vietQrUrl(bankId: string, accountNo: string, accountName: string, amoun
   });
   return `${base}?${params}`;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  confirmed: 'Đã xác nhận',
-  deposited: 'Đã đặt cọc',
-  checked_in: 'Đang lưu trú',
-  checked_out: 'Đã trả phòng',
-  cancelled: 'Đã huỷ',
-  no_show: 'No-show',
-};
 
 const METHOD_LABEL: Record<string, string> = {
   cash: 'Tiền mặt',
@@ -139,7 +131,7 @@ export function printInvoice(booking: Booking, room: Room | undefined, property:
     </div>
     <div class="info-box">
       <label>Nguồn đặt</label>
-      <span style="text-transform:uppercase">${booking.source}</span>
+      <span>${sourceLabel(booking.source)}</span>
     </div>
     <div class="info-box">
       <label>Check-in</label>
