@@ -15,8 +15,11 @@ import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { useTimelineStore } from '@/store/useTimelineStore';
+import { statusLabel, sourceLabel } from '@/lib/labels';
 
 export default function BookingTablePage() {
+  const { bookings, rooms, selectedPropertyId } = useTimelineStore();
   const [searchTerm, setSearchTerm] = useState('');
   const now = new Date();
   const [fromDate, setFromDate] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
@@ -24,6 +27,34 @@ export default function BookingTablePage() {
 
   const from = startOfDay(new Date(fromDate));
   const to = endOfDay(new Date(toDate));
+
+  const exportExcel = () => {
+    const rows = (selectedPropertyId
+      ? bookings.filter(b => b.propertyId === selectedPropertyId)
+      : bookings
+    ).filter(b => b.checkIn >= from && b.checkIn <= to)
+      .sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime());
+
+    const headers = ['Khách', 'SĐT', 'Phòng', 'Check-in', 'Check-out', 'Nguồn', 'Trạng thái', 'Tổng tiền', 'Đã trả', 'Còn nợ'];
+    const csv = [headers, ...rows.map(b => [
+      b.guestName,
+      b.guestPhone,
+      rooms.find(r => r.id === b.roomId)?.name ?? b.roomId,
+      format(b.checkIn, 'dd/MM/yyyy HH:mm'),
+      format(b.checkOut, 'dd/MM/yyyy HH:mm'),
+      sourceLabel(b.source),
+      statusLabel(b.status),
+      b.totalPrice,
+      b.amountPaid,
+      b.totalPrice - b.amountPaid,
+    ])].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+
+    const a = document.createElement('a');
+    // BOM để Excel mở đúng tiếng Việt UTF-8
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
+    a.download = `bookings_${fromDate}_${toDate}.csv`;
+    a.click();
+  };
 
   const setPreset = (preset: 'today' | 'month' | 'all') => {
     if (preset === 'today') {
@@ -58,7 +89,7 @@ export default function BookingTablePage() {
                 <List size={16} /> Danh sách
               </Button>
             </div>
-            <Button variant="outline" className="rounded-2xl border-2 px-4 gap-2 font-bold shadow-sm">
+            <Button onClick={exportExcel} variant="outline" className="rounded-2xl border-2 px-4 gap-2 font-bold shadow-sm cursor-pointer">
               <Download size={16} /> Xuất Excel
             </Button>
           </div>
@@ -111,7 +142,7 @@ export default function BookingTablePage() {
                   value={fromDate}
                   max={toDate}
                   onChange={e => setFromDate(e.target.value)}
-                  className="text-xs font-bold outline-none bg-transparent cursor-pointer"
+                  className="text-xs font-bold cursor-pointer"
                 />
                 <span className="text-muted-foreground text-xs">→</span>
                 <input
@@ -119,7 +150,7 @@ export default function BookingTablePage() {
                   value={toDate}
                   min={fromDate}
                   onChange={e => setToDate(e.target.value)}
-                  className="text-xs font-bold outline-none bg-transparent cursor-pointer"
+                  className="text-xs font-bold cursor-pointer"
                 />
               </div>
             </div>
