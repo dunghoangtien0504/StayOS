@@ -43,15 +43,15 @@ jobs:
 
             git pull origin main
 
-            # Clean install — xoa sach node_modules de tranh symlink .bin/next bi hong
-            rm -rf node_modules .next
-            npm install
-
-            # Verify next binary exists before building
+            # Install only if package.json changed or node_modules missing
             if [ ! -f node_modules/.bin/next ]; then
-              echo "ERROR: next binary missing after install"
-              exit 1
+              npm install --legacy-peer-deps
+            else
+              npm install --legacy-peer-deps --prefer-offline
             fi
+
+            # Only delete .next build output, never node_modules
+            rm -rf .next
 
             NODE_ENV=production npm run build
 
