@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Booking } from '@/lib/types';
 import { differenceInMinutes, format, addMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { statusLabel } from '@/lib/labels';
 import { useDraggable } from '@dnd-kit/core';
 import { useTimelineStore } from '@/store/useTimelineStore';
 import {
@@ -144,7 +145,7 @@ export const BookingBlock = ({ booking, top, startDate, isConflict }: BookingBlo
               <h4 className="font-bold text-lg">{booking.guestName}</h4>
               <p className="text-sm text-muted-foreground">{booking.guestPhone}</p>
             </div>
-            <Badge variant="outline" className="capitalize font-bold border-primary/20 text-primary">{booking.status.replace('_', ' ')}</Badge>
+            <Badge variant="outline" className="font-bold border-primary/20 text-primary">{statusLabel(booking.status)}</Badge>
           </div>
           
           <div className="grid grid-cols-2 gap-4 text-sm bg-muted/40 p-3 rounded-xl border">
