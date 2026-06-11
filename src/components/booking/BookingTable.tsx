@@ -16,15 +16,15 @@ import { cn } from '@/lib/utils';
 import {
   MoreHorizontal,
   Eye,
-  Edit,
-  Trash2,
+  LogIn,
+  LogOut,
   Phone,
   Calendar,
   CreditCard,
-  CheckSquare,
   XCircle,
   Download,
 } from 'lucide-react';
+import { statusLabel, statusColor, sourceLabel, sourceColor } from '@/lib/labels';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,7 +44,7 @@ interface BookingTableProps {
 }
 
 export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps = {}) => {
-  const { bookings, rooms, selectedPropertyId, updateBooking } = useTimelineStore();
+  const { bookings, rooms, selectedPropertyId, updateBooking, checkInBooking, checkOutBooking } = useTimelineStore();
   const [activeBooking, setActiveBooking] = React.useState<Booking | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
 
@@ -69,7 +69,11 @@ export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps
 
   const allSelected = filteredBookings.length > 0 && filteredBookings.every(b => selected.has(b.id));
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(filteredBookings.map(b => b.id)));
-  const toggleOne = (id: string) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const toggleOne = (id: string) => setSelected(prev => {
+    const s = new Set(prev);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    return s;
+  });
 
   const bulkCancel = () => {
     if (!confirm(`Hủy ${selected.size} booking đã chọn?`)) return;
@@ -84,7 +88,7 @@ export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps
       b.id, b.guestName, b.guestPhone,
       rooms.find(r => r.id === b.roomId)?.name ?? b.roomId,
       b.checkIn.toLocaleDateString('vi-VN'), b.checkOut.toLocaleDateString('vi-VN'),
-      b.status, b.totalPrice, b.amountPaid,
+      statusLabel(b.status), b.totalPrice, b.amountPaid,
     ])].map(r => r.join(',')).join('\n');
     const a = document.createElement('a');
     a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
@@ -97,25 +101,9 @@ export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps
     return rooms.find(r => r.id === roomId)?.name || 'N/A';
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-slate-100 text-slate-600 border-slate-200';
-      case 'deposited': return 'bg-blue-100 text-blue-600 border-blue-200';
-      case 'checked_in': return 'bg-green-100 text-green-600 border-green-200';
-      case 'checked_out': return 'bg-slate-500 text-white border-slate-600';
-      case 'cancelled': return 'bg-red-100 text-red-600 border-red-200 line-through';
-      case 'no_show': return 'bg-amber-100 text-amber-600 border-amber-200';
-      default: return 'bg-slate-100 text-slate-600';
-    }
-  };
-
-  const sourceColors: Record<string, string> = {
-    zalo: 'bg-[#0068FF]',
-    facebook: 'bg-[#1877F2]',
-    booking: 'bg-[#003580]',
-    airbnb: 'bg-[#FF5A5F]',
-    walk_in: 'bg-[#6B7280]',
-    direct: 'bg-[#10B981]',
+  const cancelBooking = (booking: Booking) => {
+    if (!confirm(`Hủy đặt phòng của ${booking.guestName}?`)) return;
+    updateBooking(booking.id, { status: 'cancelled' });
   };
 
   return (
@@ -152,7 +140,7 @@ export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps
         <TableBody>
           {filteredBookings.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-64 text-center">
+              <TableCell colSpan={6} className="h-64 text-center">
                 <div className="flex flex-col items-center gap-2 opacity-40">
                   <Calendar size={48} />
                   <p className="font-bold">Không có dữ liệu đặt phòng</p>
@@ -172,7 +160,7 @@ export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps
                 </TableCell>
                 <TableCell className="py-6">
                   <div className="flex items-center gap-4">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-sm", sourceColors[booking.source])}>
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-sm", sourceColor(booking.source))}>
                       {booking.guestName.split(' ').map(n => n[0]).join('')}
                     </div>
                     <div>
@@ -201,11 +189,11 @@ export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps
                 </TableCell>
                 <TableCell className="py-6">
                   <div className="flex flex-col gap-1.5">
-                    <Badge className={cn("w-fit rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-tight border shadow-none", getStatusColor(booking.status))}>
-                      {booking.status.replace('_', ' ')}
+                    <Badge className={cn("w-fit rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-tight border shadow-none", statusColor(booking.status))}>
+                      {statusLabel(booking.status)}
                     </Badge>
                     <div className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                      Nguồn: <span className="text-foreground">{booking.source}</span>
+                      Nguồn: <span className="text-foreground">{sourceLabel(booking.source)}</span>
                     </div>
                   </div>
                 </TableCell>
@@ -237,19 +225,43 @@ export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps
                     />
                     <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 shadow-xl">
                       <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Thao tác</DropdownMenuLabel>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => setActiveBooking(booking)}
                         className="gap-2 font-bold text-sm cursor-pointer py-2.5 rounded-lg focus:bg-primary/5 focus:text-primary"
                       >
                         <Eye size={16} /> Xem chi tiết
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 font-bold text-sm cursor-pointer py-2.5 rounded-lg focus:bg-primary/5 focus:text-primary">
-                        <Edit size={16} /> Chỉnh sửa
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="gap-2 font-bold text-sm cursor-pointer py-2.5 rounded-lg text-red-600 focus:bg-red-50 focus:text-red-600">
-                        <Trash2 size={16} /> Hủy đặt phòng
-                      </DropdownMenuItem>
+                      {(booking.status === 'confirmed' || booking.status === 'deposited') && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (!checkInBooking(booking.id)) {
+                              alert('Không thể check-in: phòng chưa được dọn sạch.');
+                            }
+                          }}
+                          className="gap-2 font-bold text-sm cursor-pointer py-2.5 rounded-lg focus:bg-green-50 focus:text-green-600"
+                        >
+                          <LogIn size={16} /> Check-in
+                        </DropdownMenuItem>
+                      )}
+                      {booking.status === 'checked_in' && (
+                        <DropdownMenuItem
+                          onClick={() => checkOutBooking(booking.id)}
+                          className="gap-2 font-bold text-sm cursor-pointer py-2.5 rounded-lg focus:bg-blue-50 focus:text-blue-600"
+                        >
+                          <LogOut size={16} /> Check-out
+                        </DropdownMenuItem>
+                      )}
+                      {booking.status !== 'cancelled' && booking.status !== 'checked_out' && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => cancelBooking(booking)}
+                            className="gap-2 font-bold text-sm cursor-pointer py-2.5 rounded-lg text-red-600 focus:bg-red-50 focus:text-red-600"
+                          >
+                            <XCircle size={16} /> Hủy đặt phòng
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
