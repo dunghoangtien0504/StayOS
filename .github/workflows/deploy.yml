@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to VPS (stayos.hoangtiendung.com)
+    name: Deploy to VPS (stay.dunghoang.com)
     runs-on: ubuntu-latest
 
     steps:
