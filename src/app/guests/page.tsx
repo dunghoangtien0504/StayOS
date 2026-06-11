@@ -10,11 +10,23 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Guest } from '@/lib/types';
+import { Guest, Booking } from '@/lib/types';
 import { format } from 'date-fns';
+import { statusLabel, statusColor } from '@/lib/labels';
+
+/**
+ * Liên kết khách ↔ booking: ưu tiên SĐT (khi cả hai có), fallback theo tên.
+ * Tránh bug chuỗi rỗng '' === '' khớp mọi booking không có SĐT.
+ */
+function bookingsOfGuest(guest: Guest, bookings: Booking[]): Booking[] {
+  return bookings.filter(b => {
+    if (guest.phone && b.guestPhone) return b.guestPhone === guest.phone;
+    return b.guestName.trim().toLowerCase() === guest.name.trim().toLowerCase();
+  });
+}
 
 export default function GuestCRMPage() {
-  const { guests, bookings, addGuest, updateGuest, deleteGuest } = useTimelineStore();
+  const { guests, bookings, rooms, addGuest, updateGuest, deleteGuest } = useTimelineStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -36,7 +48,10 @@ export default function GuestCRMPage() {
   );
 
   const selectedGuest = guests.find(g => g.id === selectedGuestId);
-  const guestBookings = bookings.filter(b => b.guestPhone === selectedGuest?.phone);
+  const guestBookings = selectedGuest ? bookingsOfGuest(selectedGuest, bookings) : [];
+  const guestTotalSpent = guestBookings
+    .filter(b => b.status !== 'cancelled' && b.status !== 'no_show')
+    .reduce((sum, b) => sum + b.amountPaid, 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,8 +191,13 @@ export default function GuestCRMPage() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredGuests.map(guest => (
-                <div 
+              {filteredGuests.map(guest => {
+                const gbs = bookingsOfGuest(guest, bookings);
+                const spent = gbs
+                  .filter(b => b.status !== 'cancelled' && b.status !== 'no_show')
+                  .reduce((sum, b) => sum + b.amountPaid, 0);
+                return (
+                <div
                   key={guest.id}
                   onClick={() => setSelectedGuestId(guest.id === selectedGuestId ? null : guest.id)}
                   className={cn(
@@ -218,8 +238,22 @@ export default function GuestCRMPage() {
                       Gia nhập: {format(guest.createdAt, 'dd/MM/yyyy')}
                     </div>
                   </div>
+
+                  <div className={cn(
+                    "mt-3 pt-3 flex items-center justify-between text-xs font-black border-t",
+                    selectedGuestId === guest.id ? "border-white/20" : "border-border"
+                  )}>
+                    <span className="flex items-center gap-1.5">
+                      <History size={12} />
+                      {gbs.length} lượt đặt
+                    </span>
+                    <span className={selectedGuestId === guest.id ? "text-white" : "text-primary"}>
+                      {spent.toLocaleString('vi-VN')}đ
+                    </span>
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -283,9 +317,14 @@ export default function GuestCRMPage() {
                         <History size={20} className="text-primary" />
                         Lịch sử lưu trú
                       </h3>
-                      <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-black">
-                        {guestBookings.length} bookings
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-black">
+                          {guestBookings.length} lượt đặt
+                        </span>
+                        <span className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-black">
+                          {guestTotalSpent.toLocaleString('vi-VN')}đ
+                        </span>
+                      </div>
                     </div>
 
                     <div className="space-y-3">
@@ -298,11 +337,18 @@ export default function GuestCRMPage() {
                           <div key={booking.id} className="p-4 rounded-3xl border hover:border-primary transition-colors flex items-center justify-between">
                             <div>
                               <p className="font-black text-sm">{format(booking.checkIn, 'dd/MM/yyyy')} - {format(booking.checkOut, 'dd/MM/yyyy')}</p>
-                              <p className="text-xs text-muted-foreground font-medium">Phòng: {booking.roomId}</p>
+                              <p className="text-xs text-muted-foreground font-medium">
+                                Phòng: {rooms.find(r => r.id === booking.roomId)?.name ?? booking.roomId}
+                              </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-black text-primary text-sm">{booking.totalPrice.toLocaleString()}đ</p>
-                              <span className="text-[10px] font-black uppercase opacity-60">{booking.status}</span>
+                              <p className="font-black text-primary text-sm">{booking.totalPrice.toLocaleString('vi-VN')}đ</p>
+                              <span className={cn(
+                                "inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase border",
+                                statusColor(booking.status)
+                              )}>
+                                {statusLabel(booking.status)}
+                              </span>
                             </div>
                           </div>
                         ))
