@@ -14,6 +14,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { CLEANING_STATUS_LABELS } from '@/lib/labels';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -52,7 +53,7 @@ export const CleaningTaskCard = ({ assignment, room, onCompleteClick }: Cleaning
           </div>
         </div>
         <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-tighter px-1.5 h-4">
-          {assignment.status.replace('_', ' ')}
+          {CLEANING_STATUS_LABELS[assignment.status] ?? assignment.status}
         </Badge>
       </div>
 
