@@ -26,7 +26,6 @@ import {
   CheckCircle2,
   LogOut,
   XCircle,
-  ExternalLink,
   MapPin,
   Clock,
   MessageSquare,
@@ -37,6 +36,7 @@ import {
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { statusLabel, sourceLabel } from '@/lib/labels';
 import { PaymentForm } from './PaymentForm';
 import { calculateNights } from '@/lib/pricing';
 import { printInvoice } from '@/lib/invoice';
@@ -150,7 +150,7 @@ export const BookingDetailsModal = ({ booking, isOpen, onClose }: BookingDetails
                   <DialogTitle className="text-3xl font-black tracking-tight">{booking.guestName}</DialogTitle>
                 )}
                 <Badge variant="secondary" className="font-black uppercase tracking-widest text-[10px]">
-                  {booking.status.replace('_', ' ')}
+                  {statusLabel(booking.status)}
                 </Badge>
                 <Button 
                   variant="ghost" 
@@ -186,7 +186,7 @@ export const BookingDetailsModal = ({ booking, isOpen, onClose }: BookingDetails
                 </div>
               ) : (
                 <p className="text-muted-foreground font-medium flex items-center gap-2">
-                  <Phone size={14} /> {booking.guestPhone} · <span className="uppercase text-primary font-bold">{booking.source}</span>
+                  <Phone size={14} /> {booking.guestPhone} · <span className="text-primary font-bold">{sourceLabel(booking.source)}</span>
                 </p>
               )}
             </div>
