@@ -217,15 +217,27 @@ export const TimelineCanvas = ({ sourceFilter }: TimelineCanvasProps) => {
               </div>
 
               {/* Grid & Bookings Content */}
-              <div className="flex-1 relative bg-slate-50/20">
+              <div className="flex-1 relative bg-white">
+                {/* Alternating row backgrounds */}
+                {propertyRooms.map((room, i) => (
+                  <div
+                    key={room.id}
+                    className="absolute left-0 right-0 pointer-events-none"
+                    style={{
+                      top: i * ROW_HEIGHT,
+                      height: ROW_HEIGHT,
+                      background: i % 2 === 0 ? 'rgba(248,250,252,0.8)' : 'rgba(255,255,255,0.8)',
+                    }}
+                  />
+                ))}
                 {/* Visual Grid Background */}
-                <div 
+                <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
                     backgroundImage: `
-                      repeating-linear-gradient(to right, hsl(var(--muted-foreground) / 0.1) 0, hsl(var(--muted-foreground) / 0.1) 1px, transparent 1px, transparent ${HOUR_WIDTH}px),
-                      repeating-linear-gradient(to right, hsl(var(--muted-foreground) / 0.05) 0, hsl(var(--muted-foreground) / 0.05) 1px, transparent 1px, transparent ${HOUR_WIDTH / 2}px),
-                      repeating-linear-gradient(to bottom, hsl(var(--muted) / 0.2) 0, hsl(var(--muted) / 0.2) 1px, transparent 1px, transparent ${ROW_HEIGHT}px)
+                      repeating-linear-gradient(to right, rgba(0,0,0,0.12) 0, rgba(0,0,0,0.12) 1px, transparent 1px, transparent ${HOUR_WIDTH}px),
+                      repeating-linear-gradient(to right, rgba(0,0,0,0.05) 0, rgba(0,0,0,0.05) 1px, transparent 1px, transparent ${HOUR_WIDTH / 2}px),
+                      repeating-linear-gradient(to bottom, rgba(0,0,0,0.1) 0, rgba(0,0,0,0.1) 1px, transparent 1px, transparent ${ROW_HEIGHT}px)
                     `,
                   }}
                 />
