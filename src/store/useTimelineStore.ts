@@ -180,6 +180,14 @@ export const useTimelineStore = create<TimelineState>()(
     { id: 'g-real-71', name: 'Đăng Như', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
     { id: 'g-real-72', name: 'Hoang Tony', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
     { id: 'g-real-73', name: 'Khách dài hạn', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
+    { id: 'g-real-74', name: 'Hồng Cúc', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
+    { id: 'g-real-75', name: 'Lý Hoàng Duyên', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
+    { id: 'g-real-76', name: 'Tú Nhi', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
+    { id: 'g-real-77', name: 'Trang Thảo Nguyên', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
+    { id: 'g-real-78', name: 'Khánh Nam', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
+    { id: 'g-real-79', name: 'Truc Trinh', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
+    { id: 'g-real-80', name: 'Vien Nguyen', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
+    { id: 'g-real-81', name: 'Thuy Anh', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
   ],
   notifications: [
     { id: 'n-1', type: 'system', title: 'Chào mừng trở lại', message: 'Hệ thống PMS đã sẵn sàng cho ngày hôm nay.', isRead: false, createdAt: new Date() },
@@ -762,9 +770,9 @@ export const useTimelineStore = create<TimelineState>()(
     }),
     {
       name: 'stayos-store',
-      version: 7,
+      version: 8,
       migrate: (_persistedState, fromVersion) => {
-        console.log(`[StayOS] Store migrated from v${fromVersion} → v7. 73 khach that tu Excel.`);
+        console.log(`[StayOS] Store migrated from v${fromVersion} → v8. P.101 thang 6 tu Google Sheets.`);
         return undefined; // undefined = dùng initialState
       },
       storage: createJSONStorage(() => localStorage),
