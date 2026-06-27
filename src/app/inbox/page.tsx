@@ -517,83 +517,91 @@ export default function SmartInboxPage() {
               const isSelected = selectedThreadId === thread.id;
               const hasBooking = !!thread.linkedBookingId;
               const isAiThread = perThreadAutoReply.has(thread.id);
+              const hasUnread = thread.unreadCount > 0;
               return (
                 <div
                   key={thread.id}
                   onClick={() => setSelectedThreadId(thread.id)}
                   className={cn(
-                    "group px-3 py-2.5 cursor-pointer transition-all flex gap-2.5 relative border-b border-gray-100/80",
+                    "group relative flex gap-3 px-4 py-3 cursor-pointer transition-all border-b border-gray-100",
                     isSelected
-                      ? "bg-primary/8 border-l-[3px] border-l-primary"
-                      : "hover:bg-gray-50/80 border-l-[3px] border-l-transparent"
+                      ? "bg-primary/[0.07] border-l-[3px] border-l-primary"
+                      : "hover:bg-gray-50 border-l-[3px] border-l-transparent"
                   )}
                 >
                   {/* Avatar */}
-                  <div className="relative shrink-0 mt-0.5">
+                  <div className="relative shrink-0 self-start mt-0.5">
                     <div className={cn(
-                      "w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm",
-                      isSelected ? "bg-primary/20 text-primary" : "bg-gray-100 text-gray-600"
+                      "w-10 h-10 rounded-full flex items-center justify-center font-bold text-[15px] uppercase",
+                      isSelected
+                        ? "bg-primary text-white"
+                        : hasUnread
+                          ? "bg-primary/15 text-primary"
+                          : "bg-gray-100 text-gray-500"
                     )}>
-                      {thread.guestName.charAt(0).toUpperCase()}
+                      {thread.guestName.charAt(0)}
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-gray-100 shadow-sm">
+                    <div className="absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] bg-white rounded-full flex items-center justify-center border border-gray-100 shadow-sm">
                       {getSourceIcon(thread.source)}
                     </div>
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Row 1: name + time */}
-                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                  <div className="flex-1 min-w-0 pr-1">
+                    {/* Name + time */}
+                    <div className="flex items-baseline justify-between gap-1 mb-[3px]">
                       <span className={cn(
-                        "text-[13px] truncate leading-tight",
-                        thread.unreadCount > 0 ? "font-bold text-gray-900" : "font-medium text-gray-700"
+                        "text-[13.5px] truncate leading-snug",
+                        hasUnread ? "font-bold text-gray-900" : "font-semibold text-gray-700"
                       )}>
                         {thread.guestName}
                       </span>
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">
+                      <span className={cn(
+                        "text-[11px] whitespace-nowrap shrink-0",
+                        hasUnread ? "text-primary font-semibold" : "text-gray-400"
+                      )}>
                         {formatVNTime(thread.lastMessageAt)}
                       </span>
                     </div>
 
-                    {/* Row 2: last message */}
+                    {/* Last message */}
                     <p className={cn(
-                      "text-[11px] truncate leading-snug mb-1",
-                      thread.unreadCount > 0 ? "text-gray-700 font-medium" : "text-gray-400"
+                      "text-[12px] truncate leading-snug mb-2",
+                      hasUnread ? "text-gray-800 font-medium" : "text-gray-400"
                     )}>
                       {thread.lastMessage || '📷 Hình ảnh'}
                     </p>
 
-                    {/* Row 3: tags */}
-                    <div className="flex items-center gap-1 flex-wrap">
+                    {/* Tags row */}
+                    <div className="flex items-center gap-1.5">
                       {hasBooking && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-[10px] font-medium">
-                          <Check size={9} />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10.5px] font-semibold">
+                          <Check size={9} strokeWidth={3} />
                           Đã đặt phòng
                         </span>
                       )}
                       {isAiThread && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-violet-50 text-violet-600 border border-violet-200 rounded-full text-[10px] font-medium">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-600 border border-violet-200 rounded-full text-[10.5px] font-semibold">
                           <Bot size={9} />
-                          AI tự động
+                          AI
                         </span>
                       )}
-                      {thread.unreadCount > 0 && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 bg-primary text-white rounded-full text-[10px] font-bold ml-auto">
+                      {hasUnread && (
+                        <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 bg-primary text-white rounded-full text-[10px] font-bold">
                           {thread.unreadCount}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* AI toggle button on hover */}
+                  {/* AI toggle on hover (when not AI thread) */}
                   {!isAiThread && (
                     <button
                       onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
-                      className="absolute top-2 right-2 w-5 h-5 rounded-full text-gray-300 flex items-center justify-center hover:bg-gray-100 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-all"
+                      className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full text-gray-300 flex items-center justify-center hover:bg-gray-100 hover:text-violet-500 opacity-0 group-hover:opacity-100 transition-all"
                       title="Bật AI tự động"
                     >
-                      <Bot size={11} />
+                      <Bot size={12} />
                     </button>
                   )}
                 </div>

@@ -53,37 +53,51 @@ export interface MetaMessage {
   attachments: string[];
 }
 
-/** List conversations for one platform */
-export async function fetchConversations(platform: MetaPlatform): Promise<MetaConversation[]> {
+/** List ALL conversations for one platform (follows pagination, max 500) */
+export async function fetchConversations(platform: MetaPlatform, maxPages = 20): Promise<MetaConversation[]> {
   const token = getPageToken();
   const pageId = getPageId();
   if (!token) throw new Error('META_PAGE_ACCESS_TOKEN not configured');
 
-  const url =
+  const all: MetaConversation[] = [];
+  let nextUrl: string | null =
     `${META_GRAPH_BASE}/me/conversations` +
     `?platform=${platform}` +
     `&fields=id,participants,snippet,updated_time,unread_count` +
-    `&access_token=${token}&limit=25`;
+    `&access_token=${token}&limit=50`;
 
-  const res = await fetch(url, { cache: 'no-store' });
-  const data = await res.json();
-  if (!res.ok || data.error) {
-    throw new Error(data.error?.message || `Meta /conversations (${platform}) HTTP ${res.status}`);
+  let pages = 0;
+  while (nextUrl && pages < maxPages) {
+    const res: Response = await fetch(nextUrl, { cache: 'no-store' });
+    const data = await res.json() as {
+      data?: Record<string, unknown>[];
+      error?: { message?: string };
+      paging?: { next?: string };
+    };
+    if (!res.ok || data.error) {
+      throw new Error(data.error?.message || `Meta /conversations (${platform}) HTTP ${res.status}`);
+    }
+
+    const mapped = (data.data || []).map((conv) => {
+      const participants = ((conv.participants as { data: { id: string; name: string }[] })?.data) || [];
+      const guest = participants.find((p) => p.id !== pageId) || participants[0];
+      return {
+        id: conv.id as string,
+        guestName: guest?.name || (platform === 'instagram' ? 'Khách Instagram' : 'Khách Messenger'),
+        guestPsid: guest?.id || '',
+        lastMessage: (conv.snippet as string) || '',
+        lastMessageAt: (conv.updated_time as string) || new Date().toISOString(),
+        unreadCount: (conv.unread_count as number) || 0,
+        platform,
+      };
+    });
+
+    all.push(...mapped);
+    nextUrl = data.paging?.next || null;
+    pages++;
   }
 
-  return (data.data || []).map((conv: Record<string, unknown>) => {
-    const participants = ((conv.participants as { data: { id: string; name: string }[] })?.data) || [];
-    const guest = participants.find((p) => p.id !== pageId) || participants[0];
-    return {
-      id: conv.id as string,
-      guestName: guest?.name || (platform === 'instagram' ? 'Khách Instagram' : 'Khách Messenger'),
-      guestPsid: guest?.id || '',
-      lastMessage: (conv.snippet as string) || '',
-      lastMessageAt: (conv.updated_time as string) || new Date().toISOString(),
-      unreadCount: (conv.unread_count as number) || 0,
-      platform,
-    };
-  });
+  return all;
 }
 
 /** Fetch message history for one conversation (oldest first) */
