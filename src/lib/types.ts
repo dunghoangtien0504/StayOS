@@ -166,6 +166,24 @@ export type ChatSource =
   | 'booking'
   | 'airbnb';
 
+export interface ChatLabel {
+  id: string;
+  name: string;
+  color: string; // hex color
+  emoji?: string;
+}
+
+export const DEFAULT_CHAT_LABELS: ChatLabel[] = [
+  { id: 'consulting',  name: 'Đang tư vấn',   color: '#f97316', emoji: '💬' },
+  { id: 'interested',  name: 'Có nhu cầu',     color: '#ef4444', emoji: '🎯' },
+  { id: 'no_reply',    name: 'Chưa phản hồi',  color: '#f59e0b', emoji: '⏳' },
+  { id: 'quoted',      name: 'Đã báo giá',     color: '#92400e', emoji: '📋' },
+  { id: 'no_potential',name: 'Không tiềm năng',color: '#6b7280', emoji: '✕'  },
+  { id: 'waiting_pay', name: 'Chờ thanh toán', color: '#0891b2', emoji: '💳' },
+  { id: 'success',     name: 'Thành công',     color: '#16a34a', emoji: '✅' },
+  { id: 'complaint',   name: 'Khiếu nại',      color: '#7c3aed', emoji: '⚠️' },
+];
+
 export interface ChatThread {
   id: string;
   guestName: string;
@@ -177,6 +195,7 @@ export interface ChatThread {
   source: ChatSource;
   guestId?: string;
   linkedBookingId?: string;
+  labelIds?: string[]; // IDs from DEFAULT_CHAT_LABELS
   /** Meta Graph API fields (present for synced threads) */
   recipientId?: string;   // PSID (Messenger) or IGSID (Instagram)
   platform?: 'messenger' | 'instagram';

@@ -96,6 +96,7 @@ interface TimelineState {
   markThreadAsRead: (threadId: string) => void;
   syncMetaThreads: (threads: ChatThread[]) => void;
   setThreadMessages: (threadId: string, messages: Message[]) => void;
+  setThreadLabels: (threadId: string, labelIds: string[]) => void;
 }
 
 export const useTimelineStore = create<TimelineState>()(
@@ -765,6 +766,14 @@ export const useTimelineStore = create<TimelineState>()(
           lastMessageAt: last ? last.timestamp : t.lastMessageAt,
         };
       })
+    }));
+  },
+
+  setThreadLabels: (threadId, labelIds) => {
+    set((state) => ({
+      chatThreads: state.chatThreads.map(t =>
+        t.id === threadId ? { ...t, labelIds } : t
+      ),
     }));
   },
     }),

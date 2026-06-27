@@ -16,6 +16,7 @@ import {
 import { getQuickReplies, saveQuickReplies, type QuickReply } from '@/lib/quickReplies';
 import { cn, formatVNTime } from '@/lib/utils';
 import { AddBookingModal } from '@/components/booking/AddBookingModal';
+import { DEFAULT_CHAT_LABELS } from '@/lib/types';
 
 const EMOJIS = [
   '😊','😄','😂','🥰','😍','😘','🤩','😎',
@@ -63,12 +64,16 @@ export default function SmartInboxPage() {
     markThreadAsRead,
     syncMetaThreads,
     setThreadMessages,
+    setThreadLabels,
   } = useTimelineStore();
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddBookingOpen, setIsAddBookingOpen] = useState(false);
+  const [filterLabelId, setFilterLabelId] = useState<string | null>(null);
+  const [showLabelFilter, setShowLabelFilter] = useState(false);
+  const [labelPickerThreadId, setLabelPickerThreadId] = useState<string | null>(null);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -118,10 +123,13 @@ export default function SmartInboxPage() {
   const [sseConnected, setSseConnected] = useState(false);
 
   const selectedThread = chatThreads.find(t => t.id === selectedThreadId);
-  const filteredThreads = chatThreads.filter(t =>
-    t.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredThreads = chatThreads.filter(t => {
+    const matchSearch = t.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchLabel = !filterLabelId || (t.labelIds ?? []).includes(filterLabelId);
+    return matchSearch && matchLabel;
+  });
+  const activeLabel = filterLabelId ? DEFAULT_CHAT_LABELS.find(l => l.id === filterLabelId) : null;
 
   // All image URLs from loaded conversations (for quick reply image picker)
   const historyImages = React.useMemo(() => {
@@ -456,45 +464,90 @@ export default function SmartInboxPage() {
           "border-r flex-col h-full bg-white w-full md:w-[320px] shrink-0",
           selectedThreadId ? "hidden md:flex" : "flex"
         )}>
-          <div className="px-4 pt-4 pb-3 border-b space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-base font-semibold text-gray-800">Hội thoại</span>
+          <div className="px-3 pt-3 pb-2 border-b space-y-2">
+            {/* Top row */}
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-bold text-gray-800">Hội thoại</span>
                 {totalUnread > 0 && (
-                  <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                  <span className="bg-red-500 text-white px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none">
                     {totalUnread}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                {/* SSE connection indicator */}
-                <div className="flex items-center gap-1" title={sseConnected ? 'Real-time bật' : 'Đang kết nối...'}>
-                  <span className={cn('w-2 h-2 rounded-full', sseConnected ? 'bg-green-400 animate-pulse' : 'bg-gray-300')} />
-                  <span className="text-[10px] text-gray-400 hidden sm:inline">{sseConnected ? 'Live' : '...'}</span>
+              <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" title={sseConnected ? 'Real-time' : 'Đang kết nối'}>
+                  <span className={cn('w-1.5 h-1.5 rounded-full', sseConnected ? 'bg-green-400 animate-pulse' : 'bg-gray-300')} />
+                  <span className="text-[10px] text-gray-400">{sseConnected ? 'Live' : '...'}</span>
                 </div>
-                <button
-                  onClick={runSync}
-                  disabled={isSyncing}
-                  title={lastSyncAt ? `Đồng bộ lúc ${formatVNTime(lastSyncAt)}` : 'Đồng bộ Meta'}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors disabled:opacity-50"
-                >
-                  <RefreshCw size={15} className={cn(isSyncing && 'animate-spin')} />
+                <button onClick={runSync} disabled={isSyncing}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-50">
+                  <RefreshCw size={14} className={cn(isSyncing && 'animate-spin')} />
                 </button>
               </div>
             </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
-              <input
-                type="text"
-                placeholder="Tìm hội thoại..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-primary/50 outline-none text-sm text-gray-700 placeholder:text-gray-400 transition-all"
-              />
+
+            {/* Search + Label filter */}
+            <div className="flex gap-1.5">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                <input type="text" placeholder="Tìm kiếm..." value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-2 py-1.5 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-primary/50 outline-none text-[12px] text-gray-700 placeholder:text-gray-400" />
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setShowLabelFilter(v => !v)}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[12px] font-medium transition-colors whitespace-nowrap",
+                    filterLabelId
+                      ? "border-transparent text-white"
+                      : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  )}
+                  style={filterLabelId && activeLabel ? { backgroundColor: activeLabel.color } : {}}
+                >
+                  {activeLabel ? (
+                    <>
+                      <span>{activeLabel.emoji}</span>
+                      <span className="max-w-[70px] truncate">{activeLabel.name}</span>
+                      <X size={11} onClick={(e) => { e.stopPropagation(); setFilterLabelId(null); }} />
+                    </>
+                  ) : (
+                    <>Nhãn ▾</>
+                  )}
+                </button>
+
+                {showLabelFilter && (
+                  <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div className="px-3 py-2 border-b">
+                      <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Lọc theo nhãn</span>
+                    </div>
+                    <div className="py-1 max-h-64 overflow-y-auto">
+                      <button onClick={() => { setFilterLabelId(null); setShowLabelFilter(false); }}
+                        className={cn("w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-gray-50 text-left", !filterLabelId && "bg-gray-50 font-semibold")}>
+                        <span className="w-3 h-3 rounded-full border-2 border-gray-300" />
+                        Tất cả
+                      </button>
+                      {DEFAULT_CHAT_LABELS.map(label => (
+                        <button key={label.id}
+                          onClick={() => { setFilterLabelId(label.id); setShowLabelFilter(false); }}
+                          className={cn("w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-gray-50 text-left", filterLabelId === label.id && "bg-gray-50 font-semibold")}>
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: label.color }} />
+                          <span>{label.emoji} {label.name}</span>
+                          <span className="ml-auto text-[10px] text-gray-400">
+                            {chatThreads.filter(t => (t.labelIds ?? []).includes(label.id)).length}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+
             {syncError && (
-              <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2.5">
-                <AlertCircle size={13} className="shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-lg p-2">
+                <AlertCircle size={12} className="shrink-0 mt-0.5" />
                 <span>{syncError}</span>
               </div>
             )}
@@ -513,52 +566,92 @@ export default function SmartInboxPage() {
                 <span className="text-xs">Chưa có hội thoại nào</span>
               </div>
             )}
+            {/* Label picker popup */}
+            {labelPickerThreadId && (() => {
+              const t = chatThreads.find(x => x.id === labelPickerThreadId);
+              if (!t) return null;
+              return (
+                <div className="absolute inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200 shadow-xl rounded-t-2xl p-4"
+                  style={{ top: 'auto' }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[13px] font-bold text-gray-800">Gắn nhãn — {t.guestName}</span>
+                    <button onClick={() => setLabelPickerThreadId(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {DEFAULT_CHAT_LABELS.map(label => {
+                      const active = (t.labelIds ?? []).includes(label.id);
+                      return (
+                        <button key={label.id}
+                          onClick={() => {
+                            const cur = t.labelIds ?? [];
+                            setThreadLabels(t.id, active ? cur.filter(x => x !== label.id) : [...cur, label.id]);
+                          }}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border-2 transition-all",
+                            active ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                          )}
+                          style={active ? { backgroundColor: label.color, borderColor: label.color } : {}}>
+                          <span>{label.emoji}</span>
+                          <span>{label.name}</span>
+                          {active && <Check size={11} strokeWidth={3} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {filteredThreads.map(thread => {
               const isSelected = selectedThreadId === thread.id;
-              const hasBooking = !!thread.linkedBookingId;
-              const isAiThread = perThreadAutoReply.has(thread.id);
               const hasUnread = thread.unreadCount > 0;
+              const threadLabels = DEFAULT_CHAT_LABELS.filter(l => (thread.labelIds ?? []).includes(l.id));
               return (
                 <div
                   key={thread.id}
-                  onClick={() => setSelectedThreadId(thread.id)}
+                  onClick={() => { setSelectedThreadId(thread.id); setLabelPickerThreadId(null); }}
                   className={cn(
-                    "group relative flex gap-3 px-4 py-3 cursor-pointer transition-all border-b border-gray-100",
+                    "group relative flex gap-2.5 px-3 py-2.5 cursor-pointer transition-all border-b",
                     isSelected
-                      ? "bg-primary/[0.07] border-l-[3px] border-l-primary"
-                      : "hover:bg-gray-50 border-l-[3px] border-l-transparent"
+                      ? "bg-[#fff0f0] border-l-[3px] border-l-red-400 border-b-gray-100"
+                      : hasUnread
+                        ? "bg-[#fff5f5] border-l-[3px] border-l-transparent hover:bg-[#ffecec] border-b-red-100"
+                        : "bg-white border-l-[3px] border-l-transparent hover:bg-gray-50 border-b-gray-100"
                   )}
                 >
                   {/* Avatar */}
                   <div className="relative shrink-0 self-start mt-0.5">
                     <div className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center font-bold text-[15px] uppercase",
-                      isSelected
-                        ? "bg-primary text-white"
-                        : hasUnread
-                          ? "bg-primary/15 text-primary"
-                          : "bg-gray-100 text-gray-500"
+                      isSelected ? "bg-red-400 text-white"
+                        : hasUnread ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-500"
                     )}>
                       {thread.guestName.charAt(0)}
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] bg-white rounded-full flex items-center justify-center border border-gray-100 shadow-sm">
+                    <div className="absolute -bottom-0.5 -right-0.5 w-[17px] h-[17px] bg-white rounded-full flex items-center justify-center border border-gray-100 shadow-sm">
                       {getSourceIcon(thread.source)}
                     </div>
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0 pr-1">
-                    {/* Name + time */}
-                    <div className="flex items-baseline justify-between gap-1 mb-[3px]">
+                  <div className="flex-1 min-w-0">
+                    {/* Name + time + unread badge */}
+                    <div className="flex items-baseline justify-between gap-1 mb-0.5">
                       <span className={cn(
-                        "text-[13.5px] truncate leading-snug",
-                        hasUnread ? "font-bold text-gray-900" : "font-semibold text-gray-700"
+                        "text-[13px] truncate",
+                        hasUnread ? "font-bold text-red-600" : "font-semibold text-gray-700"
                       )}>
                         {thread.guestName}
+                        {hasUnread && (
+                          <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-bold align-middle">
+                            {thread.unreadCount}
+                          </span>
+                        )}
                       </span>
                       <span className={cn(
-                        "text-[11px] whitespace-nowrap shrink-0",
-                        hasUnread ? "text-primary font-semibold" : "text-gray-400"
+                        "text-[10.5px] whitespace-nowrap shrink-0",
+                        hasUnread ? "text-red-400 font-semibold" : "text-gray-400"
                       )}>
                         {formatVNTime(thread.lastMessageAt)}
                       </span>
@@ -566,44 +659,46 @@ export default function SmartInboxPage() {
 
                     {/* Last message */}
                     <p className={cn(
-                      "text-[12px] truncate leading-snug mb-2",
-                      hasUnread ? "text-gray-800 font-medium" : "text-gray-400"
+                      "text-[11.5px] truncate leading-snug mb-1.5",
+                      hasUnread ? "text-gray-700 font-medium" : "text-gray-400"
                     )}>
                       {thread.lastMessage || '📷 Hình ảnh'}
                     </p>
 
-                    {/* Tags row */}
-                    <div className="flex items-center gap-1.5">
-                      {hasBooking && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10.5px] font-semibold">
-                          <Check size={9} strokeWidth={3} />
-                          Đã đặt phòng
-                        </span>
-                      )}
-                      {isAiThread && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-600 border border-violet-200 rounded-full text-[10.5px] font-semibold">
-                          <Bot size={9} />
-                          AI
-                        </span>
-                      )}
-                      {hasUnread && (
-                        <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 bg-primary text-white rounded-full text-[10px] font-bold">
-                          {thread.unreadCount}
-                        </span>
-                      )}
-                    </div>
+                    {/* Labels */}
+                    {threadLabels.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {threadLabels.map(label => (
+                          <span key={label.id}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white"
+                            style={{ backgroundColor: label.color }}>
+                            {label.emoji} {label.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {/* AI toggle on hover (when not AI thread) */}
-                  {!isAiThread && (
+                  {/* Label + AI buttons on hover */}
+                  <div className="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setLabelPickerThreadId(thread.id === labelPickerThreadId ? null : thread.id); }}
+                      className="w-6 h-6 rounded-full bg-white border border-gray-200 text-gray-400 flex items-center justify-center hover:text-orange-500 hover:border-orange-300 shadow-sm"
+                      title="Gắn nhãn">
+                      <Plus size={11} />
+                    </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
-                      className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full text-gray-300 flex items-center justify-center hover:bg-gray-100 hover:text-violet-500 opacity-0 group-hover:opacity-100 transition-all"
-                      title="Bật AI tự động"
-                    >
-                      <Bot size={12} />
+                      className={cn(
+                        "w-6 h-6 rounded-full border flex items-center justify-center shadow-sm",
+                        perThreadAutoReply.has(thread.id)
+                          ? "bg-violet-500 border-violet-500 text-white"
+                          : "bg-white border-gray-200 text-gray-400 hover:text-violet-500 hover:border-violet-300"
+                      )}
+                      title="AI tự động">
+                      <Bot size={11} />
                     </button>
-                  )}
+                  </div>
                 </div>
               );
             })}
