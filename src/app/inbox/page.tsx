@@ -274,8 +274,14 @@ export default function SmartInboxPage() {
     setIsSyncing(true);
     setSyncError(null);
     try {
-      const res = await fetch('/api/meta/conversations');
-      const data = await res.json();
+      const res = await fetch('/api/meta/conversations?limit=50');
+      const text = await res.text();
+      let data: { success?: boolean; threads?: MetaThread[]; error?: string };
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`Server lỗi (HTTP ${res.status}) — build có thể đang restart.`);
+      }
       if (!res.ok || !data.success) {
         throw new Error(data.error || `Sync thất bại (HTTP ${res.status})`);
       }

@@ -53,8 +53,8 @@ export interface MetaMessage {
   attachments: string[];
 }
 
-/** List ALL conversations for one platform (follows pagination, max 500) */
-export async function fetchConversations(platform: MetaPlatform, maxPages = 20): Promise<MetaConversation[]> {
+/** List conversations for one platform (follows pagination, max 2 pages = 100 threads) */
+export async function fetchConversations(platform: MetaPlatform, maxPages = 2): Promise<MetaConversation[]> {
   const token = getPageToken();
   const pageId = getPageId();
   if (!token) throw new Error('META_PAGE_ACCESS_TOKEN not configured');
