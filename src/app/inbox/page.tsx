@@ -290,12 +290,7 @@ export default function SmartInboxPage() {
       syncMetaThreads(threads);
       setLastSyncAt(new Date());
 
-      const unread = threads.filter(t => t.unreadCount > 0);
-      for (const t of unread) {
-        if (autoReplyRef.current || perThreadAutoReplyRef.current.has(t.id)) {
-          triggerAutoReply(t);
-        }
-      }
+      // Auto-reply chỉ trigger từ SSE (new_message), không trigger từ periodic sync
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Lỗi không xác định');
     } finally {
@@ -340,8 +335,11 @@ export default function SmartInboxPage() {
               .filter(Boolean),
           };
           const found = appendLiveMessage(senderId, msg);
-          // Unknown thread (new conversation) → do a full sync
-          if (!found) runSync();
+          if (!found) {
+            runSync();
+          } else if (thread && (autoReplyRef.current || perThreadAutoReplyRef.current.has(thread.id))) {
+            triggerAutoReply(thread);
+          }
         } catch {
           runSync();
         }
