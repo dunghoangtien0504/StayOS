@@ -177,9 +177,9 @@ export interface ChatThread {
   source: ChatSource;
   guestId?: string;
   linkedBookingId?: string;
-  /** Pancake integration fields (present for synced threads) */
-  pageId?: string;
-  customerId?: string;
-  /** true once full message history has been loaded from Pancake */
+  /** Meta Graph API fields (present for synced threads) */
+  recipientId?: string;   // PSID (Messenger) or IGSID (Instagram)
+  platform?: 'messenger' | 'instagram';
+  /** true once full message history has been loaded from Meta */
   messagesLoaded?: boolean;
 }

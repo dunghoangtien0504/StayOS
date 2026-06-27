@@ -94,7 +94,7 @@ interface TimelineState {
   // Chat Actions
   sendMessage: (threadId: string, content: string) => void;
   markThreadAsRead: (threadId: string) => void;
-  syncPancakeThreads: (threads: ChatThread[]) => void;
+  syncMetaThreads: (threads: ChatThread[]) => void;
   setThreadMessages: (threadId: string, messages: Message[]) => void;
 }
 
@@ -728,9 +728,9 @@ export const useTimelineStore = create<TimelineState>()(
     }));
   },
 
-  // Replace the thread list with freshly-synced Pancake conversations,
+  // Replace the thread list with freshly-synced Meta conversations,
   // while preserving local state (loaded messages, booking links, reads).
-  syncPancakeThreads: (threads) => {
+  syncMetaThreads: (threads) => {
     set((state) => {
       const prevById = new Map(state.chatThreads.map(t => [t.id, t]));
       const merged = threads.map((next) => {
