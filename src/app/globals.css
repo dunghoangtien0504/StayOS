@@ -171,3 +171,42 @@ main::-webkit-scrollbar-thumb:hover,
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background-color: #A89880;
 }
+
+/* ── PWA / iOS safe-area utilities ── */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Bottom nav height (56px) + home bar */
+.pb-bottom-nav {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+}
+/* Input area safe padding on mobile */
+.pb-input-safe {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+/* Bottom nav bar itself */
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom);
+}
+
+/* Ensure the bottom nav clears the home indicator */
+.h-bottom-nav {
+  height: calc(56px + env(safe-area-inset-bottom));
+}
+
+/* Touch target expansion utility */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}

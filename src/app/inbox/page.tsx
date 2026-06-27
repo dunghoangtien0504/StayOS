@@ -12,6 +12,7 @@ import {
   Smile, Paperclip, CheckCheck,
   RefreshCw, Loader2, AlertCircle, Sparkles, Bot, X,
   Zap, Pencil, Trash2, Plus, Check, Link as LinkIcon, ChevronLeft,
+  LayoutDashboard, Calendar, ClipboardList, Download, ChevronDown,
 } from 'lucide-react';
 import { getQuickReplies, saveQuickReplies, type QuickReply } from '@/lib/quickReplies';
 import { cn, formatVNTime } from '@/lib/utils';
@@ -86,6 +87,9 @@ export default function SmartInboxPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const deferredPromptRef = useRef<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
 
   const [showQuickReply, setShowQuickReply] = useState(false);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
@@ -97,6 +101,29 @@ export default function SmartInboxPage() {
   const [isAddingQR, setIsAddingQR] = useState(false);
 
   useEffect(() => { setQuickReplies(getQuickReplies()); }, []);
+
+  // PWA install prompt detection
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    if (isStandalone) return; // already installed
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      deferredPromptRef.current = e as Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> };
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPromptRef.current) return;
+    deferredPromptRef.current.prompt();
+    const { outcome } = await deferredPromptRef.current.userChoice;
+    if (outcome === 'accepted') setShowInstallBanner(false);
+    deferredPromptRef.current = null;
+  };
 
   const saveQR = (updated: QuickReply[]) => {
     setQuickReplies(updated);
@@ -455,9 +482,34 @@ export default function SmartInboxPage() {
 
   const totalUnread = chatThreads.reduce((acc, t) => acc + t.unreadCount, 0);
 
+  // Mobile bottom nav items
+  const bottomNavItems: { icon: React.ElementType; label: string; href: string; badge?: number }[] = [
+    { icon: LayoutDashboard, label: 'Tổng quan', href: '/' },
+    { icon: Calendar, label: 'Lịch', href: '/bookings/timeline' },
+    { icon: MessageSquare, label: 'Inbox', href: '/inbox', badge: totalUnread || undefined },
+    { icon: ClipboardList, label: 'Buồng phòng', href: '/housekeeping' },
+  ];
+
   return (
     <Shell title="Smart Inbox">
-      <div className="h-full flex overflow-hidden relative" style={{ background: '#f5f6fa' }}>
+      {/* PWA install banner */}
+      {showInstallBanner && (
+        <div className="md:hidden flex items-center gap-3 px-4 py-2.5 bg-[#0D2B1A] text-white shrink-0 z-50">
+          <Download size={16} className="shrink-0 text-green-400" />
+          <span className="flex-1 text-[12px] font-medium">Cài StayOS lên màn hình chính để dùng nhanh hơn</span>
+          <button
+            onClick={handleInstallPWA}
+            className="px-3 py-1 bg-primary text-white rounded-lg text-[11px] font-bold shrink-0"
+          >
+            Cài app
+          </button>
+          <button onClick={() => setShowInstallBanner(false)} className="text-white/60 hover:text-white shrink-0">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      <div className="h-full flex overflow-hidden relative pb-bottom-nav md:pb-0" style={{ background: '#f5f6fa' }}>
 
         {/* ── Sidebar ── */}
         <div className={cn(
@@ -611,7 +663,7 @@ export default function SmartInboxPage() {
                   key={thread.id}
                   onClick={() => { setSelectedThreadId(thread.id); setLabelPickerThreadId(null); }}
                   className={cn(
-                    "group relative flex gap-2.5 px-3 py-2.5 cursor-pointer transition-all border-b",
+                    "group relative flex gap-2.5 px-3 py-3 md:py-2.5 cursor-pointer transition-all border-b active:scale-[0.99]",
                     isSelected
                       ? "bg-[#fff0f0] border-l-[3px] border-l-red-400 border-b-gray-100"
                       : hasUnread
@@ -679,24 +731,24 @@ export default function SmartInboxPage() {
                     )}
                   </div>
 
-                  {/* Label + AI buttons on hover */}
-                  <div className="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                  {/* Label + AI buttons — always visible on mobile, hover-only on desktop */}
+                  <div className="absolute top-2 right-2 flex gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                     <button
                       onClick={(e) => { e.stopPropagation(); setLabelPickerThreadId(thread.id === labelPickerThreadId ? null : thread.id); }}
-                      className="w-6 h-6 rounded-full bg-white border border-gray-200 text-gray-400 flex items-center justify-center hover:text-orange-500 hover:border-orange-300 shadow-sm"
+                      className="w-7 h-7 md:w-6 md:h-6 rounded-full bg-white border border-gray-200 text-gray-400 flex items-center justify-center hover:text-orange-500 hover:border-orange-300 shadow-sm active:scale-95"
                       title="Gắn nhãn">
-                      <Plus size={11} />
+                      <Plus size={12} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); togglePerThreadAutoReply(thread.id); }}
                       className={cn(
-                        "w-6 h-6 rounded-full border flex items-center justify-center shadow-sm",
+                        "w-7 h-7 md:w-6 md:h-6 rounded-full border flex items-center justify-center shadow-sm active:scale-95",
                         perThreadAutoReply.has(thread.id)
                           ? "bg-violet-500 border-violet-500 text-white"
                           : "bg-white border-gray-200 text-gray-400 hover:text-violet-500 hover:border-violet-300"
                       )}
                       title="AI tự động">
-                      <Bot size={11} />
+                      <Bot size={12} />
                     </button>
                   </div>
                 </div>
@@ -1051,32 +1103,47 @@ export default function SmartInboxPage() {
                   accept="image/jpeg,image/png,image/gif,image/webp"
                   className="hidden" onChange={handleImageUpload} />
 
-                <div className="px-4 pt-2 pb-1 flex items-center gap-1 border-b border-gray-100">
-                  <button type="button"
-                    onClick={() => { setShowQuickReply(v => !v); setShowEmojiPicker(false); }}
-                    title="Mẫu trả lời nhanh"
-                    className={cn("p-1.5 rounded-lg transition-colors", showQuickReply ? "text-primary bg-primary/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}>
-                    <Zap size={18} />
-                  </button>
-                  <button type="button" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100" title="Đính kèm file">
-                    <Paperclip size={18} />
-                  </button>
-                  <button type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    disabled={isUploadingImage || !selectedThread?.recipientId}
-                    title="Gửi ảnh"
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-40">
-                    {isUploadingImage ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
-                  </button>
-                  <button type="button"
-                    onClick={() => { setShowEmojiPicker(v => !v); setShowQuickReply(false); }}
-                    title="Chọn emoji"
-                    className={cn("p-1.5 rounded-lg transition-colors", showEmojiPicker ? "text-primary bg-primary/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}>
-                    <Smile size={18} />
-                  </button>
+                {/* Toolbar — collapsible on mobile */}
+                <div className={cn(
+                  "border-b border-gray-100 overflow-hidden transition-all duration-200",
+                  toolbarCollapsed ? "max-h-0 md:max-h-16" : "max-h-16"
+                )}>
+                  <div className="px-4 pt-2 pb-1 flex items-center gap-1">
+                    <button type="button"
+                      onClick={() => { setShowQuickReply(v => !v); setShowEmojiPicker(false); }}
+                      title="Mẫu trả lời nhanh"
+                      className={cn("p-2 rounded-lg transition-colors touch-target flex items-center justify-center", showQuickReply ? "text-primary bg-primary/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}>
+                      <Zap size={18} />
+                    </button>
+                    <button type="button" className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 touch-target flex items-center justify-center" title="Đính kèm file">
+                      <Paperclip size={18} />
+                    </button>
+                    <button type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={isUploadingImage || !selectedThread?.recipientId}
+                      title="Gửi ảnh"
+                      className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-40 touch-target flex items-center justify-center">
+                      {isUploadingImage ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
+                    </button>
+                    <button type="button"
+                      onClick={() => { setShowEmojiPicker(v => !v); setShowQuickReply(false); }}
+                      title="Chọn emoji"
+                      className={cn("p-2 rounded-lg transition-colors touch-target flex items-center justify-center", showEmojiPicker ? "text-primary bg-primary/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}>
+                      <Smile size={18} />
+                    </button>
+                  </div>
                 </div>
 
-                <form onSubmit={handleSend} className="flex items-end gap-2 px-4 py-3">
+                <form onSubmit={handleSend} className="flex items-end gap-2 px-3 md:px-4 py-2 pb-input-safe md:pb-3">
+                  {/* Collapse/expand toolbar toggle — mobile only */}
+                  <button
+                    type="button"
+                    onClick={() => setToolbarCollapsed(v => !v)}
+                    className="md:hidden w-9 h-9 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center shrink-0 active:scale-95 transition-all"
+                    title={toolbarCollapsed ? 'Mở công cụ' : 'Thu gọn'}
+                  >
+                    <ChevronDown size={16} className={cn("transition-transform", toolbarCollapsed ? "" : "rotate-180")} />
+                  </button>
                   <input
                     type="text"
                     value={inputText}
@@ -1084,16 +1151,17 @@ export default function SmartInboxPage() {
                     placeholder="Aa"
                     disabled={isSending}
                     className="flex-1 bg-gray-100 rounded-2xl px-4 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-gray-400 disabled:opacity-50 transition-all"
+                    onFocus={() => setToolbarCollapsed(true)}
                   />
                   <button type="button" onClick={handleAiSuggest}
                     disabled={isAiLoading || !selectedThread?.messages.some(m => m.isFromGuest)}
                     title="AI gợi ý"
-                    className="w-9 h-9 rounded-full bg-violet-100 text-violet-500 flex items-center justify-center hover:bg-violet-200 disabled:opacity-40 transition-colors shrink-0">
+                    className="w-9 h-9 rounded-full bg-violet-100 text-violet-500 flex items-center justify-center hover:bg-violet-200 disabled:opacity-40 transition-colors shrink-0 active:scale-95">
                     {isAiLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                   </button>
                   <button type="submit" disabled={isSending || !inputText.trim()}
                     className={cn(
-                      "w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0",
+                      "w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 active:scale-95",
                       inputText.trim() && !isSending ? "bg-primary text-white hover:bg-primary/90" : "bg-gray-200 text-gray-400 cursor-not-allowed"
                     )}>
                     {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className={cn(inputText.trim() && "translate-x-0.5 -translate-y-0.5")} />}
@@ -1123,6 +1191,38 @@ export default function SmartInboxPage() {
         initialGuestPhone={selectedThread?.guestPhone}
         fromThreadId={selectedThread?.id}
       />
+
+      {/* Mobile bottom navigation bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 flex items-stretch h-bottom-nav shadow-[0_-1px_8px_rgba(0,0,0,0.08)]">
+        {bottomNavItems.map((item) => {
+          const isActive = item.href === '/inbox';
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-safe relative transition-colors",
+                isActive ? "text-primary" : "text-gray-400"
+              )}
+            >
+              <div className="relative">
+                <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                {!!item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-full leading-none min-w-[14px] text-center">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </div>
+              <span className={cn("text-[10px] font-semibold leading-none", isActive ? "text-primary" : "text-gray-400")}>
+                {item.label}
+              </span>
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
     </Shell>
   );
 }
