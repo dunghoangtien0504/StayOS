@@ -2,7 +2,7 @@
   "name": "StayOS — Homestay Manager",
   "short_name": "StayOS",
   "description": "Hệ thống quản lý homestay Ta Thong Dong",
-  "start_url": "/dashboard",
+  "start_url": "/inbox",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1a1a2e",
@@ -17,7 +17,7 @@
   "shortcuts": [
     { "name": "Smart Inbox",   "url": "/inbox",     "description": "Tin nhắn khách" },
     { "name": "Đặt phòng",     "url": "/timeline",  "description": "Lịch đặt phòng" },
-    { "name": "Dashboard",     "url": "/dashboard", "description": "Tổng quan" }
+    { "name": "Lịch đặt phòng", "url": "/bookings/timeline", "description": "Lịch đặt phòng" }
   ],
   "categories": ["business", "productivity"]
 }
