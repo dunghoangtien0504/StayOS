@@ -133,7 +133,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                   onMouseEnter={() => setActiveIdx(i)}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
-                    activeIdx === i ? 'bg-primary/8 text-foreground' : 'hover:bg-muted/40'
+                    activeIdx === i ? 'bg-primary/[0.08] text-foreground' : 'hover:bg-muted/40'
                   )}
                 >
                   <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', typeBg[r.type])}>
