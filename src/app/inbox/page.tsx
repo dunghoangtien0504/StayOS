@@ -328,8 +328,10 @@ export default function SmartInboxPage() {
           const { senderId, message, attachments, timestamp } = payload;
           if (!senderId) { runSync(); return; }
 
+          const thread = useTimelineStore.getState().chatThreads.find(t => t.recipientId === senderId);
           const msg = {
             id: `live-${Date.now()}`,
+            sender: thread?.guestName ?? 'Khách',
             content: message || '',
             isFromGuest: true,
             timestamp: timestamp ? new Date(timestamp) : new Date(),
