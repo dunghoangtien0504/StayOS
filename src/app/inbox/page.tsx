@@ -49,7 +49,7 @@ function metaThreadToChatThread(t: MetaThread): ChatThread {
     guestPhone: '',
     lastMessage: t.lastMessage || '',
     lastMessageAt: new Date(t.lastMessageAt),
-    unreadCount: t.unreadCount,
+    unreadCount: 0,
     messages: [],
     source: toSource(t.platform),
     recipientId: t.guestPsid,

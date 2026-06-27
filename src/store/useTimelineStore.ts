@@ -743,7 +743,8 @@ export const useTimelineStore = create<TimelineState>()(
         return {
           ...next,
           linkedBookingId: prev.linkedBookingId ?? next.linkedBookingId,
-          unreadCount: noNewActivity ? prev.unreadCount : next.unreadCount,
+          labelIds: prev.labelIds ?? next.labelIds,
+          unreadCount: noNewActivity ? prev.unreadCount : (prev.unreadCount + 1),
           messages: prev.messagesLoaded ? prev.messages : next.messages,
           messagesLoaded: prev.messagesLoaded && noNewActivity,
         };
