@@ -43,14 +43,14 @@ export const StaffManagement = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-black tracking-tight">Quản lý Nhân sự</h2>
+          <h2 className="text-xl md:text-2xl font-black tracking-tight">Quản lý Nhân sự</h2>
           <p className="text-sm font-medium text-muted-foreground">Phân quyền và quản lý nhân viên vận hành.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+          className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-all self-start sm:self-auto"
         >
           <Plus size={18} />
           Thêm nhân viên

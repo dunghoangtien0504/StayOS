@@ -7,7 +7,7 @@ import { HousekeepingKanban } from '@/components/housekeeping/HousekeepingKanban
 export default function HousekeepingPage() {
   return (
     <Shell title="Quản lý Buồng phòng">
-      <main className="flex-1 p-8 flex flex-col gap-8 overflow-hidden">
+      <main className="flex-1 p-4 md:p-8 flex flex-col gap-4 md:gap-8 overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 flex-shrink-0">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-foreground">Housekeeping Board</h1>

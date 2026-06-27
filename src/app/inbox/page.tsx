@@ -388,8 +388,11 @@ export default function SmartInboxPage() {
         role: m.isFromGuest ? 'user' : 'assistant',
         content: m.content,
       }));
-      const lastGuest = [...msgs].reverse().find(m => m.isFromGuest);
-      if (!lastGuest) return;
+      const lastGuest = [...msgs].reverse().find(m => m.isFromGuest && m.content?.trim());
+      if (!lastGuest) {
+        setAiError('Không có tin nhắn văn bản nào để gợi ý');
+        return;
+      }
 
       const res = await fetch('/api/agent/chat', {
         method: 'POST',

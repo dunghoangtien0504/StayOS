@@ -57,7 +57,7 @@ export const NotificationBell = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-4 w-[400px] bg-white rounded-[2.5rem] shadow-2xl border border-muted/50 overflow-hidden z-[70] animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="fixed md:absolute left-2 right-2 md:left-auto md:right-0 top-[60px] md:top-auto md:mt-4 md:w-[400px] bg-white rounded-[2rem] shadow-2xl border border-muted/50 overflow-hidden z-[70] animate-in fade-in slide-in-from-top-4 duration-300">
           {/* Header */}
           <div className="p-6 border-b bg-muted/10 flex items-center justify-between">
             <div>
@@ -83,7 +83,7 @@ export const NotificationBell = () => {
           </div>
 
           {/* List */}
-          <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+          <div className="max-h-[60vh] md:max-h-[500px] overflow-y-auto custom-scrollbar">
             {notifications.length === 0 ? (
               <div className="py-16 px-8 text-center space-y-3">
                 <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto text-muted-foreground/30">
