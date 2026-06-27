@@ -347,7 +347,7 @@ export const Shell = ({ children, title }: ShellProps) => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-hidden flex flex-col">
+        <main className="flex-1 overflow-hidden flex flex-col pb-bottom-nav md:pb-0">
           {children}
         </main>
       </div>
@@ -357,6 +357,38 @@ export const Shell = ({ children, title }: ShellProps) => {
         onClose={() => setIsAddModalOpen(false)}
       />
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+
+      {/* Mobile bottom navigation — hiện ở mọi trang */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 flex items-stretch h-bottom-nav shadow-[0_-1px_8px_rgba(0,0,0,0.08)]">
+        {([
+          { icon: LayoutDashboard, label: 'Tổng quan', href: '/' },
+          { icon: Calendar,        label: 'Lịch',       href: '/bookings/timeline' },
+          { icon: MessageSquare,   label: 'Inbox',      href: '/inbox', badge: chatThreads.reduce((s, t) => s + t.unreadCount, 0) },
+          { icon: ClipboardList,   label: 'Buồng phòng', href: '/housekeeping' },
+        ] as { icon: React.ElementType; label: string; href: string; badge?: number }[]).map((item) => {
+          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-safe relative transition-colors ${isActive ? 'text-primary' : 'text-gray-400'}`}
+            >
+              <div className="relative">
+                <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                {!!item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-full leading-none min-w-[14px] text-center">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-semibold leading-none ${isActive ? 'text-primary' : 'text-gray-400'}`}>
+                {item.label}
+              </span>
+              {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 };

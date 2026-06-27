@@ -12,7 +12,7 @@ import {
   Smile, Paperclip, CheckCheck,
   RefreshCw, Loader2, AlertCircle, Sparkles, Bot, X,
   Zap, Pencil, Trash2, Plus, Check, Link as LinkIcon, ChevronLeft,
-  LayoutDashboard, Calendar, ClipboardList, Download, ChevronDown,
+  Download, ChevronDown,
 } from 'lucide-react';
 import { getQuickReplies, saveQuickReplies, type QuickReply } from '@/lib/quickReplies';
 import { cn, formatVNTime } from '@/lib/utils';
@@ -61,11 +61,14 @@ function metaThreadToChatThread(t: MetaThread): ChatThread {
 export default function SmartInboxPage() {
   const {
     chatThreads,
+    customLabels,
     sendMessage,
     markThreadAsRead,
     syncMetaThreads,
     setThreadMessages,
     setThreadLabels,
+    addCustomLabel,
+    deleteCustomLabel,
   } = useTimelineStore();
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -76,6 +79,10 @@ export default function SmartInboxPage() {
   const [filterLabelId, setFilterLabelId] = useState<string | null>(null);
   const [showLabelFilter, setShowLabelFilter] = useState(false);
   const [labelPickerThreadId, setLabelPickerThreadId] = useState<string | null>(null);
+  const [showAddLabel, setShowAddLabel] = useState(false);
+  const [newLabelName, setNewLabelName] = useState('');
+  const [newLabelColor, setNewLabelColor] = useState('#6366f1');
+  const [newLabelEmoji, setNewLabelEmoji] = useState('🏷️');
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -157,7 +164,8 @@ export default function SmartInboxPage() {
     const matchLabel = !filterLabelId || (t.labelIds ?? []).includes(filterLabelId);
     return matchSearch && matchLabel;
   });
-  const activeLabel = filterLabelId ? DEFAULT_CHAT_LABELS.find(l => l.id === filterLabelId) : null;
+  const allLabels = [...DEFAULT_CHAT_LABELS, ...(customLabels ?? [])];
+  const activeLabel = filterLabelId ? allLabels.find(l => l.id === filterLabelId) : null;
 
   // All image URLs from loaded conversations (for quick reply image picker)
   const historyImages = React.useMemo(() => {
@@ -483,13 +491,6 @@ export default function SmartInboxPage() {
 
   const totalUnread = chatThreads.reduce((acc, t) => acc + t.unreadCount, 0);
 
-  // Mobile bottom nav items
-  const bottomNavItems: { icon: React.ElementType; label: string; href: string; badge?: number }[] = [
-    { icon: LayoutDashboard, label: 'Tổng quan', href: '/' },
-    { icon: Calendar, label: 'Lịch', href: '/bookings/timeline' },
-    { icon: MessageSquare, label: 'Inbox', href: '/inbox', badge: totalUnread || undefined },
-    { icon: ClipboardList, label: 'Buồng phòng', href: '/housekeeping' },
-  ];
 
   return (
     <Shell title="Smart Inbox">
@@ -510,7 +511,7 @@ export default function SmartInboxPage() {
         </div>
       )}
 
-      <div className="h-full flex overflow-hidden relative pb-bottom-nav md:pb-0" style={{ background: '#f5f6fa' }}>
+      <div className="h-full flex overflow-hidden relative" style={{ background: '#f5f6fa' }}>
 
         {/* ── Sidebar ── */}
         <div className={cn(
@@ -581,7 +582,7 @@ export default function SmartInboxPage() {
                         <span className="w-3 h-3 rounded-full border-2 border-gray-300" />
                         Tất cả
                       </button>
-                      {DEFAULT_CHAT_LABELS.map(label => (
+                      {allLabels.map(label => (
                         <button key={label.id}
                           onClick={() => { setFilterLabelId(label.id); setShowLabelFilter(false); }}
                           className={cn("w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-gray-50 text-left", filterLabelId === label.id && "bg-gray-50 font-semibold")}>
@@ -631,26 +632,74 @@ export default function SmartInboxPage() {
                     <button onClick={() => setLabelPickerThreadId(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {DEFAULT_CHAT_LABELS.map(label => {
+                    {allLabels.map(label => {
                       const active = (t.labelIds ?? []).includes(label.id);
+                      const isCustom = !DEFAULT_CHAT_LABELS.find(d => d.id === label.id);
                       return (
-                        <button key={label.id}
-                          onClick={() => {
-                            const cur = t.labelIds ?? [];
-                            setThreadLabels(t.id, active ? cur.filter(x => x !== label.id) : [...cur, label.id]);
-                          }}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border-2 transition-all",
-                            active ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                        <div key={label.id} className="relative group/label">
+                          <button
+                            onClick={() => {
+                              const cur = t.labelIds ?? [];
+                              setThreadLabels(t.id, active ? cur.filter(x => x !== label.id) : [...cur, label.id]);
+                            }}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border-2 transition-all",
+                              active ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                            )}
+                            style={active ? { backgroundColor: label.color, borderColor: label.color } : {}}>
+                            <span>{label.emoji}</span>
+                            <span>{label.name}</span>
+                            {active && <Check size={11} strokeWidth={3} />}
+                          </button>
+                          {isCustom && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteCustomLabel(label.id); }}
+                              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full hidden group-hover/label:flex items-center justify-center"
+                            ><X size={8} /></button>
                           )}
-                          style={active ? { backgroundColor: label.color, borderColor: label.color } : {}}>
-                          <span>{label.emoji}</span>
-                          <span>{label.name}</span>
-                          {active && <Check size={11} strokeWidth={3} />}
-                        </button>
+                        </div>
                       );
                     })}
+                    {/* Nút thêm nhãn mới */}
+                    <button
+                      onClick={() => setShowAddLabel(v => !v)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold border-2 border-dashed border-gray-300 text-gray-500 hover:border-primary hover:text-primary transition-all">
+                      <Plus size={11} /> Nhãn mới
+                    </button>
                   </div>
+                  {/* Form tạo nhãn mới */}
+                  {showAddLabel && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="text" placeholder="Tên nhãn..." value={newLabelName}
+                          onChange={e => setNewLabelName(e.target.value)}
+                          className="flex-1 text-[12px] px-2.5 py-1.5 rounded-lg border outline-none focus:ring-2 focus:ring-primary/20 bg-white"
+                          maxLength={20}
+                        />
+                        <input
+                          type="text" placeholder="🏷️" value={newLabelEmoji}
+                          onChange={e => setNewLabelEmoji(e.target.value)}
+                          className="w-12 text-[14px] text-center px-2 py-1.5 rounded-lg border outline-none bg-white"
+                          maxLength={2}
+                        />
+                        <input
+                          type="color" value={newLabelColor}
+                          onChange={e => setNewLabelColor(e.target.value)}
+                          className="w-9 h-9 rounded-lg border cursor-pointer p-0.5"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!newLabelName.trim()) return;
+                            addCustomLabel({ name: newLabelName.trim(), color: newLabelColor, emoji: newLabelEmoji });
+                            setNewLabelName(''); setNewLabelEmoji('🏷️'); setShowAddLabel(false);
+                          }}
+                          className="px-3 py-1.5 bg-primary text-white rounded-lg text-[12px] font-semibold hover:bg-primary/90">
+                          <Check size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -658,7 +707,7 @@ export default function SmartInboxPage() {
             {filteredThreads.map(thread => {
               const isSelected = selectedThreadId === thread.id;
               const hasUnread = thread.unreadCount > 0;
-              const threadLabels = DEFAULT_CHAT_LABELS.filter(l => (thread.labelIds ?? []).includes(l.id));
+              const threadLabels = allLabels.filter(l => (thread.labelIds ?? []).includes(l.id));
               return (
                 <div
                   key={thread.id}
@@ -1193,37 +1242,6 @@ export default function SmartInboxPage() {
         fromThreadId={selectedThread?.id}
       />
 
-      {/* Mobile bottom navigation bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 flex items-stretch h-bottom-nav shadow-[0_-1px_8px_rgba(0,0,0,0.08)]">
-        {bottomNavItems.map((item) => {
-          const isActive = item.href === '/inbox';
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-safe relative transition-colors",
-                isActive ? "text-primary" : "text-gray-400"
-              )}
-            >
-              <div className="relative">
-                <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-                {!!item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-full leading-none min-w-[14px] text-center">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </div>
-              <span className={cn("text-[10px] font-semibold leading-none", isActive ? "text-primary" : "text-gray-400")}>
-                {item.label}
-              </span>
-              {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
     </Shell>
   );
 }

@@ -15,6 +15,7 @@ import {
   Message,
   PaymentRecord,
   Settings,
+  ChatLabel,
 } from '@/lib/types';
 import { mockBookings, mockRooms, mockProperties, mockCleaningAssignments, mockExpenses } from '@/lib/mock-data';
 import { startOfToday, format } from 'date-fns';
@@ -31,6 +32,7 @@ interface TimelineState {
   notifications: Notification[];
   user: User | null;
   chatThreads: ChatThread[];
+  customLabels: ChatLabel[];
   settings: Settings;
   selectedPropertyId: string;
   startDate: Date;
@@ -97,6 +99,8 @@ interface TimelineState {
   syncMetaThreads: (threads: ChatThread[]) => void;
   setThreadMessages: (threadId: string, messages: Message[]) => void;
   setThreadLabels: (threadId: string, labelIds: string[]) => void;
+  addCustomLabel: (label: Omit<ChatLabel, 'id'>) => void;
+  deleteCustomLabel: (labelId: string) => void;
 }
 
 export const useTimelineStore = create<TimelineState>()(
@@ -235,6 +239,7 @@ export const useTimelineStore = create<TimelineState>()(
       ]
     }
   ],
+  customLabels: [],
   settings: {
     branding: {
       name: 'Ta Thong Dong Homestay',
@@ -777,6 +782,21 @@ export const useTimelineStore = create<TimelineState>()(
       ),
     }));
   },
+
+  addCustomLabel: (label) => {
+    const newLabel: ChatLabel = { ...label, id: `custom-${Date.now()}` };
+    set((state) => ({ customLabels: [...(state.customLabels ?? []), newLabel] }));
+  },
+
+  deleteCustomLabel: (labelId) => {
+    set((state) => ({
+      customLabels: (state.customLabels ?? []).filter(l => l.id !== labelId),
+      chatThreads: state.chatThreads.map(t => ({
+        ...t,
+        labelIds: (t.labelIds ?? []).filter(id => id !== labelId),
+      })),
+    }));
+  },
     }),
     {
       name: 'stayos-store',
@@ -795,6 +815,7 @@ export const useTimelineStore = create<TimelineState>()(
         guests: state.guests,
         notifications: state.notifications,
         chatThreads: state.chatThreads,
+        customLabels: state.customLabels ?? [],
         staff: state.staff,
         user: state.user,
         selectedPropertyId: state.selectedPropertyId,
