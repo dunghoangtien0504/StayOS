@@ -6,6 +6,12 @@ export const runtime = 'nodejs';
 
 export async function GET(_request: NextRequest) {
   let clientRef: { id: string; controller: ReadableStreamDefaultController } | null = null;
+  let heartbeat: ReturnType<typeof setInterval> | null = null;
+
+  const cleanup = () => {
+    if (heartbeat) { clearInterval(heartbeat); heartbeat = null; }
+    if (clientRef) { removeSSEClient(clientRef); clientRef = null; }
+  };
 
   const stream = new ReadableStream({
     start(controller) {
@@ -13,9 +19,20 @@ export async function GET(_request: NextRequest) {
       addSSEClient(clientRef);
       // Send initial ping
       controller.enqueue('event: ping\ndata: {"ts":"' + new Date().toISOString() + '"}\n\n');
+
+      // Heartbeat mỗi 25s — giữ kết nối "còn sống" để nginx (proxy_read_timeout 60s)
+      // không tự đóng connection khi không có tin nhắn mới → tránh ERR_INCOMPLETE_CHUNKED_ENCODING.
+      // Dòng bắt đầu bằng ':' là SSE comment, EventSource sẽ bỏ qua, không ảnh hưởng client.
+      heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(': keepalive\n\n');
+        } catch {
+          cleanup();
+        }
+      }, 25000);
     },
     cancel() {
-      if (clientRef) removeSSEClient(clientRef);
+      cleanup();
     },
   });
 
