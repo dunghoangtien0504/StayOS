@@ -1,0 +1,23 @@
+{
+  "name": "StayOS — Homestay Manager",
+  "short_name": "StayOS",
+  "description": "Hệ thống quản lý homestay Ta Thong Dong",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#c8502a",
+  "lang": "vi",
+  "scope": "/",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Smart Inbox",   "url": "/inbox",     "description": "Tin nhắn khách" },
+    { "name": "Đặt phòng",     "url": "/timeline",  "description": "Lịch đặt phòng" },
+    { "name": "Dashboard",     "url": "/dashboard", "description": "Tổng quan" }
+  ],
+  "categories": ["business", "productivity"]
+}
