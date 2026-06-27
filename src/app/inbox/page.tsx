@@ -69,6 +69,7 @@ export default function SmartInboxPage() {
   } = useTimelineStore();
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [mobileShowThread, setMobileShowThread] = useState(false);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddBookingOpen, setIsAddBookingOpen] = useState(false);
@@ -514,7 +515,7 @@ export default function SmartInboxPage() {
         {/* ── Sidebar ── */}
         <div className={cn(
           "border-r flex-col h-full bg-white w-full md:w-[320px] shrink-0",
-          selectedThreadId ? "hidden md:flex" : "flex"
+          mobileShowThread ? "hidden md:flex" : "flex"
         )}>
           <div className="px-3 pt-3 pb-2 border-b space-y-2">
             {/* Top row */}
@@ -661,7 +662,7 @@ export default function SmartInboxPage() {
               return (
                 <div
                   key={thread.id}
-                  onClick={() => { setSelectedThreadId(thread.id); setLabelPickerThreadId(null); }}
+                  onClick={() => { setSelectedThreadId(thread.id); setMobileShowThread(true); setLabelPickerThreadId(null); }}
                   className={cn(
                     "group relative flex gap-2.5 px-3 py-3 md:py-2.5 cursor-pointer transition-all border-b active:scale-[0.99]",
                     isSelected
@@ -760,7 +761,7 @@ export default function SmartInboxPage() {
         {/* ── Chat Window ── */}
         <div className={cn(
           "flex-col h-full",
-          selectedThread ? "flex flex-1" : "hidden md:flex md:flex-1"
+          mobileShowThread ? "flex flex-1" : "hidden md:flex md:flex-1"
         )}>
           {selectedThread ? (
             <>
@@ -768,7 +769,7 @@ export default function SmartInboxPage() {
               <div className="border-b bg-white flex items-center justify-between px-3 md:px-5 py-3 shrink-0 shadow-sm">
                 <div className="flex items-center gap-2 md:gap-3">
                   <button
-                    onClick={() => setSelectedThreadId(null)}
+                    onClick={() => setMobileShowThread(false)}
                     className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors shrink-0"
                   >
                     <ChevronLeft size={20} />
