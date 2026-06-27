@@ -69,6 +69,7 @@ export default function SmartInboxPage() {
     setThreadLabels,
     addCustomLabel,
     deleteCustomLabel,
+    appendLiveMessage,
   } = useTimelineStore();
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -316,9 +317,32 @@ export default function SmartInboxPage() {
     const connect = () => {
       es = new EventSource('/api/meta/sse');
       es.addEventListener('ping', () => setSseConnected(true));
-      es.addEventListener('new_message', () => {
-        // New message arrived — re-sync to get updated thread list
-        runSync();
+      es.addEventListener('new_message', (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data) as {
+            senderId?: string;
+            message?: string;
+            attachments?: { payload?: { url?: string } }[];
+            timestamp?: number;
+          };
+          const { senderId, message, attachments, timestamp } = payload;
+          if (!senderId) { runSync(); return; }
+
+          const msg = {
+            id: `live-${Date.now()}`,
+            content: message || '',
+            isFromGuest: true,
+            timestamp: timestamp ? new Date(timestamp) : new Date(),
+            attachments: (attachments ?? [])
+              .map(a => a.payload?.url || '')
+              .filter(Boolean),
+          };
+          const found = appendLiveMessage(senderId, msg);
+          // Unknown thread (new conversation) → do a full sync
+          if (!found) runSync();
+        } catch {
+          runSync();
+        }
       });
       es.onerror = () => {
         setSseConnected(false);

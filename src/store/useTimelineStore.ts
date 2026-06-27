@@ -98,6 +98,7 @@ interface TimelineState {
   markThreadAsRead: (threadId: string) => void;
   syncMetaThreads: (threads: ChatThread[]) => void;
   setThreadMessages: (threadId: string, messages: Message[]) => void;
+  appendLiveMessage: (senderId: string, msg: Message) => boolean;
   setThreadLabels: (threadId: string, labelIds: string[]) => void;
   addCustomLabel: (label: Omit<ChatLabel, 'id'>) => void;
   deleteCustomLabel: (labelId: string) => void;
@@ -773,6 +774,29 @@ export const useTimelineStore = create<TimelineState>()(
         };
       })
     }));
+  },
+
+  // Append a single live message from SSE webhook — no API roundtrip needed.
+  // Returns true if the thread was found (matched by recipientId = guest PSID).
+  appendLiveMessage: (senderId, msg) => {
+    let found = false;
+    set((state) => {
+      const updated = state.chatThreads.map(t => {
+        if (t.recipientId !== senderId) return t;
+        found = true;
+        return {
+          ...t,
+          lastMessage: msg.content || '[Ảnh]',
+          lastMessageAt: msg.timestamp,
+          unreadCount: msg.isFromGuest ? t.unreadCount + 1 : t.unreadCount,
+          messages: t.messagesLoaded ? [...t.messages, msg] : t.messages,
+        };
+      });
+      // Bubble updated thread to top
+      updated.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
+      return { chatThreads: updated };
+    });
+    return found;
   },
 
   setThreadLabels: (threadId, labelIds) => {
