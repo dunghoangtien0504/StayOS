@@ -35,13 +35,15 @@ jobs:
           META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
           META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
           META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          GOCLAW_API_URL: ${{ secrets.GOCLAW_API_URL }}
+          GOCLAW_API_KEY: ${{ secrets.GOCLAW_API_KEY }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: 2018
           command_timeout: 15m
-          envs: META_VERIFY_TOKEN,META_PAGE_ACCESS_TOKEN,META_APP_SECRET,META_PAGE_ID
+          envs: META_VERIFY_TOKEN,META_PAGE_ACCESS_TOKEN,META_APP_SECRET,META_PAGE_ID,GOCLAW_API_URL,GOCLAW_API_KEY
           script: |
             set -e
             echo "=== Deploying StayOS ==="
@@ -51,7 +53,7 @@ jobs:
 
             # Inject Meta env vars into .env.local
             touch .env.local
-            for key in META_VERIFY_TOKEN META_PAGE_ACCESS_TOKEN META_APP_SECRET META_PAGE_ID; do
+            for key in META_VERIFY_TOKEN META_PAGE_ACCESS_TOKEN META_APP_SECRET META_PAGE_ID GOCLAW_API_URL GOCLAW_API_KEY; do
               val=$(eval echo \$$key)
               if [ -n "$val" ]; then
                 sed -i "/^${key}=/d" .env.local

@@ -12,7 +12,7 @@ const AGENT_KEY = process.env.GOCLAW_AGENT_KEY || 'ta-thong-dong';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, history = [], system = '' } = body || {};
+    const { message, history = [] } = body || {};
 
     if (!message) {
       return NextResponse.json({ error: 'message is required' }, { status: 400 });
@@ -22,19 +22,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'GOCLAW_API_KEY chưa được cấu hình' }, { status: 500 });
     }
 
-    const messages = [];
-    if (system) {
-      messages.push({ role: 'system', content: system });
-    }
-    
-    // Convert history format if needed and slice last 6 turns
-    const mappedHistory = history.map((h: any) => ({
-      role: h.role,
-      content: h.content
-    }));
-    
-    messages.push(...mappedHistory.slice(-6));
-    messages.push({ role: 'user', content: message });
+    const messages = [
+      ...history.slice(-6), // keep last 6 turns for context
+      { role: 'user', content: message },
+    ];
 
     const res = await fetch(`${GOCLAW_URL}/v1/chat/completions`, {
       method: 'POST',
