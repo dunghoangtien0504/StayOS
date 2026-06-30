@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { BookingSource, NotificationType } from '@/lib/types';
 import { Trash2, Plus } from 'lucide-react';
 import { PRICE_TABLE_DISPLAY } from '@/lib/pricing-display';
+import { AdminAgentChat } from './AdminAgentChat';
 
 const NAV_OPTIONS: { slug: string; label: string }[] = [
   { slug: 'dashboard', label: 'Tổng quan' },
@@ -69,7 +70,7 @@ export const AdminHub = () => {
         </div>
 
         <Tabs defaultValue="branding" className="w-full">
-          <TabsList className="grid grid-cols-4 lg:grid-cols-9 w-full">
+          <TabsList className="grid grid-cols-4 lg:grid-cols-10 w-full">
             <TabsTrigger value="branding">Thương hiệu</TabsTrigger>
             <TabsTrigger value="theme">Giao diện</TabsTrigger>
             <TabsTrigger value="nav">Menu</TabsTrigger>
@@ -79,6 +80,7 @@ export const AdminHub = () => {
             <TabsTrigger value="pricing">Giá phòng</TabsTrigger>
             <TabsTrigger value="categories">Chi phí</TabsTrigger>
             <TabsTrigger value="cleaning">Dọn phòng</TabsTrigger>
+            <TabsTrigger value="agent-ai">Trợ lý Agent</TabsTrigger>
           </TabsList>
 
           {/* Branding */}
@@ -414,6 +416,17 @@ export const AdminHub = () => {
                   </Button>
                 </div>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* AI Agent Chat Assistant */}
+          <TabsContent value="agent-ai" className="bg-white p-8 rounded-2xl border space-y-4 mt-4">
+            <div>
+              <h2 className="text-xl font-black">Trợ lý Agent Ta Thong Dong</h2>
+              <p className="text-xs text-muted-foreground font-medium">Ra lệnh tự động hóa hoặc dán thông tin đặt phòng để tạo lịch phòng tự động</p>
+            </div>
+            <div className="h-[650px]">
+              <AdminAgentChat />
             </div>
           </TabsContent>
         </Tabs>

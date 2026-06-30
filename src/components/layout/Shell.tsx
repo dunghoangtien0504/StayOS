@@ -22,10 +22,13 @@ import {
   FileSpreadsheet,
   Menu,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { NotificationBell } from './NotificationBell';
 import { CommandPalette } from './CommandPalette';
+import { AdminAgentChat } from '@/components/settings/AdminAgentChat';
+import { cn } from '@/lib/utils';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -52,6 +55,7 @@ export const Shell = ({ children, title }: ShellProps) => {
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
 
   // ⌘K / Ctrl+K opens command palette
   useEffect(() => {
@@ -389,6 +393,36 @@ export const Shell = ({ children, title }: ShellProps) => {
           );
         })}
       </nav>
+
+      {/* Floating AI Agent Widget */}
+      <div className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-50 flex flex-col items-end">
+        {/* Chat Panel */}
+        {isAgentOpen && (
+          <div className="mb-4 w-[420px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-16rem)] shadow-2xl rounded-2xl overflow-hidden flex flex-col bg-white border border-slate-200 transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+            <AdminAgentChat onClose={() => setIsAgentOpen(false)} />
+          </div>
+        )}
+
+        {/* Floating Button */}
+        <button
+          onClick={() => setIsAgentOpen(v => !v)}
+          className={cn(
+            "w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white transition-all shadow-xl hover:scale-110 active:scale-95",
+            isAgentOpen 
+              ? "bg-slate-800 shadow-slate-800/30 hover:bg-slate-700" 
+              : "bg-primary shadow-primary/30 hover:bg-primary/90"
+          )}
+        >
+          {isAgentOpen ? (
+            <X size={20} />
+          ) : (
+            <div className="relative">
+              <Sparkles size={20} className="animate-pulse" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 border-2 border-[#0D2B1A] rounded-full" />
+            </div>
+          )}
+        </button>
+      </div>
     </div>
   );
 };
