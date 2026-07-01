@@ -34,8 +34,10 @@ const formSchema = z.object({
   guestPhone: z.string().min(10, "Số điện thoại không hợp lệ"),
   roomId: z.string().min(1, "Vui lòng chọn phòng"),
   source: z.string().min(1, "Vui lòng chọn nguồn"),
-  checkIn: z.string(),
-  checkOut: z.string(),
+  checkInDate: z.string(),
+  checkInTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Giờ check-in không hợp lệ (HH:mm)"),
+  checkOutDate: z.string(),
+  checkOutTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Giờ check-out không hợp lệ (HH:mm)"),
   totalPrice: z.number().min(0),
   amountPaid: z.number().min(0),
 });
@@ -69,8 +71,10 @@ export const AddBookingModal = ({
     defaultValues: {
       guestName: initialGuestName || '',
       guestPhone: initialGuestPhone || '',
-      checkIn: format(addHours(startOfToday(), 14), "yyyy-MM-dd'T'HH:mm"),
-      checkOut: format(addHours(startOfToday(), 36), "yyyy-MM-dd'T'HH:mm"),
+      checkInDate: format(addHours(startOfToday(), 14), "yyyy-MM-dd"),
+      checkInTime: "14:00",
+      checkOutDate: format(addHours(startOfToday(), 36), "yyyy-MM-dd"),
+      checkOutTime: "11:00",
       source: 'direct',
       totalPrice: 0,
       amountPaid: 0,
@@ -84,8 +88,17 @@ export const AddBookingModal = ({
   }, [initialGuestName, initialGuestPhone, setValue]);
   
   const watchedRoomId = useWatch({ control, name: 'roomId' });
-  const watchedCheckIn = useWatch({ control, name: 'checkIn' });
-  const watchedCheckOut = useWatch({ control, name: 'checkOut' });
+  const watchedCheckInDate = useWatch({ control, name: 'checkInDate' });
+  const watchedCheckInTime = useWatch({ control, name: 'checkInTime' });
+  const watchedCheckOutDate = useWatch({ control, name: 'checkOutDate' });
+  const watchedCheckOutTime = useWatch({ control, name: 'checkOutTime' });
+
+  const watchedCheckIn = (watchedCheckInDate && watchedCheckInTime && /^\d{4}-\d{2}-\d{2}$/.test(watchedCheckInDate) && /^([01]\d|2[0-3]):[0-5]\d$/.test(watchedCheckInTime)) 
+    ? `${watchedCheckInDate}T${watchedCheckInTime}` 
+    : null;
+  const watchedCheckOut = (watchedCheckOutDate && watchedCheckOutTime && /^\d{4}-\d{2}-\d{2}$/.test(watchedCheckOutDate) && /^([01]\d|2[0-3]):[0-5]\d$/.test(watchedCheckOutTime)) 
+    ? `${watchedCheckOutDate}T${watchedCheckOutTime}` 
+    : null;
 
   const { settings } = useTimelineStore();
   const selectedRoom = rooms.find(r => r.id === watchedRoomId);
@@ -100,8 +113,10 @@ export const AddBookingModal = ({
     }
   }, [breakdown?.total, setValue]);
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: FormValues) => {
     setError(null);
+    const cIn = new Date(`${values.checkInDate}T${values.checkInTime}`);
+    const cOut = new Date(`${values.checkOutDate}T${values.checkOutTime}`);
     
     const resultId = addBooking({
       propertyId: selectedPropertyId,
@@ -110,8 +125,8 @@ export const AddBookingModal = ({
       guestPhone: values.guestPhone,
       source: values.source as BookingSource,
       status: 'confirmed',
-      checkIn: new Date(values.checkIn),
-      checkOut: new Date(values.checkOut),
+      checkIn: cIn,
+      checkOut: cOut,
       totalPrice: values.totalPrice,
       amountPaid: values.amountPaid,
     }, fromThreadId);
@@ -195,12 +210,20 @@ export const AddBookingModal = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="checkIn" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Ngày nhận (Check-in)</Label>
-                  <Input id="checkIn" type="datetime-local" {...register("checkIn")} className="rounded-xl border-muted" lang="en-GB" />
+                  <div className="flex gap-2">
+                    <Input id="checkInDate" type="date" {...register("checkInDate")} className="rounded-xl border-muted flex-1" />
+                    <Input id="checkInTime" type="text" placeholder="14:00" {...register("checkInTime")} className="rounded-xl border-muted w-24 text-center font-bold" />
+                  </div>
+                  {errors.checkInTime && <p className="text-[10px] text-red-500 font-bold uppercase">{errors.checkInTime.message}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="checkOut" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Ngày trả (Check-out)</Label>
-                  <Input id="checkOut" type="datetime-local" {...register("checkOut")} className="rounded-xl border-muted" lang="en-GB" />
+                  <div className="flex gap-2">
+                    <Input id="checkOutDate" type="date" {...register("checkOutDate")} className="rounded-xl border-muted flex-1" />
+                    <Input id="checkOutTime" type="text" placeholder="12:00" {...register("checkOutTime")} className="rounded-xl border-muted w-24 text-center font-bold" />
+                  </div>
+                  {errors.checkOutTime && <p className="text-[10px] text-red-500 font-bold uppercase">{errors.checkOutTime.message}</p>}
                 </div>
               </div>
             </div>

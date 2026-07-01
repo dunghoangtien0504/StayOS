@@ -59,8 +59,10 @@ const editSchema = z.object({
   guestPhone: z.string().min(10, "Số điện thoại không hợp lệ"),
   roomId: z.string().min(1, "Vui lòng chọn phòng"),
   source: z.string().min(1, "Vui lòng chọn nguồn"),
-  checkIn: z.string(),
-  checkOut: z.string(),
+  checkInDate: z.string(),
+  checkInTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Giờ check-in không hợp lệ (HH:mm)"),
+  checkOutDate: z.string(),
+  checkOutTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Giờ check-out không hợp lệ (HH:mm)"),
   totalPrice: z.number().min(0),
 });
 
@@ -85,8 +87,10 @@ export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }
       guestPhone: booking.guestPhone,
       roomId: booking.roomId,
       source: booking.source,
-      checkIn: format(booking.checkIn, "yyyy-MM-dd'T'HH:mm"),
-      checkOut: format(booking.checkOut, "yyyy-MM-dd'T'HH:mm"),
+      checkInDate: format(booking.checkIn, "yyyy-MM-dd"),
+      checkInTime: format(booking.checkIn, "HH:mm"),
+      checkOutDate: format(booking.checkOut, "yyyy-MM-dd"),
+      checkOutTime: format(booking.checkOut, "HH:mm"),
       totalPrice: booking.totalPrice,
     }
   });
@@ -98,8 +102,10 @@ export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }
       guestPhone: booking.guestPhone,
       roomId: booking.roomId,
       source: booking.source,
-      checkIn: format(booking.checkIn, "yyyy-MM-dd'T'HH:mm"),
-      checkOut: format(booking.checkOut, "yyyy-MM-dd'T'HH:mm"),
+      checkInDate: format(booking.checkIn, "yyyy-MM-dd"),
+      checkInTime: format(booking.checkIn, "HH:mm"),
+      checkOutDate: format(booking.checkOut, "yyyy-MM-dd"),
+      checkOutTime: format(booking.checkOut, "HH:mm"),
       totalPrice: booking.totalPrice,
     });
   }, [booking, reset]);
@@ -131,6 +137,18 @@ export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }
       onClose();
     }
   };
+
+  const watchCheckInDate = watch('checkInDate');
+  const watchCheckInTime = watch('checkInTime');
+  const watchCheckOutDate = watch('checkOutDate');
+  const watchCheckOutTime = watch('checkOutTime');
+
+  const watchCheckIn = (watchCheckInDate && watchCheckInTime && /^\d{4}-\d{2}-\d{2}$/.test(watchCheckInDate) && /^([01]\d|2[0-3]):[0-5]\d$/.test(watchCheckInTime)) 
+    ? new Date(`${watchCheckInDate}T${watchCheckInTime}`) 
+    : booking.checkIn;
+  const watchCheckOut = (watchCheckOutDate && watchCheckOutTime && /^\d{4}-\d{2}-\d{2}$/.test(watchCheckOutDate) && /^([01]\d|2[0-3]):[0-5]\d$/.test(watchCheckOutTime)) 
+    ? new Date(`${watchCheckOutDate}T${watchCheckOutTime}`) 
+    : booking.checkOut;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -274,36 +292,58 @@ export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }
                     <Calendar size={14} /> Thời gian lưu trú
                   </h4>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-muted-foreground uppercase">Check-in</span>
-                      {isEditing ? (
-                        <Input 
-                          type="datetime-local" 
-                          {...register("checkIn")} 
-                          className="h-8 w-44 text-xs font-bold rounded-lg py-0 px-2"
-                          lang="en-GB"
-                        />
-                      ) : (
-                        <span className="font-black text-sm">{format(booking.checkIn, 'HH:mm - dd/MM/yyyy', { locale: vi })}</span>
-                      )}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Check-in</span>
+                        {isEditing ? (
+                          <div className="flex gap-2">
+                            <Input 
+                              type="date" 
+                              {...register("checkInDate")} 
+                              className="h-8 w-28 text-xs font-bold rounded-lg py-0 px-2"
+                            />
+                            <Input 
+                              type="text" 
+                              placeholder="14:00"
+                              {...register("checkInTime")} 
+                              className="h-8 w-16 text-xs font-bold rounded-lg py-0 px-2 text-center"
+                            />
+                          </div>
+                        ) : (
+                          <span className="font-black text-sm">{format(booking.checkIn, 'HH:mm - dd/MM/yyyy', { locale: vi })}</span>
+                        )}
+                      </div>
+                      {errors.checkInTime && <p className="text-[10px] text-red-500 font-bold uppercase text-right">{errors.checkInTime.message}</p>}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-muted-foreground uppercase">Check-out</span>
-                      {isEditing ? (
-                        <Input 
-                          type="datetime-local" 
-                          {...register("checkOut")} 
-                          className="h-8 w-44 text-xs font-bold rounded-lg py-0 px-2"
-                          lang="en-GB"
-                        />
-                      ) : (
-                        <span className="font-black text-sm">{format(booking.checkOut, 'HH:mm - dd/MM/yyyy', { locale: vi })}</span>
-                      )}
+
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Check-out</span>
+                        {isEditing ? (
+                          <div className="flex gap-2">
+                            <Input 
+                              type="date" 
+                              {...register("checkOutDate")} 
+                              className="h-8 w-28 text-xs font-bold rounded-lg py-0 px-2"
+                            />
+                            <Input 
+                              type="text" 
+                              placeholder="12:00"
+                              {...register("checkOutTime")} 
+                              className="h-8 w-16 text-xs font-bold rounded-lg py-0 px-2 text-center"
+                            />
+                          </div>
+                        ) : (
+                          <span className="font-black text-sm">{format(booking.checkOut, 'HH:mm - dd/MM/yyyy', { locale: vi })}</span>
+                        )}
+                      </div>
+                      {errors.checkOutTime && <p className="text-[10px] text-red-500 font-bold uppercase text-right">{errors.checkOutTime.message}</p>}
                     </div>
+
                     <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
                       <span className="text-xs font-bold text-muted-foreground uppercase">Tổng số đêm</span>
                       <span className="font-black text-sm text-primary">
-                        {calculateNights(new Date(watch('checkIn')), new Date(watch('checkOut')))} đêm
+                        {calculateNights(watchCheckIn, watchCheckOut)} đêm
                       </span>
                     </div>
                   </div>
@@ -451,13 +491,15 @@ export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }
               {isEditing ? (
                 <Button 
                   onClick={handleSubmit((values) => {
+                    const cIn = new Date(`${values.checkInDate}T${values.checkInTime}`);
+                    const cOut = new Date(`${values.checkOutDate}T${values.checkOutTime}`);
                     const success = updateBooking(booking.id, {
                       guestName: values.guestName,
                       guestPhone: values.guestPhone,
                       roomId: values.roomId,
                       source: values.source as BookingSource,
-                      checkIn: new Date(values.checkIn),
-                      checkOut: new Date(values.checkOut),
+                      checkIn: cIn,
+                      checkOut: cOut,
                       totalPrice: values.totalPrice,
                     });
                     if (success) {
