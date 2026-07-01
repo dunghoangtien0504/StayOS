@@ -178,15 +178,41 @@ interface AdminAgentChatProps {
 
 export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
   const store = useTimelineStore();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: 'Xin chào! Tôi là **Trợ lý Agent Ta Thong Dong**. Bạn có thể gửi thông tin đặt phòng copy từ khách hàng hoặc ra bất kỳ lệnh quản trị nào cho tôi (ví dụ: tạo đặt phòng, check-in/out, ghi chép chi phí, đổi trạng thái dọn dẹp phòng). Tôi sẽ xử lý và hiển thị mẫu xác nhận ngay lập tức!'
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('stayos_agent_chat_history');
+      if (saved) {
+        try {
+          const { timestamp, messages: savedMessages } = JSON.parse(saved);
+          const ageInMinutes = (Date.now() - timestamp) / (60 * 1000);
+          if (ageInMinutes < 60 && Array.isArray(savedMessages) && savedMessages.length > 0) {
+            return savedMessages;
+          }
+        } catch (e) {
+          console.error('Lỗi load chat history từ localStorage:', e);
+        }
+      }
     }
-  ]);
+    return [
+      {
+        id: 'welcome',
+        role: 'assistant',
+        content: 'Xin chào! Tôi là **Trợ lý Agent Ta Thong Dong**. Bạn có thể gửi thông tin đặt phòng copy từ khách hàng hoặc ra bất kỳ lệnh quản trị nào cho tôi (ví dụ: tạo đặt phòng, check-in/out, ghi chép chi phí, đổi trạng thái dọn dẹp phòng). Tôi sẽ xử lý và hiển thị mẫu xác nhận ngay lập tức!'
+      }
+    ];
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Sync messages to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && messages.length > 0) {
+      localStorage.setItem('stayos_agent_chat_history', JSON.stringify({
+        timestamp: Date.now(),
+        messages
+      }));
+    }
+  }, [messages]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom of chat
@@ -286,6 +312,7 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
       switch (action.action) {
         case 'ADD_BOOKING': {
           const { guestName, guestPhone, roomId, propertyId, checkIn, checkOut, source, totalPrice, amountPaid } = action.data;
+          const room = store.rooms.find(r => r.id === roomId);
           
           // Revalidate checks
           const cIn = new Date(checkIn);
@@ -296,6 +323,10 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
             throw new Error(`Phòng này đã bị trùng lịch trùng trong thời gian trên.`);
           }
 
+          const finalTotalPrice = (totalPrice && totalPrice > 0)
+            ? totalPrice
+            : (room ? calculateBookingTotal(room, cIn, cOut) : 0);
+
           const newBookingId = store.addBooking({
             guestName,
             guestPhone: guestPhone || '',
@@ -305,7 +336,7 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
             checkOut: cOut,
             source: source || 'direct',
             status: amountPaid > 0 ? 'deposited' : 'confirmed',
-            totalPrice: totalPrice || 0,
+            totalPrice: finalTotalPrice,
             amountPaid: amountPaid || 0
           });
 
@@ -385,7 +416,7 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
         const cOut = new Date(checkOut);
         
         const hasConflict = store.checkConflict(roomId, cIn, cOut);
-        const calculatedTotal = room ? calculateBookingTotal(room, cIn, cOut) : totalPrice;
+        const calculatedTotal = (totalPrice && totalPrice > 0) ? totalPrice : (room ? calculateBookingTotal(room, cIn, cOut) : 0);
         const slot = detectSlot(cIn, cOut);
 
         return (

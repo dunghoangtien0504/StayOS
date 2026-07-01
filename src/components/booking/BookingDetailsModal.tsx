@@ -71,8 +71,9 @@ interface BookingDetailsModalProps {
   onClose: () => void;
 }
 
-export const BookingDetailsModal = ({ booking, isOpen, onClose }: BookingDetailsModalProps) => {
-  const { rooms, properties, chatThreads, checkInBooking, checkOutBooking, addPayment, markAsNoShow, updateBooking, settings } = useTimelineStore();
+export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }: BookingDetailsModalProps) => {
+  const { rooms, properties, bookings, chatThreads, checkInBooking, checkOutBooking, addPayment, markAsNoShow, updateBooking, updateRoomStatus, settings } = useTimelineStore();
+  const booking = bookings.find(b => b.id === initialBooking.id) || initialBooking;
   const property = properties.find(p => p.id === booking.propertyId);
   const [isEditing, setIsEditing] = React.useState(false);
 
@@ -107,9 +108,14 @@ export const BookingDetailsModal = ({ booking, isOpen, onClose }: BookingDetails
   const remainingDebt = booking.totalPrice - booking.amountPaid;
 
   const handleCheckIn = () => {
-    const success = checkInBooking(booking.id);
+    let success = checkInBooking(booking.id);
     if (!success) {
-      alert("Không thể check-in: Phòng chưa được dọn sạch!");
+      if (room && confirm(`Phòng ${room.name} chưa được dọn sạch. Bạn có muốn tự động chuyển trạng thái phòng thành SẠCH và thực hiện Check-in không?`)) {
+        updateRoomStatus(room.id, 'clean');
+        success = checkInBooking(booking.id);
+      } else {
+        alert("Không thể check-in: Phòng chưa được dọn sạch!");
+      }
     }
   };
 
