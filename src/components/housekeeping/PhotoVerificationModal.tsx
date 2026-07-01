@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Camera, CheckCircle2, Image as ImageIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTimelineStore } from '@/store/useTimelineStore';
 
 interface PhotoVerificationModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ interface PhotoVerificationModalProps {
 }
 
 export const PhotoVerificationModal = ({ isOpen, onClose, onComplete, roomName }: PhotoVerificationModalProps) => {
+  const { user } = useTimelineStore();
+  const isAdmin = user?.role === 'admin';
   const [photos, setPhotos] = useState<string[]>([]);
   const REQUIRED_PHOTOS = 8;
 
@@ -35,7 +38,7 @@ export const PhotoVerificationModal = ({ isOpen, onClose, onComplete, roomName }
   };
 
   const handleComplete = () => {
-    if (photos.length === REQUIRED_PHOTOS) {
+    if (isAdmin || photos.length === REQUIRED_PHOTOS) {
       onComplete(photos);
       onClose();
       setPhotos([]);
@@ -56,7 +59,15 @@ export const PhotoVerificationModal = ({ isOpen, onClose, onComplete, roomName }
               <DialogTitle className="text-2xl font-black tracking-tight">Nghiệm thu dọn phòng: {roomName}</DialogTitle>
             </div>
             <DialogDescription className="text-muted-foreground font-medium">
-              Bạn cần chụp đủ <span className="font-bold text-foreground">{REQUIRED_PHOTOS} ảnh</span> các khu vực (Giường, Nhà vệ sinh, Kệ TV, v.v.) để hoàn thành nhiệm vụ.
+              {isAdmin ? (
+                <span className="text-green-600 font-bold">
+                  Quyền Admin: Bạn được phép phê duyệt nghiệm thu ngay lập tức không cần tải hình ảnh.
+                </span>
+              ) : (
+                <span>
+                  Bạn cần chụp đủ <span className="font-bold text-foreground">{REQUIRED_PHOTOS} ảnh</span> các khu vực (Giường, Nhà vệ sinh, Kệ TV, v.v.) để hoàn thành nhiệm vụ.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -100,17 +111,19 @@ export const PhotoVerificationModal = ({ isOpen, onClose, onComplete, roomName }
             <div className="flex items-center gap-3">
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm",
-                photos.length === REQUIRED_PHOTOS ? "bg-green-500 text-white" : "bg-white text-muted-foreground border-2"
+                (isAdmin || photos.length === REQUIRED_PHOTOS) ? "bg-green-500 text-white" : "bg-white text-muted-foreground border-2"
               )}>
                 {photos.length}/{REQUIRED_PHOTOS}
               </div>
               <p className="text-sm font-bold text-muted-foreground">
-                {photos.length < REQUIRED_PHOTOS 
-                  ? `Vui lòng tải thêm ${REQUIRED_PHOTOS - photos.length} ảnh nữa.`
-                  : "Đã đủ ảnh! Bạn có thể hoàn thành việc dọn phòng."}
+                {isAdmin 
+                  ? "Quyền Admin: Sẵn sàng nghiệm thu."
+                  : photos.length < REQUIRED_PHOTOS 
+                    ? `Vui lòng tải thêm ${REQUIRED_PHOTOS - photos.length} ảnh nữa.`
+                    : "Đã đủ ảnh! Bạn có thể hoàn thành việc dọn phòng."}
               </p>
             </div>
-            {photos.length > 0 && photos.length < REQUIRED_PHOTOS && (
+            {(!isAdmin || photos.length > 0) && photos.length < REQUIRED_PHOTOS && (
               <Button variant="outline" size="sm" onClick={addMockPhoto} className="rounded-xl font-bold border-2 gap-2">
                 <ImageIcon size={14} /> Chụp nhanh (Mock)
               </Button>
@@ -121,11 +134,11 @@ export const PhotoVerificationModal = ({ isOpen, onClose, onComplete, roomName }
             <Button variant="outline" onClick={onClose} className="rounded-xl font-bold px-6 h-12 border-2">Hủy</Button>
             <Button 
               onClick={handleComplete} 
-              disabled={photos.length < REQUIRED_PHOTOS}
+              disabled={!isAdmin && photos.length < REQUIRED_PHOTOS}
               className={cn(
                 "rounded-xl font-bold px-8 h-12 shadow-lg transition-all",
-                photos.length === REQUIRED_PHOTOS 
-                  ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200" 
+                (isAdmin || photos.length === REQUIRED_PHOTOS) 
+                  ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200 cursor-pointer" 
                   : "bg-muted text-muted-foreground"
               )}
             >
