@@ -41,9 +41,10 @@ interface BookingTableProps {
   fromDate?: Date;
   toDate?: Date;
   searchTerm?: string;
+  kpiFilter?: 'all' | 'received' | 'debt' | 'count';
 }
 
-export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps = {}) => {
+export const BookingTable = ({ fromDate, toDate, searchTerm, kpiFilter = 'all' }: BookingTableProps = {}) => {
   const { bookings, rooms, selectedPropertyId, updateBooking, checkInBooking, checkOutBooking } = useTimelineStore();
   const [activeBooking, setActiveBooking] = React.useState<Booking | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
@@ -54,6 +55,12 @@ export const BookingTable = ({ fromDate, toDate, searchTerm }: BookingTableProps
 
   if (fromDate && toDate) {
     filteredBookings = filteredBookings.filter(b => b.checkIn >= fromDate && b.checkIn <= toDate);
+  }
+
+  if (kpiFilter === 'debt') {
+    filteredBookings = filteredBookings.filter(b => b.totalPrice - b.amountPaid > 0 && b.status !== 'cancelled');
+  } else if (kpiFilter === 'received') {
+    filteredBookings = filteredBookings.filter(b => b.amountPaid > 0 && b.status !== 'cancelled');
   }
 
   if (searchTerm && searchTerm.trim()) {

@@ -21,6 +21,7 @@ import { statusLabel, sourceLabel } from '@/lib/labels';
 export default function BookingTablePage() {
   const { bookings, rooms, selectedPropertyId } = useTimelineStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeKpiFilter, setActiveKpiFilter] = useState<'all' | 'received' | 'debt' | 'count'>('all');
   const now = new Date();
   const [fromDate, setFromDate] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
   const [toDate, setToDate] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
@@ -96,7 +97,12 @@ export default function BookingTablePage() {
         </div>
 
         {/* KPIs */}
-        <BookingKpiCards fromDate={from} toDate={to} />
+        <BookingKpiCards 
+          fromDate={from} 
+          toDate={to} 
+          activeFilter={activeKpiFilter}
+          onFilterChange={setActiveKpiFilter}
+        />
 
         {/* Filters & Table */}
         <div className="space-y-4">
@@ -156,7 +162,7 @@ export default function BookingTablePage() {
             </div>
           </div>
 
-          <BookingTable fromDate={from} toDate={to} searchTerm={searchTerm} />
+          <BookingTable fromDate={from} toDate={to} searchTerm={searchTerm} kpiFilter={activeKpiFilter} />
         </div>
       </main>
     </Shell>

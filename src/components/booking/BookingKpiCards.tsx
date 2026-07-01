@@ -11,9 +11,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface Props { fromDate?: Date; toDate?: Date; }
+interface Props { 
+  fromDate?: Date; 
+  toDate?: Date; 
+  activeFilter?: 'all' | 'received' | 'debt' | 'count';
+  onFilterChange?: (filter: 'all' | 'received' | 'debt' | 'count') => void;
+}
 
-export const BookingKpiCards = ({ fromDate, toDate }: Props = {}) => {
+export const BookingKpiCards = ({ fromDate, toDate, activeFilter = 'all', onFilterChange }: Props = {}) => {
   const { bookings, selectedPropertyId } = useTimelineStore();
 
   let filteredBookings = selectedPropertyId
@@ -34,6 +39,7 @@ export const BookingKpiCards = ({ fromDate, toDate }: Props = {}) => {
 
   const kpis = [
     {
+      filter: 'all' as const,
       label: 'Tổng doanh thu',
       value: stats.totalRevenue.toLocaleString('vi-VN') + 'đ',
       icon: DollarSign,
@@ -42,14 +48,16 @@ export const BookingKpiCards = ({ fromDate, toDate }: Props = {}) => {
       border: 'border-primary/20'
     },
     {
+      filter: 'received' as const,
       label: 'Thực thu',
       value: stats.totalPaid.toLocaleString('vi-VN') + 'đ',
       icon: Wallet,
       color: 'text-green-600',
-      bg: 'bg-green-500/10',
+      bg: 'bg-green-50/10',
       border: 'border-green-500/20'
     },
     {
+      filter: 'debt' as const,
       label: 'Công nợ (Chưa TT)',
       value: stats.remainingDebt.toLocaleString('vi-VN') + 'đ',
       icon: Clock,
@@ -58,6 +66,7 @@ export const BookingKpiCards = ({ fromDate, toDate }: Props = {}) => {
       border: 'border-amber-500/20'
     },
     {
+      filter: 'count' as const,
       label: 'Số lượng đặt phòng',
       value: stats.bookingCount.toString(),
       icon: CreditCard,
@@ -69,27 +78,33 @@ export const BookingKpiCards = ({ fromDate, toDate }: Props = {}) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {kpis.map((kpi) => (
-        <div 
-          key={kpi.label} 
-          className={cn(
-            "bg-white p-6 rounded-[2rem] border-2 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group",
-            kpi.border
-          )}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", kpi.bg, kpi.color)}>
-              <kpi.icon size={24} />
+      {kpis.map((kpi) => {
+        const isActive = activeFilter === kpi.filter;
+        return (
+          <div 
+            key={kpi.label} 
+            onClick={() => onFilterChange?.(kpi.filter)}
+            className={cn(
+              "bg-white p-6 rounded-[2rem] border-2 shadow-sm transition-all group cursor-pointer hover:shadow-md",
+              isActive 
+                ? "border-primary ring-2 ring-primary/10 scale-[1.02] shadow-md" 
+                : kpi.border
+            )}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", kpi.bg, kpi.color)}>
+                <kpi.icon size={24} />
+              </div>
+              <div className="flex items-center gap-1 text-[10px] font-black text-green-600 uppercase tracking-widest bg-green-50 px-2 py-1 rounded-full">
+                <TrendingUp size={12} />
+                +12.5%
+              </div>
             </div>
-            <div className="flex items-center gap-1 text-[10px] font-black text-green-600 uppercase tracking-widest bg-green-50 px-2 py-1 rounded-full">
-              <TrendingUp size={12} />
-              +12.5%
-            </div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1">{kpi.label}</p>
+            <h3 className="text-2xl font-black tracking-tight text-foreground">{kpi.value}</h3>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1">{kpi.label}</p>
-          <h3 className="text-2xl font-black tracking-tight text-foreground">{kpi.value}</h3>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
