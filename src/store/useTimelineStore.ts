@@ -58,6 +58,7 @@ interface TimelineState {
   checkInBooking: (bookingId: string) => boolean;
   checkOutBooking: (bookingId: string) => void;
   addPayment: (bookingId: string, amount: number, method: 'cash' | 'transfer' | 'card', note?: string) => void;
+  deletePayment: (bookingId: string, paymentId: string) => void;
   markAsNoShow: (bookingId: string) => void;
 
   // Finance Actions
@@ -440,6 +441,35 @@ export const useTimelineStore = create<TimelineState>()(
     });
   },
 
+  deletePayment: (bookingId, paymentId) => {
+    const booking = get().bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const payment = booking.payments?.find(p => p.id === paymentId);
+    if (!payment) return;
+
+    const newAmountPaid = Math.max(0, booking.amountPaid - payment.amount);
+
+    set((state) => ({
+      bookings: state.bookings.map(b => 
+        b.id === bookingId 
+          ? { 
+              ...b, 
+              amountPaid: newAmountPaid, 
+              status: (b.status === 'deposited' && newAmountPaid < b.totalPrice) ? 'confirmed' : b.status,
+              payments: (b.payments || []).filter(p => p.id !== paymentId)
+            }
+          : b
+      )
+    }));
+
+    get().addNotification({
+      type: 'system',
+      title: 'Hủy giao dịch',
+      message: `Đã xóa giao dịch ${payment.amount.toLocaleString('vi-VN')}đ của ${booking.guestName}`
+    });
+  },
+
   markAsNoShow: (bookingId) => {
     const booking = get().bookings.find(b => b.id === bookingId);
     if (!booking) return;
@@ -459,7 +489,6 @@ export const useTimelineStore = create<TimelineState>()(
 
   checkConflict: (roomId, checkIn, checkOut, excludeBookingId) => {
     const { bookings } = get();
-    const BUFFER_MS = 30 * 60 * 1000;
     
     return bookings.some((b) => {
       if (b.id === excludeBookingId) return false;
@@ -471,7 +500,7 @@ export const useTimelineStore = create<TimelineState>()(
       const nStart = checkIn.getTime();
       const nEnd = checkOut.getTime();
 
-      return (nStart < bEnd + BUFFER_MS) && (nEnd + BUFFER_MS > bStart);
+      return (nStart < bEnd) && (nEnd > bStart);
     });
   },
 

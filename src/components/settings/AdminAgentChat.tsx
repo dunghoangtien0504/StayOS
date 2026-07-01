@@ -22,7 +22,10 @@ import {
   Activity,
   FileText,
   HelpCircle,
-  ArrowRight
+  ArrowRight,
+  Trash2,
+  Edit2,
+  XCircle
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -32,7 +35,7 @@ import { cn } from '@/lib/utils';
 
 // Interfaces for structured AI actions
 interface ParsedAction {
-  action: 'ADD_BOOKING' | 'CHECK_IN' | 'CHECK_OUT' | 'ADD_EXPENSE' | 'UPDATE_ROOM_STATUS';
+  action: 'ADD_BOOKING' | 'CHECK_IN' | 'CHECK_OUT' | 'ADD_EXPENSE' | 'UPDATE_ROOM_STATUS' | 'UPDATE_BOOKING' | 'RECORD_PAYMENT' | 'DELETE_PAYMENT' | 'CANCEL_BOOKING';
   data: any;
 }
 
@@ -75,7 +78,8 @@ function compileSystemPrompt(state: any) {
 
   const bookingsText = activeBookings.map((b: any) => {
     const roomName = rooms.find((r: any) => r.id === b.roomId)?.name || b.roomId;
-    return `- Booking ID: "${b.id}", Khách: "${b.guestName}" (${b.guestPhone || 'Không SĐT'}), Phòng: "${roomName}" (RoomID: "${b.roomId}"), Check-in: ${new Date(b.checkIn).toISOString()}, Check-out: ${new Date(b.checkOut).toISOString()}, Trạng thái: "${b.status}"`;
+    const paymentsText = (b.payments || []).map((p: any) => `[ID: ${p.id}, Amount: ${p.amount}, Method: ${p.method}, Note: ${p.note || ''}]`).join(', ');
+    return `- Booking ID: "${b.id}", Khách: "${b.guestName}" (${b.guestPhone || 'Không SĐT'}), Phòng: "${roomName}" (RoomID: "${b.roomId}"), Check-in: ${new Date(b.checkIn).toISOString()}, Check-out: ${new Date(b.checkOut).toISOString()}, Trạng thái: "${b.status}", Tổng tiền: ${b.totalPrice}, Đã trả: ${b.amountPaid}, Lịch sử GD: {${paymentsText || 'Chưa GD'}}`;
   }).join('\n');
 
   return `Bạn là "Trợ lý Agent Ta Thong Dong", trợ lý AI quản lý thông minh của chuỗi homestay "Ta Thong Dong Homestay".
@@ -85,7 +89,7 @@ Thời gian hệ thống hiện tại là: ${now.toString()} (ngày ${format(now
 
 Quy tắc cốt lõi:
 1. Bạn có thể giải đáp thông tin về các phòng, giá phòng, lịch bận/trống, chính sách.
-2. Nếu người dùng muốn thực hiện một hành động quản trị (vd: tạo đặt phòng mới, check-in, check-out, thêm chi phí, thay đổi trạng thái dọn phòng), hãy trả lời bằng văn bản giải thích và BẮT BUỘC append một khối mã JSON hành động ở CUỐI CÙNG tin nhắn của bạn. Khối mã JSON này phải nằm trong cặp thẻ dấu ngã \`\`\`json ... \`\`\`.
+2. Nếu người dùng muốn thực hiện một hành động quản trị (vd: tạo đặt phòng mới, sửa đặt phòng, check-in, check-out, thêm chi phí, thay đổi trạng thái dọn phòng, ghi nhận thu tiền, xóa giao dịch thanh toán), hãy trả lời bằng văn bản giải thích và BẮT BUỘC append một khối mã JSON hành động ở CUỐI CÙNG tin nhắn của bạn. Khối mã JSON này phải nằm trong cặp thẻ dấu ngã \`\`\`json ... \`\`\`.
 
 Định dạng khối JSON hành động (Action Blocks):
 
@@ -108,7 +112,7 @@ Nếu người dùng cung cấp thông tin đặt phòng (vd: copy từ Zalo/Fac
   }
 }
 \`\`\`
-Lưu ý tính giá cho phòng Deluxe (r101, r102, r302) và VIP (r201, r202, r301) theo các khung giờ (ví dụ: Theo giờ 3-4h, Buổi sáng 6h-11h, Qua đêm combo 3 21h-11h, Combo 4 14h-11h, Ngày 11h-18h, v.v.). Xem thông tin bảng giá chi tiết trong tri thức.
+Lưu ý tính giá cho phòng Deluxe (r101, r102, r302) và VIP (r201, r202, r301) theo các khung giờ. Xem thông tin bảng giá chi tiết trong tri thức.
 
 B. NHẬN PHÒNG (CHECK_IN):
 Khi được yêu cầu nhận phòng hoặc check-in cho một phòng hoặc một khách nhất định:
@@ -117,7 +121,7 @@ Khi được yêu cầu nhận phòng hoặc check-in cho một phòng hoặc m�
   "action": "CHECK_IN",
   "data": {
     "roomId": "r101",
-    "guestName": "Tên khách nếu có"
+    "bookingId": "b-real-1 (khuyên dùng nếu biết)"
   }
 }
 \`\`\`
@@ -129,7 +133,7 @@ Khi được yêu cầu trả phòng hoặc check-out:
   "action": "CHECK_OUT",
   "data": {
     "roomId": "r101",
-    "guestName": "Tên khách nếu có"
+    "bookingId": "b-real-1 (khuyên dùng nếu biết)"
   }
 }
 \`\`\`
@@ -149,13 +153,70 @@ Khi được yêu cầu ghi nhận chi phí (ví dụ: tiền điện, nước, 
 \`\`\`
 
 E. CẬP NHẬT DỌN PHÒNG (UPDATE_ROOM_STATUS):
-Khi được yêu cầu thay đổi trạng thái dọn dẹp của phòng (vd: phòng 101 dọn xong rồi, phòng 202 bị dơ):
+Khi được yêu cầu thay đổi trạng thái dọn dẹp của phòng (vd: phòng 101 dọn xong rồi):
 \`\`\`json
 {
   "action": "UPDATE_ROOM_STATUS",
   "data": {
     "roomId": "roomId cần đổi",
     "status": "clean" | "dirty" | "cleaning"
+  }
+}
+\`\`\`
+
+F. CHỈNH SỬA ĐẶT PHÒNG (UPDATE_BOOKING):
+Khi người dùng muốn chỉnh sửa thông tin của một đặt phòng (ví dụ: đổi phòng của Quỳnh Thảo sang P.201, đổi giá phòng của Minas thành 450k, sửa ngày checkin/checkout hoặc thông tin khách):
+\`\`\`json
+{
+  "action": "UPDATE_BOOKING",
+  "data": {
+    "bookingId": "bookingId cần sửa (ví dụ: b-real-2)",
+    "updates": {
+      "guestName": "Tên mới nếu sửa",
+      "guestPhone": "SĐT mới nếu sửa",
+      "roomId": "roomId mới nếu sửa",
+      "checkIn": "ISO string nếu sửa",
+      "checkOut": "ISO string nếu sửa",
+      "totalPrice": 750000,
+      "status": "confirmed" | "deposited" | "checked_in" | "checked_out" | "no_show" | "cancelled"
+    }
+  }
+}
+\`\`\`
+
+G. THU TIỀN / THANH TOÁN (RECORD_PAYMENT):
+Khi được yêu cầu ghi nhận khách trả thêm tiền hoặc thanh toán hết công nợ:
+\`\`\`json
+{
+  "action": "RECORD_PAYMENT",
+  "data": {
+    "bookingId": "bookingId cần thu tiền",
+    "amount": 459000,
+    "method": "transfer" | "cash" | "card",
+    "note": "Ghi chú thanh toán"
+  }
+}
+\`\`\`
+
+H. XÓA THANH TOÁN / GIAO DỊCH (DELETE_PAYMENT):
+Khi người dùng muốn hủy hoặc xóa một lịch sử giao dịch thanh toán nhập sai/trùng:
+\`\`\`json
+{
+  "action": "DELETE_PAYMENT",
+  "data": {
+    "bookingId": "bookingId liên quan",
+    "paymentId": "paymentId cần xóa (lấy từ Lịch sử GD của booking ở danh sách bên dưới)"
+  }
+}
+\`\`\`
+
+I. HỦY ĐẶT PHÒNG (CANCEL_BOOKING):
+Khi được yêu cầu hủy đặt phòng của khách:
+\`\`\`json
+{
+  "action": "CANCEL_BOOKING",
+  "data": {
+    "bookingId": "bookingId cần hủy"
   }
 }
 \`\`\`
@@ -347,7 +408,14 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
           break;
         }
         case 'CHECK_IN': {
-          const { bookingId } = action.data;
+          let { bookingId, roomId } = action.data;
+          if (!bookingId && roomId) {
+            const activeBooking = store.bookings.find(b => b.roomId === roomId && (b.status === 'confirmed' || b.status === 'deposited'));
+            bookingId = activeBooking?.id;
+          }
+          if (!bookingId) {
+            throw new Error('Không tìm thấy lượt đặt phòng nào phù hợp để Check-in.');
+          }
           const success = store.checkInBooking(bookingId);
           if (!success) {
             throw new Error('Không thể check-in. Vui lòng kiểm tra lại trạng thái phòng (phải ở trạng thái SẠCH).');
@@ -355,7 +423,14 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
           break;
         }
         case 'CHECK_OUT': {
-          const { bookingId } = action.data;
+          let { bookingId, roomId } = action.data;
+          if (!bookingId && roomId) {
+            const activeBooking = store.bookings.find(b => b.roomId === roomId && b.status === 'checked_in');
+            bookingId = activeBooking?.id;
+          }
+          if (!bookingId) {
+            throw new Error('Không tìm thấy lượt đặt phòng nào phù hợp để Check-out.');
+          }
           store.checkOutBooking(bookingId);
           break;
         }
@@ -365,7 +440,7 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
             amount: parseFloat(amount) || 0,
             category: category || 'other',
             note: note || '',
-            propertyId,
+            propertyId: propertyId || 'p1',
             date: new Date()
           });
           break;
@@ -373,6 +448,29 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
         case 'UPDATE_ROOM_STATUS': {
           const { roomId, status } = action.data;
           store.updateRoomStatus(roomId, status as RoomStatus);
+          break;
+        }
+        case 'UPDATE_BOOKING': {
+          const { bookingId, updates } = action.data;
+          const normalizedUpdates: any = { ...updates };
+          if (updates.checkIn) normalizedUpdates.checkIn = new Date(updates.checkIn);
+          if (updates.checkOut) normalizedUpdates.checkOut = new Date(updates.checkOut);
+          store.updateBooking(bookingId, normalizedUpdates);
+          break;
+        }
+        case 'RECORD_PAYMENT': {
+          const { bookingId, amount, method, note } = action.data;
+          store.addPayment(bookingId, parseFloat(amount) || 0, method || 'transfer', note);
+          break;
+        }
+        case 'DELETE_PAYMENT': {
+          const { bookingId, paymentId } = action.data;
+          store.deletePayment(bookingId, paymentId);
+          break;
+        }
+        case 'CANCEL_BOOKING': {
+          const { bookingId } = action.data;
+          store.updateBooking(bookingId, { status: 'cancelled' });
           break;
         }
       }
@@ -714,6 +812,229 @@ export const AdminAgentChat = ({ onClose }: AdminAgentChatProps) => {
                       className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-black rounded-xl py-2 shadow-sm"
                     >
                       Xác nhận đổi
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setMessages(prev => prev.filter(m => m.id !== msgId))}
+                      className="rounded-xl border font-bold"
+                    >
+                      Hủy
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+      case 'UPDATE_BOOKING': {
+        const { bookingId, updates } = action.data;
+        const booking = store.bookings.find(b => b.id === bookingId);
+        
+        return (
+          <Card className="border-l-4 border-l-blue-600 overflow-hidden shadow-md mt-2">
+            <CardHeader className="bg-blue-50/50 py-3 px-4">
+              <CardTitle className="text-sm font-black flex items-center gap-2 text-blue-800">
+                <Edit2 size={16} /> XÁC NHẬN SỬA ĐẶT PHÒNG
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3 text-xs">
+              <div className="font-semibold space-y-2">
+                <div><span className="text-muted-foreground text-[10px] uppercase">Booking ID:</span> {bookingId} ({booking?.guestName})</div>
+                <div className="border-t pt-2 space-y-1">
+                  {updates.guestName && <div><span className="text-muted-foreground text-[10px] uppercase">Tên khách:</span> {updates.guestName}</div>}
+                  {updates.guestPhone && <div><span className="text-muted-foreground text-[10px] uppercase">SĐT:</span> {updates.guestPhone}</div>}
+                  {updates.roomId && <div><span className="text-muted-foreground text-[10px] uppercase">Phòng:</span> {store.rooms.find(r => r.id === updates.roomId)?.name || updates.roomId}</div>}
+                  {updates.checkIn && <div><span className="text-muted-foreground text-[10px] uppercase">Check-in:</span> {format(new Date(updates.checkIn), 'HH:mm dd/MM/yyyy')}</div>}
+                  {updates.checkOut && <div><span className="text-muted-foreground text-[10px] uppercase">Check-out:</span> {format(new Date(updates.checkOut), 'HH:mm dd/MM/yyyy')}</div>}
+                  {updates.totalPrice && <div><span className="text-muted-foreground text-[10px] uppercase">Tổng tiền:</span> {updates.totalPrice.toLocaleString()} VNĐ</div>}
+                  {updates.status && <div><span className="text-muted-foreground text-[10px] uppercase">Trạng thái:</span> {updates.status}</div>}
+                </div>
+              </div>
+
+              {error && (
+                <div className="flex gap-2 items-center p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 font-bold">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>Lỗi: {error}</span>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                {executed ? (
+                  <Button disabled className="w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl py-2 shadow-sm flex items-center justify-center gap-1.5">
+                    <Check size={15} /> ĐÃ CẬP NHẬT ĐẶT PHÒNG
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      onClick={() => executeAction(msgId, action)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl py-2 shadow-sm"
+                    >
+                      Xác nhận cập nhật
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setMessages(prev => prev.filter(m => m.id !== msgId))}
+                      className="rounded-xl border font-bold"
+                    >
+                      Hủy
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+      case 'RECORD_PAYMENT': {
+        const { bookingId, amount, method, note } = action.data;
+        const booking = store.bookings.find(b => b.id === bookingId);
+        
+        const methodLabels: Record<string, string> = {
+          transfer: 'Chuyển khoản',
+          cash: 'Tiền mặt',
+          card: 'Thẻ (POS)'
+        };
+
+        return (
+          <Card className="border-l-4 border-l-green-600 overflow-hidden shadow-md mt-2">
+            <CardHeader className="bg-green-50/50 py-3 px-4">
+              <CardTitle className="text-sm font-black flex items-center gap-2 text-green-800">
+                <DollarSign size={16} /> XÁC NHẬN THU TIỀN / THANH TOÁN
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3 text-xs">
+              <div className="font-semibold space-y-2">
+                <div><span className="text-muted-foreground text-[10px] uppercase">Khách hàng:</span> {booking?.guestName || 'Không rõ'}</div>
+                <div><span className="text-muted-foreground text-[10px] uppercase">Số tiền:</span> <span className="text-green-600 text-sm font-black">{(parseFloat(amount) || 0).toLocaleString()} VNĐ</span></div>
+                <div><span className="text-muted-foreground text-[10px] uppercase">Phương thức:</span> {methodLabels[method] || method}</div>
+                {note && <div><span className="text-muted-foreground text-[10px] uppercase">Ghi chú:</span> {note}</div>}
+              </div>
+
+              {error && (
+                <div className="flex gap-2 items-center p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 font-bold">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>Lỗi: {error}</span>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                {executed ? (
+                  <Button disabled className="w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl py-2 shadow-sm flex items-center justify-center gap-1.5">
+                    <Check size={15} /> ĐÃ GHI NHẬN THANH TOÁN
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      onClick={() => executeAction(msgId, action)}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black rounded-xl py-2 shadow-sm"
+                    >
+                      Xác nhận thu tiền
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setMessages(prev => prev.filter(m => m.id !== msgId))}
+                      className="rounded-xl border font-bold"
+                    >
+                      Hủy
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+      case 'DELETE_PAYMENT': {
+        const { bookingId, paymentId } = action.data;
+        const booking = store.bookings.find(b => b.id === bookingId);
+        const payment = booking?.payments?.find(p => p.id === paymentId);
+
+        return (
+          <Card className="border-l-4 border-l-red-600 overflow-hidden shadow-md mt-2">
+            <CardHeader className="bg-red-50/50 py-3 px-4">
+              <CardTitle className="text-sm font-black flex items-center gap-2 text-red-800">
+                <Trash2 size={16} /> XÁC NHẬN XÓA GIAO DỊCH
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3 text-xs">
+              <div className="font-semibold space-y-2">
+                <div><span className="text-muted-foreground text-[10px] uppercase">Khách hàng:</span> {booking?.guestName}</div>
+                <div><span className="text-muted-foreground text-[10px] uppercase">Số tiền xóa:</span> <span className="text-red-600 font-black">{(payment?.amount || 0).toLocaleString()} VNĐ</span></div>
+                {payment?.note && <div><span className="text-muted-foreground text-[10px] uppercase">Ghi chú giao dịch:</span> {payment.note}</div>}
+              </div>
+
+              {error && (
+                <div className="flex gap-2 items-center p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 font-bold">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>Lỗi: {error}</span>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                {executed ? (
+                  <Button disabled className="w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl py-2 shadow-sm flex items-center justify-center gap-1.5">
+                    <Check size={15} /> ĐÃ XÓA GIAO DỊCH
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      onClick={() => executeAction(msgId, action)}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl py-2 shadow-sm"
+                    >
+                      Xác nhận xóa
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setMessages(prev => prev.filter(m => m.id !== msgId))}
+                      className="rounded-xl border font-bold"
+                    >
+                      Hủy
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+      case 'CANCEL_BOOKING': {
+        const { bookingId } = action.data;
+        const booking = store.bookings.find(b => b.id === bookingId);
+
+        return (
+          <Card className="border-l-4 border-l-rose-700 overflow-hidden shadow-md mt-2">
+            <CardHeader className="bg-rose-50 py-3 px-4">
+              <CardTitle className="text-sm font-black flex items-center gap-2 text-rose-900">
+                <XCircle size={16} /> XÁC NHẬN HỦY ĐẶT PHÒNG
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3 text-xs">
+              <div className="font-semibold space-y-2">
+                <div><span className="text-muted-foreground text-[10px] uppercase">Khách hàng:</span> {booking?.guestName}</div>
+                <div><span className="text-muted-foreground text-[10px] uppercase">Phòng:</span> {store.rooms.find(r => r.id === booking?.roomId)?.name || booking?.roomId}</div>
+                <div><span className="text-muted-foreground text-[10px] uppercase">Thời gian:</span> {booking && `${format(new Date(booking.checkIn), 'dd/MM')} – ${format(new Date(booking.checkOut), 'dd/MM')}`}</div>
+              </div>
+
+              {error && (
+                <div className="flex gap-2 items-center p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 font-bold">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>Lỗi: {error}</span>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                {executed ? (
+                  <Button disabled className="w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl py-2 shadow-sm flex items-center justify-center gap-1.5">
+                    <Check size={15} /> ĐÃ HỦY ĐẶT PHÒNG
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      onClick={() => executeAction(msgId, action)}
+                      className="flex-1 bg-rose-700 hover:bg-rose-800 text-white font-black rounded-xl py-2 shadow-sm"
+                    >
+                      Xác nhận Hủy Đặt phòng
                     </Button>
                     <Button 
                       variant="outline"

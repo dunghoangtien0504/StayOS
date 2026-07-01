@@ -31,7 +31,8 @@ import {
   MessageSquare,
   Edit2,
   Save,
-  RotateCcw
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -72,7 +73,7 @@ interface BookingDetailsModalProps {
 }
 
 export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }: BookingDetailsModalProps) => {
-  const { rooms, properties, bookings, chatThreads, checkInBooking, checkOutBooking, addPayment, markAsNoShow, updateBooking, updateRoomStatus, settings } = useTimelineStore();
+  const { rooms, properties, bookings, chatThreads, checkInBooking, checkOutBooking, addPayment, deletePayment, markAsNoShow, updateBooking, updateRoomStatus, settings } = useTimelineStore();
   const booking = bookings.find(b => b.id === initialBooking.id) || initialBooking;
   const property = properties.find(p => p.id === booking.propertyId);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -360,7 +361,21 @@ export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }
                             <div className="text-[10px] font-bold text-muted-foreground uppercase">{p.method} · {format(p.date, 'HH:mm - dd/MM')}</div>
                           </div>
                         </div>
-                        {p.note && <div className="text-[10px] italic text-muted-foreground max-w-[200px] truncate">{p.note}</div>}
+                        <div className="flex items-center gap-3">
+                          {p.note && <div className="text-[10px] italic text-muted-foreground max-w-[150px] truncate">{p.note}</div>}
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-8 h-8 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => {
+                              if (confirm(`Bạn có chắc chắn muốn xóa giao dịch này không?`)) {
+                                deletePayment(booking.id, p.id);
+                              }
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
