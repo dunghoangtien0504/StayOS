@@ -12,7 +12,7 @@ module.exports = {
       // Environment
       env: {
         NODE_ENV: 'production',
-        PORT: 3002,
+        PORT: 3000,
       },
 
       // Process config
