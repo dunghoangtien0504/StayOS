@@ -153,24 +153,28 @@ export const DashboardView = () => {
       value: filteredProperties.length.toString(),
       trend: '—', trendUp: true,
       icon: Home, color: 'text-primary', bg: 'bg-primary/10',
+      href: '/settings/properties'
     },
     {
       id: 2, label: period === 'month' ? 'Booking tháng này' : period === 'today' ? 'Booking hôm nay' : 'Booking trong kỳ',
       value: bookingsInPeriod.length.toString(),
       trend: bookingTrend.label, trendUp: bookingTrend.up,
       icon: BookOpen, color: 'text-blue-500', bg: 'bg-blue-500/10',
+      href: '/bookings/table'
     },
     {
       id: 3, label: 'Tỷ lệ lấp đầy',
       value: `${occupancyRate}%`,
       trend: occupancyTrend.label, trendUp: occupancyTrend.up,
       icon: Activity, color: 'text-green-500', bg: 'bg-green-500/10',
+      href: '/bookings/timeline'
     },
     {
       id: 4, label: 'Doanh thu thực tế',
       value: `${(totalRevenue / 1000000).toFixed(2)}M`,
       trend: revenueTrend.label, trendUp: revenueTrend.up,
       icon: DollarSign, color: 'text-purple-500', bg: 'bg-purple-500/10',
+      href: '/finance/reports'
     },
   ];
 
@@ -248,7 +252,11 @@ export const DashboardView = () => {
       {showWidget('kpis') && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {kpis.map((kpi) => (
-            <div key={kpi.id} className="bg-white p-6 rounded-[2rem] border shadow-sm hover:shadow-md transition-all group border-b-4 border-b-transparent hover:border-b-primary">
+            <div 
+              key={kpi.id} 
+              onClick={() => kpi.href && router.push(kpi.href)}
+              className="bg-white p-6 rounded-[2rem] border shadow-sm hover:shadow-md transition-all group border-b-4 border-b-transparent hover:border-b-primary cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+            >
               <div className={`w-12 h-12 ${kpi.bg} ${kpi.color} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                 <kpi.icon size={24} />
               </div>
@@ -347,7 +355,10 @@ export const DashboardView = () => {
                 </div>
               </div>
 
-              <button className="mt-auto w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold transition-colors text-sm border border-white/10">
+              <button 
+                onClick={() => router.push('/finance/reports')}
+                className="mt-auto w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold transition-colors text-sm border border-white/10"
+              >
                 Xem báo cáo chi tiết →
               </button>
             </div>

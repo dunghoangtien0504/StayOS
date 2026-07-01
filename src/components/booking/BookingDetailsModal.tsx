@@ -73,7 +73,7 @@ interface BookingDetailsModalProps {
 }
 
 export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }: BookingDetailsModalProps) => {
-  const { rooms, properties, bookings, chatThreads, checkInBooking, checkOutBooking, addPayment, deletePayment, markAsNoShow, updateBooking, updateRoomStatus, settings } = useTimelineStore();
+  const { rooms, properties, bookings, chatThreads, checkInBooking, checkOutBooking, addPayment, deletePayment, deleteBooking, markAsNoShow, updateBooking, updateRoomStatus, settings } = useTimelineStore();
   const booking = bookings.find(b => b.id === initialBooking.id) || initialBooking;
   const property = properties.find(p => p.id === booking.propertyId);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -429,6 +429,20 @@ export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }
               {!isEditing && (
                 <Button variant="outline" className="rounded-xl font-bold h-11 px-6 border-2 gap-2 text-red-600 hover:bg-red-50 hover:text-red-600 border-red-100" onClick={() => markAsNoShow(booking.id)}>
                   <XCircle size={18} /> No-show
+                </Button>
+              )}
+              {!isEditing && (
+                <Button 
+                  variant="outline" 
+                  className="rounded-xl font-bold h-11 px-6 border-2 gap-2 text-red-500 hover:bg-red-50 hover:text-red-500 border-red-100" 
+                  onClick={() => {
+                    if (confirm(`Bạn có chắc chắn muốn XÓA HOÀN TOÀN đặt phòng của khách ${booking.guestName} khỏi hệ thống?`)) {
+                      deleteBooking(booking.id);
+                      onClose();
+                    }
+                  }}
+                >
+                  <Trash2 size={18} /> Xóa đặt phòng
                 </Button>
               )}
             </div>

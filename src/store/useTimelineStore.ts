@@ -59,6 +59,7 @@ interface TimelineState {
   checkOutBooking: (bookingId: string) => void;
   addPayment: (bookingId: string, amount: number, method: 'cash' | 'transfer' | 'card', note?: string) => void;
   deletePayment: (bookingId: string, paymentId: string) => void;
+  deleteBooking: (bookingId: string) => void;
   markAsNoShow: (bookingId: string) => void;
 
   // Finance Actions
@@ -470,6 +471,12 @@ export const useTimelineStore = create<TimelineState>()(
     });
   },
 
+  deleteBooking: (bookingId) => {
+    set((state) => ({
+      bookings: state.bookings.filter(b => b.id !== bookingId)
+    }));
+  },
+
   markAsNoShow: (bookingId) => {
     const booking = get().bookings.find(b => b.id === bookingId);
     if (!booking) return;
@@ -876,6 +883,16 @@ export const useTimelineStore = create<TimelineState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        
+        // Force Room 202 to be Deluxe
+        if (state.rooms) {
+          state.rooms = state.rooms.map(r => 
+            r.id === 'r202' 
+              ? { ...r, roomType: 'Deluxe', basePrice: 749000 } 
+              : r
+          );
+        }
+
         // Re-hydrate Date instances (JSON.parse trả về string)
         const toDate = (v: unknown) => (v ? new Date(v as string) : undefined);
 
