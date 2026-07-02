@@ -92,27 +92,40 @@ jobs:
             echo "=== Deploy complete ==="
             pm2 status
 
-            # ---- DEBUG ----
-            echo "=== Wait 8s for Next.js to boot ==="
+            # ---- DEBUG: write everything to /tmp/debug.txt then cat at end ----
+            set +e
+            DBG=/tmp/stayos_debug.txt
+            : > $DBG
+
+            echo "=== Wait 8s for Next.js to boot ===" >> $DBG
             sleep 8
 
-            echo "=== PM2 describe stayos ==="
-            pm2 describe stayos || true
+            echo "=== PM2 describe stayos ===" >> $DBG
+            pm2 describe stayos >> $DBG 2>&1
 
-            echo "=== PM2 logs stayos (last 40 lines) ==="
-            pm2 logs stayos --lines 40 --nostream || true
+            echo "=== PM2 logs stayos (last 40 lines) ===" >> $DBG
+            pm2 logs stayos --lines 40 --nostream >> $DBG 2>&1
 
-            echo "=== Port listeners (3000/80/443) ==="
-            ss -tlnp | grep -E ':(3000|80|443)\b' || echo "no listeners matched"
+            echo "=== Port listeners (3000/80/443) ===" >> $DBG
+            ss -tlnp 2>&1 | grep -E ':(3000|80|443)\b' >> $DBG || echo "no listeners matched" >> $DBG
 
-            echo "=== Health check http://127.0.0.1:3000 ==="
-            curl -sS -o /dev/null -w "HTTP %{http_code}\n" -m 10 http://127.0.0.1:3000/ || echo "curl failed"
+            echo "=== Health check http://127.0.0.1:3000 ===" >> $DBG
+            curl -sS -o /dev/null -w "HTTP %{http_code}\n" -m 10 http://127.0.0.1:3000/ >> $DBG 2>&1 || echo "curl failed" >> $DBG
 
-            echo "=== Nginx status ==="
-            systemctl status nginx --no-pager --lines 10 || true
+            echo "=== Nginx status ===" >> $DBG
+            systemctl status nginx --no-pager --lines 10 >> $DBG 2>&1
 
-            echo "=== Nginx error log tail ==="
-            tail -n 30 /var/log/nginx/error.log || true
+            echo "=== Nginx error log tail ===" >> $DBG
+            tail -n 30 /var/log/nginx/error.log >> $DBG 2>&1
 
-            echo "=== sites-enabled listing ==="
-            ls -la /etc/nginx/sites-enabled/ || true
+            echo "=== sites-enabled listing ===" >> $DBG
+            ls -la /etc/nginx/sites-enabled/ >> $DBG 2>&1
+
+            echo "=== active nginx server_name / upstream ===" >> $DBG
+            grep -RhE "server_name|proxy_pass|upstream" /etc/nginx/ 2>/dev/null | grep -v "^#" >> $DBG
+
+            echo ""
+            echo "########## DEBUG OUTPUT ##########"
+            cat $DBG
+            echo "########## END DEBUG ##########"
+            set -e
