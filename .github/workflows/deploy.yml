@@ -48,7 +48,8 @@ jobs:
             set -e
             echo "=== Deploying StayOS ==="
             cd /home/apps/StayOS
-
+            git reset --hard
+            git clean -fd --exclude='.env.local' --exclude='public/uploads/'
             git pull origin main
 
             # Inject Meta env vars into .env.local
