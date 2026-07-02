@@ -48,6 +48,8 @@ jobs:
             set -e
             echo "=== Deploying StayOS ==="
             cd /home/apps/StayOS
+
+            # Reset any local changes (e.g. from manual edits) to avoid git pull conflicts
             git reset --hard
             git clean -fd --exclude='.env.local' --exclude='public/uploads/'
             git pull origin main
@@ -76,6 +78,13 @@ jobs:
 
             pm2 restart stayos --update-env || pm2 start ecosystem.config.js
             pm2 save
+
+            # Sync nginx config and reload if changed
+            if ! diff -q deploy/nginx.conf /etc/nginx/sites-available/stayos > /dev/null 2>&1; then
+              cp deploy/nginx.conf /etc/nginx/sites-available/stayos
+              nginx -t && systemctl reload nginx
+              echo "=== Nginx config updated ==="
+            fi
 
             echo "=== Deploy complete ==="
             pm2 status
