@@ -91,3 +91,28 @@ jobs:
 
             echo "=== Deploy complete ==="
             pm2 status
+
+            # ---- DEBUG ----
+            echo "=== Wait 8s for Next.js to boot ==="
+            sleep 8
+
+            echo "=== PM2 describe stayos ==="
+            pm2 describe stayos || true
+
+            echo "=== PM2 logs stayos (last 40 lines) ==="
+            pm2 logs stayos --lines 40 --nostream || true
+
+            echo "=== Port listeners (3000/80/443) ==="
+            ss -tlnp | grep -E ':(3000|80|443)\b' || echo "no listeners matched"
+
+            echo "=== Health check http://127.0.0.1:3000 ==="
+            curl -sS -o /dev/null -w "HTTP %{http_code}\n" -m 10 http://127.0.0.1:3000/ || echo "curl failed"
+
+            echo "=== Nginx status ==="
+            systemctl status nginx --no-pager --lines 10 || true
+
+            echo "=== Nginx error log tail ==="
+            tail -n 30 /var/log/nginx/error.log || true
+
+            echo "=== sites-enabled listing ==="
+            ls -la /etc/nginx/sites-enabled/ || true
