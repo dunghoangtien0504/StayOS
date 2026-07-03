@@ -48,6 +48,13 @@ interface Message {
   actionError?: string;
 }
 
+// Convert Date to Vietnam local time string (no Z, no timezone suffix)
+// Example: new Date("2026-07-03T07:00:00Z") -> "2026-07-03T14:00:00"
+function toVNTimeStr(date: Date): string {
+  const vnDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  return vnDate.toISOString().replace(/\.\d{3}Z$/, '').replace(/Z$/, '');
+}
+
 // Custom prompt compilation
 function compileSystemPrompt(state: any) {
   const now = new Date();
@@ -79,13 +86,13 @@ function compileSystemPrompt(state: any) {
   const bookingsText = activeBookings.map((b: any) => {
     const roomName = rooms.find((r: any) => r.id === b.roomId)?.name || b.roomId;
     const paymentsText = (b.payments || []).map((p: any) => `[ID: ${p.id}, Amount: ${p.amount}, Method: ${p.method}, Note: ${p.note || ''}]`).join(', ');
-    return `- Booking ID: "${b.id}", Khách: "${b.guestName}" (${b.guestPhone || 'Không SĐT'}), Phòng: "${roomName}" (RoomID: "${b.roomId}"), Check-in: ${new Date(b.checkIn).toISOString()}, Check-out: ${new Date(b.checkOut).toISOString()}, Trạng thái: "${b.status}", Tổng tiền: ${b.totalPrice}, Đã trả: ${b.amountPaid}, Lịch sử GD: {${paymentsText || 'Chưa GD'}}`;
+    return `- Booking ID: "${b.id}", Khách: "${b.guestName}" (${b.guestPhone || 'Không SĐT'}), Phòng: "${roomName}" (RoomID: "${b.roomId}"), Check-in: ${toVNTimeStr(new Date(b.checkIn))}, Check-out: ${toVNTimeStr(new Date(b.checkOut))}, Trạng thái: "${b.status}", Tổng tiền: ${b.totalPrice}, Đã trả: ${b.amountPaid}, Lịch sử GD: {${paymentsText || 'Chưa GD'}}`;
   }).join('\n');
 
   return `Bạn là "Trợ lý Agent Ta Thong Dong", trợ lý AI quản lý thông minh của chuỗi homestay "Ta Thong Dong Homestay".
 Bạn đang tích hợp trực tiếp vào trang quản trị (Admin Dashboard) của StayOS PMS.
 Nhiệm vụ của bạn là hỗ trợ người quản lý (Admin) thực hiện các tác vụ nhanh bằng tiếng Việt thông qua hội thoại.
-Thời gian hệ thống hiện tại là: ${now.toString()} (ngày ${format(now, 'dd/MM/yyyy')}, thứ ${now.getDay() === 0 ? 'Chủ Nhật' : now.getDay() + 1}).
+Thời gian hệ thống hiện tại là: ${format(now, 'dd/MM/yyyy HH:mm')} giờ Việt Nam (UTC+7).
 
 Quy tắc cốt lõi:
 1. Bạn có thể giải đáp thông tin về các phòng, giá phòng, lịch bận/trống, chính sách.
@@ -103,8 +110,8 @@ Nếu người dùng cung cấp thông tin đặt phòng (vd: copy từ Zalo/Fac
     "guestPhone": "Số điện thoại",
     "roomId": "roomId chọn được (ví dụ: r101)",
     "propertyId": "p1",
-    "checkIn": "YYYY-MM-DDTHH:mm:ss.sssZ (ISO 8601)",
-    "checkOut": "YYYY-MM-DDTHH:mm:ss.sssZ (ISO 8601)",
+    "checkIn": "YYYY-MM-DDTHH:mm:ss (giờ Việt Nam, KHÔNG thêm Z hay timezone offset)",
+    "checkOut": "YYYY-MM-DDTHH:mm:ss (giờ Việt Nam, KHÔNG thêm Z hay timezone offset)",
     "source": "zalo" | "facebook" | "direct" (mặc định nếu không rõ),
     "status": "confirmed",
     "totalPrice": 699000, (tổng tiền tính toán được),
@@ -175,8 +182,8 @@ Khi người dùng muốn chỉnh sửa thông tin của một đặt phòng (v�
       "guestName": "Tên mới nếu sửa",
       "guestPhone": "SĐT mới nếu sửa",
       "roomId": "roomId mới nếu sửa",
-      "checkIn": "ISO string nếu sửa",
-      "checkOut": "ISO string nếu sửa",
+      "checkIn": "YYYY-MM-DDTHH:mm:ss (giờ VN, không Z)",
+      "checkOut": "YYYY-MM-DDTHH:mm:ss (giờ VN, không Z)",
       "totalPrice": 750000,
       "status": "confirmed" | "deposited" | "checked_in" | "checked_out" | "no_show" | "cancelled"
     }
