@@ -85,7 +85,9 @@ jobs:
               NODE_ENV=production npm run build
             fi
 
-            pm2 restart stayos --update-env || pm2 start ecosystem.config.js
+            # Delete + start (not restart) so PM2 always picks up latest ecosystem.config.js
+            pm2 delete stayos 2>/dev/null || true
+            pm2 start ecosystem.config.js
 
             # Ensure PM2 auto-starts on reboot
             pm2 startup systemd -u root --hp /root 2>/dev/null | grep "sudo env PATH" | bash 2>/dev/null || true

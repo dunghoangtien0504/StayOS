@@ -5,7 +5,7 @@ module.exports = {
   apps: [
     {
       name: 'stayos',
-      script: 'node_modules/.bin/next',
+      script: 'node_modules/next/dist/bin/next',
       args: 'start',
       cwd: '/home/apps/StayOS',
 
