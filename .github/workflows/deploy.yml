@@ -100,43 +100,22 @@ jobs:
             nginx -t && systemctl reload nginx
             echo "=== Nginx config synced and reloaded ==="
 
-            echo "=== Deploy complete ==="
+            # Health check: fail the deploy if the app is not actually serving.
+            # Retry up to 10 times (Next.js needs a few seconds to boot).
+            echo "=== Health check ==="
+            ok=""
+            for i in $(seq 1 10); do
+              sleep 3
+              code=$(curl -sS -o /dev/null -w "%{http_code}" -m 10 http://127.0.0.1:3000/ 2>/dev/null || echo 000)
+              echo "attempt $i: HTTP $code"
+              if [ "$code" = "200" ] || [ "$code" = "307" ] || [ "$code" = "302" ]; then ok=1; break; fi
+            done
+            if [ -z "$ok" ]; then
+              echo "!!! Health check FAILED — app is not responding on :3000"
+              pm2 describe stayos || true
+              pm2 logs stayos --lines 40 --nostream || true
+              exit 1
+            fi
+
+            echo "=== Deploy complete — app is healthy ==="
             pm2 status
-
-            # ---- DEBUG: write everything to /tmp/debug.txt then cat at end ----
-            set +e
-            DBG=/tmp/stayos_debug.txt
-            : > $DBG
-
-            echo "=== Wait 8s for Next.js to boot ===" >> $DBG
-            sleep 8
-
-            echo "=== PM2 describe stayos ===" >> $DBG
-            pm2 describe stayos >> $DBG 2>&1
-
-            echo "=== PM2 logs stayos (last 40 lines) ===" >> $DBG
-            pm2 logs stayos --lines 40 --nostream >> $DBG 2>&1
-
-            echo "=== Port listeners (3000/80/443) ===" >> $DBG
-            ss -tlnp 2>&1 | grep -E ':(3000|80|443)\b' >> $DBG || echo "no listeners matched" >> $DBG
-
-            echo "=== Health check http://127.0.0.1:3000 ===" >> $DBG
-            curl -sS -o /dev/null -w "HTTP %{http_code}\n" -m 10 http://127.0.0.1:3000/ >> $DBG 2>&1 || echo "curl failed" >> $DBG
-
-            echo "=== Nginx status ===" >> $DBG
-            systemctl status nginx --no-pager --lines 10 >> $DBG 2>&1
-
-            echo "=== Nginx error log tail ===" >> $DBG
-            tail -n 30 /var/log/nginx/error.log >> $DBG 2>&1
-
-            echo "=== sites-enabled listing ===" >> $DBG
-            ls -la /etc/nginx/sites-enabled/ >> $DBG 2>&1
-
-            echo "=== active nginx server_name / upstream ===" >> $DBG
-            grep -RhE "server_name|proxy_pass|upstream" /etc/nginx/ 2>/dev/null | grep -v "^#" >> $DBG
-
-            echo ""
-            echo "########## DEBUG OUTPUT ##########"
-            cat $DBG
-            echo "########## END DEBUG ##########"
-            set -e
