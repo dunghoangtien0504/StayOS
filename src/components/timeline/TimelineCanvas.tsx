@@ -130,10 +130,10 @@ export const TimelineCanvas = ({ sourceFilter }: TimelineCanvasProps) => {
         <div className="flex-1 overflow-auto relative custom-scrollbar">
           <div className="min-w-max flex flex-col">
             {/* 1. UNIFIED STICKY HEADER ROW */}
-            <div className="sticky top-0 z-[50] flex flex-shrink-0">
+            <div className="sticky top-0 z-[30] flex flex-shrink-0">
               {/* Corner Spacer (Sticky Top & Left) */}
               <div 
-                className="sticky left-0 z-[60] bg-slate-100 border-b border-r flex items-center justify-between px-4 h-[70px] flex-shrink-0"
+                className="sticky left-0 z-[35] bg-slate-100 border-b border-r flex items-center justify-between px-4 h-[70px] flex-shrink-0"
                 style={{ width: ROOM_COL_WIDTH }}
               >
                 <span className="font-black uppercase tracking-tight text-slate-700">Phòng</span>
@@ -189,7 +189,7 @@ export const TimelineCanvas = ({ sourceFilter }: TimelineCanvasProps) => {
             <div className="flex flex-1">
               {/* Room Sidebar (Sticky Left) */}
               <div 
-                className="sticky left-0 z-[40] bg-white border-r flex-shrink-0 flex flex-col shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]" 
+                className="sticky left-0 z-[25] bg-white border-r flex-shrink-0 flex flex-col shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]" 
                 style={{ width: ROOM_COL_WIDTH }}
               >
                 {propertyRooms.map((room) => (
