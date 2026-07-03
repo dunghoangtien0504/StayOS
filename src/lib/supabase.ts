@@ -1,10 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!url || !key) {
-  console.warn('[StayOS] Supabase env vars missing — NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY')
-}
-
-export const supabase = createClient(url ?? '', key ?? '')
+// Fallback URL is a valid-format placeholder so createClient doesn't throw
+// at module-import time during Next.js SSG build when env vars are absent.
+// At runtime on VPS, .env.local always has the real values baked in.
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key'
+)
