@@ -77,7 +77,13 @@ jobs:
             # Only delete .next build output, never node_modules
             rm -rf .next
 
-            NODE_ENV=production npm run build
+            # Build; on failure (e.g. corrupt/incomplete node_modules) do a full clean reinstall and rebuild
+            if ! NODE_ENV=production npm run build; then
+              echo "=== Build failed — wiping node_modules and doing clean reinstall ==="
+              rm -rf node_modules .next
+              npm install --legacy-peer-deps
+              NODE_ENV=production npm run build
+            fi
 
             pm2 restart stayos --update-env || pm2 start ecosystem.config.js
 
