@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { StoreProvider } from "@/components/StoreProvider";
 import Script from "next/script";
 
 const inter = Inter({
@@ -52,7 +53,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <TooltipProvider>
-          {children}
+          <StoreProvider>
+            {children}
+          </StoreProvider>
         </TooltipProvider>
         <Script id="sw-register" strategy="afterInteractive">{`
           if ('serviceWorker' in navigator) {

@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   Booking,
   Room,
@@ -17,9 +16,35 @@ import {
   Settings,
   ChatLabel,
 } from '@/lib/types';
-import { mockBookings, mockRooms, mockProperties, mockCleaningAssignments, mockExpenses } from '@/lib/mock-data';
 import { startOfToday, format } from 'date-fns';
 import { calculateBookingTotal } from '@/lib/pricing';
+import { db } from '@/lib/db';
+
+// ── Default settings ──────────────────────────────────────────────────────────
+
+const initialSettings: Settings = {
+  branding: {
+    name: 'Ta Thong Dong Homestay',
+    primaryColor: '#E8843A',
+    timezone: 'Asia/Ho_Chi_Minh',
+  },
+  theme: { colorScheme: 'light' },
+  hiddenNavItems: [],
+  hiddenWidgets: [],
+  notifPrefs: {
+    check_in: true,
+    check_out: true,
+    cleaning_done: true,
+    new_booking: true,
+    payment_received: true,
+    system: true,
+  },
+  enabledBookingSources: ['zalo', 'facebook', 'booking', 'airbnb', 'walk_in', 'direct'],
+  customExpenseCategories: [],
+  cleaningTaskTemplates: ['Thay ga giường', 'Lau nhà', 'Vệ sinh toilet', 'Đổ rác', 'Bổ sung amenity'],
+};
+
+// ── State interface ───────────────────────────────────────────────────────────
 
 interface TimelineState {
   properties: Property[];
@@ -38,23 +63,25 @@ interface TimelineState {
   startDate: Date;
   daysToShow: number;
   activeConflictBookingId: string | null;
+  isLoaded: boolean;
 
+  loadFromDb: () => Promise<void>;
   updateSettings: (updates: Partial<Settings>) => void;
-  
-  // Actions
+
+  // Booking actions
   setSelectedPropertyId: (id: string | null) => void;
   setStartDate: (date: Date) => void;
   setActiveConflictBookingId: (id: string | null) => void;
   updateBooking: (bookingId: string, updates: Partial<Booking>) => boolean;
   addBooking: (booking: Omit<Booking, 'id'>, fromThreadId?: string) => string | null;
   checkConflict: (roomId: string, checkIn: Date, checkOut: Date, excludeBookingId?: string) => boolean;
-  
-  // Housekeeping Actions
+
+  // Housekeeping
   updateRoomStatus: (roomId: string, status: RoomStatus) => void;
   startCleaning: (assignmentId: string, housekeeperName: string) => void;
   completeCleaning: (assignmentId: string, photos: string[]) => void;
 
-  // Booking Lifecycle Actions
+  // Booking lifecycle
   checkInBooking: (bookingId: string) => boolean;
   checkOutBooking: (bookingId: string) => void;
   addPayment: (bookingId: string, amount: number, method: 'cash' | 'transfer' | 'card', note?: string) => void;
@@ -62,11 +89,11 @@ interface TimelineState {
   deleteBooking: (bookingId: string) => void;
   markAsNoShow: (bookingId: string) => void;
 
-  // Finance Actions
+  // Finance
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   deleteExpense: (expenseId: string) => void;
 
-  // Property & Room Settings
+  // Property & Room settings
   addProperty: (property: Omit<Property, 'id'>) => void;
   updateProperty: (propertyId: string, updates: Partial<Property>) => void;
   deleteProperty: (propertyId: string) => void;
@@ -74,28 +101,28 @@ interface TimelineState {
   updateRoom: (roomId: string, updates: Partial<Room>) => void;
   deleteRoom: (roomId: string) => void;
 
-  // Guest CRM Actions
+  // Guest CRM
   addGuest: (guest: Omit<Guest, 'id' | 'createdAt'>) => void;
   updateGuest: (guestId: string, updates: Partial<Guest>) => void;
   deleteGuest: (guestId: string) => void;
 
-  // Staff Actions
+  // Staff
   addStaff: (staff: Omit<Staff, 'id' | 'createdAt'>) => void;
   updateStaff: (staffId: string, updates: Partial<Staff>) => void;
   deleteStaff: (staffId: string) => void;
   assignTask: (assignmentId: string, staffId: string) => void;
 
-  // Notification Actions
+  // Notifications
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   clearAllNotifications: () => void;
 
-  // Auth Actions
+  // Auth
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 
-  // Chat Actions
+  // Chat
   sendMessage: (threadId: string, content: string) => void;
   markThreadAsRead: (threadId: string) => void;
   syncMetaThreads: (threads: ChatThread[]) => void;
@@ -106,218 +133,152 @@ interface TimelineState {
   deleteCustomLabel: (labelId: string) => void;
 }
 
-export const useTimelineStore = create<TimelineState>()(
-  persist(
-    (set, get) => ({
-  properties: mockProperties,
-  rooms: mockRooms,
-  bookings: mockBookings,
-  assignments: mockCleaningAssignments,
-  expenses: mockExpenses,
-  guests: [
-    { id: 'g-real-1', name: 'Bao LePhong', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-2', name: 'Cherry Cherry', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-3', name: 'Cẩm Tú', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-4', name: 'Darlice Aurelius', phone: '', nationality: 'USA', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-5', name: 'Duyên Thùy', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-6', name: 'Freen Amstrong', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-7', name: 'Hoài Phương Võ', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-8', name: 'Hoàng Sơn', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-9', name: 'Hoàng Vũ', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-10', name: 'Huy Nguyễn', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-11', name: 'Huyen Nguyen', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-12', name: 'Huyền Như', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-13', name: 'Huỳnh Lê', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-14', name: 'Huỳnh Đăng Quang', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-15', name: 'Hồ Ngọc Hưng', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-16', name: 'Khôi Nguyên', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-17', name: 'Lys Nguyễn', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-18', name: 'Lâm Trần Tuấn', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-19', name: 'Lê Duy Minh', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-20', name: 'Lê Phượng', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-21', name: 'Lê Phạm Minh Tiên', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-22', name: 'Lịch Nguyễn', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-23', name: 'Minh Minh', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-24', name: 'Nguyễn Ngọc Thuý', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-25', name: 'Nguyễn Ngọc Thúy', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-26', name: 'Nguyễn Thanh Long', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-27', name: 'Nguyễn Tuấn Hùng', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-28', name: 'Nguyễn Ảnh Đăng Khoa', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-29', name: 'Ngô Trung', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-30', name: 'Ngọc Sáng', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-31', name: 'Nhà Nghỉ Tư Tùng II', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-32', name: 'Như Lâm', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-33', name: 'Phan Gia Thọ', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-34', name: 'Phạm Lê Vũ', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-35', name: 'Phạm Phương', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-36', name: 'Pé Bông', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-37', name: 'Quynh Nhu', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-38', name: 'Su Mihoo', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-39', name: 'Sóc Béo', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-40', name: 'Thanh Hằng', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-41', name: 'Thanh Phong Phan', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-42', name: 'Thuy Tien', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-43', name: 'Thuý Hằng', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-44', name: 'Thuỷ Tiên', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-45', name: 'Thư Nguyễn Đỗ', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-46', name: 'Thị Hà', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-47', name: 'Tosa Lance', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-48', name: 'Tran Nguyen', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-49', name: 'Tri Vo', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-50', name: 'Triết Học', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-51', name: 'Trương Kiệt', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-52', name: 'Trương Thị Diễm', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-53', name: 'Trần Dash', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-54', name: 'Trần Hoàng', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-55', name: 'Trần Ngọc Dung', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-56', name: 'Tường Vi', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-57', name: 'Võ Xuân Phú', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-58', name: '__chihai__', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-59', name: 'aiem_ngoc', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-60', name: 'dmh_197 - Harris', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-61', name: 'emtraimuadong - Đạt Phạm', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-62', name: 'luann.van - Luan Van', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-63', name: 'Lương Gia Bảo', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-64', name: 'minas', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-65', name: 'sob1004 - Madison', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-66', name: 'tai_minh_hoang - Tài Minh', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-67', name: 'uyenngan04 - Uyển Ngân', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-68', name: 'wlimt.19 - Ann', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-69', name: 'Ái Nhân', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-70', name: 'Đào Đình Chương', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-71', name: 'Đăng Như', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-72', name: 'Hoang Tony', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-73', name: 'Khách dài hạn', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-05-01T00:00:00Z') },
-    { id: 'g-real-74', name: 'Hồng Cúc', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-75', name: 'Lý Hoàng Duyên', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-76', name: 'Tú Nhi', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-77', name: 'Trang Thảo Nguyên', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-78', name: 'Khánh Nam', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-79', name: 'Truc Trinh', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-80', name: 'Vien Nguyen', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-    { id: 'g-real-81', name: 'Thuy Anh', phone: '', nationality: 'Việt Nam', createdAt: new Date('2026-06-01T00:00:00Z') },
-  ],
-  notifications: [
-    { id: 'n-1', type: 'system', title: 'Chào mừng trở lại', message: 'Hệ thống PMS đã sẵn sàng cho ngày hôm nay.', isRead: false, createdAt: new Date() },
-  ],
+// ── Store ─────────────────────────────────────────────────────────────────────
+
+export const useTimelineStore = create<TimelineState>()((set, get) => ({
+  // Initial state — empty until loaded from Supabase
+  properties: [],
+  rooms: [],
+  bookings: [],
+  assignments: [],
+  expenses: [],
+  guests: [],
   staff: [
     { id: 's-1', name: 'Nguyễn Văn Dọn', role: 'housekeeping', phone: '0912345678', active: true, createdAt: new Date() },
     { id: 's-2', name: 'Trần Thị Sạch', role: 'housekeeping', phone: '0987654321', active: true, createdAt: new Date() },
-    { id: 's-3', name: 'Lê Văn Tẩy', role: 'housekeeping', phone: '0900112233', active: false, createdAt: new Date() },
+  ],
+  notifications: [
+    { id: 'n-1', type: 'system', title: 'Chào mừng trở lại', message: 'Hệ thống PMS đã sẵn sàng.', isRead: false, createdAt: new Date() },
   ],
   user: {
     id: 'u-1',
     name: 'Admin User',
     email: 'admin@stayos.com',
     role: 'admin',
-    avatar: 'AD'
+    avatar: 'AD',
   },
-  chatThreads: [
-    {
-      id: 't-1',
-      guestName: 'Nguyễn Văn A',
-      guestPhone: '0901234567',
-      lastMessage: 'Cho mình hỏi phòng có ban công không?',
-      lastMessageAt: new Date(Date.now() - 1000 * 60 * 30),
-      unreadCount: 1,
-      source: 'zalo',
-      messages: [
-        { id: 'm-1', sender: 'Nguyễn Văn A', content: 'Chào bạn, mình muốn đặt phòng cho 2 người.', timestamp: new Date(Date.now() - 1000 * 60 * 60), isFromGuest: true },
-        { id: 'm-2', sender: 'StayOS Admin', content: 'Chào bạn, StayOS xin nghe! Bạn muốn đặt vào ngày nào ạ?', timestamp: new Date(Date.now() - 1000 * 60 * 45), isFromGuest: false },
-        { id: 'm-3', sender: 'Nguyễn Văn A', content: 'Cho mình hỏi phòng có ban công không?', timestamp: new Date(Date.now() - 1000 * 60 * 30), isFromGuest: true },
-      ]
-    },
-    {
-      id: 't-2',
-      guestName: 'Trần Thị B',
-      guestPhone: '0912345678',
-      lastMessage: 'Cảm ơn bạn nhiều nhé!',
-      lastMessageAt: new Date(Date.now() - 1000 * 60 * 120),
-      unreadCount: 0,
-      source: 'facebook',
-      messages: [
-        { id: 'm-4', sender: 'Trần Thị B', content: 'P.102 còn trống không bạn?', timestamp: new Date(Date.now() - 1000 * 60 * 150), isFromGuest: true },
-        { id: 'm-5', sender: 'StayOS Admin', content: 'Dạ còn bạn nhé, bạn check-in lúc mấy giờ ạ?', timestamp: new Date(Date.now() - 1000 * 60 * 130), isFromGuest: false },
-        { id: 'm-6', sender: 'Trần Thị B', content: 'Cảm ơn bạn nhiều nhé!', timestamp: new Date(Date.now() - 1000 * 60 * 120), isFromGuest: true },
-      ]
-    }
-  ],
+  chatThreads: [],
   customLabels: [],
-  settings: {
-    branding: {
-      name: 'Ta Thong Dong Homestay',
-      logoUrl: undefined,
-      primaryColor: '#E8843A',
-      timezone: 'Asia/Ho_Chi_Minh',
-    },
-    theme: { colorScheme: 'light' },
-    hiddenNavItems: [],
-    hiddenWidgets: [],
-    notifPrefs: {
-      check_in: true,
-      check_out: true,
-      cleaning_done: true,
-      new_booking: true,
-      payment_received: true,
-      system: true,
-    },
-    enabledBookingSources: ['zalo', 'facebook', 'booking', 'airbnb', 'walk_in', 'direct'],
-    customExpenseCategories: [],
-    cleaningTaskTemplates: ['Thay ga giường', 'Lau nhà', 'Vệ sinh toilet', 'Đổ rác', 'Bổ sung amenity'],
-  },
-  selectedPropertyId: mockProperties[0].id,
+  settings: initialSettings,
+  selectedPropertyId: 'p1',
   startDate: startOfToday(),
   daysToShow: 7,
   activeConflictBookingId: null,
+  isLoaded: false,
 
-  updateSettings: (updates) => set((state) => ({
-    settings: {
-      ...state.settings,
-      ...updates,
-      branding: { ...state.settings.branding, ...(updates.branding || {}) },
-      theme: { ...state.settings.theme, ...(updates.theme || {}) },
-      notifPrefs: { ...state.settings.notifPrefs, ...(updates.notifPrefs || {}) },
+  // ── DB load ─────────────────────────────────────────────────────────────────
+
+  loadFromDb: async () => {
+    try {
+      const data = await db.fetchAll();
+
+      if (data.isEmpty) {
+        // First run: seed May–June historical data from mock-data.ts
+        await db.seedInitialData(get().settings);
+        const seeded = await db.fetchAll();
+        set({
+          properties: seeded.properties,
+          rooms: seeded.rooms,
+          bookings: seeded.bookings,
+          guests: seeded.guests,
+          staff: seeded.staff.length ? seeded.staff : get().staff,
+          expenses: seeded.expenses,
+          assignments: seeded.assignments,
+          customLabels: seeded.customLabels,
+          settings: seeded.settings ?? initialSettings,
+          selectedPropertyId: seeded.properties[0]?.id ?? 'p1',
+          isLoaded: true,
+        });
+      } else {
+        set({
+          properties: data.properties,
+          rooms: data.rooms,
+          bookings: data.bookings,
+          guests: data.guests,
+          staff: data.staff.length ? data.staff : get().staff,
+          expenses: data.expenses,
+          assignments: data.assignments,
+          customLabels: data.customLabels,
+          settings: data.settings ?? initialSettings,
+          selectedPropertyId: data.properties[0]?.id ?? '',
+          isLoaded: true,
+        });
+      }
+    } catch (err) {
+      console.error('[StayOS] loadFromDb failed:', err);
+      // Allow app to continue in offline mode with empty state
+      set({ isLoaded: true });
     }
-  })),
+  },
+
+  // ── Settings ────────────────────────────────────────────────────────────────
+
+  updateSettings: (updates) => {
+    set((state) => {
+      const next: Settings = {
+        ...state.settings,
+        ...updates,
+        branding: { ...state.settings.branding, ...(updates.branding || {}) },
+        theme: { ...state.settings.theme, ...(updates.theme || {}) },
+        notifPrefs: { ...state.settings.notifPrefs, ...(updates.notifPrefs || {}) },
+      };
+      db.saveSettings(next).catch(console.error);
+      return { settings: next };
+    });
+  },
+
+  // ── Navigation / UI ─────────────────────────────────────────────────────────
 
   setSelectedPropertyId: (id) => set({ selectedPropertyId: id ?? '' }),
+
   setStartDate: (date) => {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
     set({ startDate: normalized });
   },
+
   setActiveConflictBookingId: (id) => set({ activeConflictBookingId: id }),
+
+  // ── Expenses ────────────────────────────────────────────────────────────────
 
   addExpense: (expenseData) => {
     const newId = `e-${Math.random().toString(36).substr(2, 9)}`;
-    set((state) => ({
-      expenses: [...state.expenses, { ...expenseData, id: newId }]
-    }));
+    const expense: Expense = { ...expenseData, id: newId };
+    set((state) => ({ expenses: [...state.expenses, expense] }));
+    db.upsertExpense(expense).catch(console.error);
   },
 
   deleteExpense: (expenseId) => {
-    set((state) => ({
-      expenses: state.expenses.filter(e => e.id !== expenseId)
-    }));
+    set((state) => ({ expenses: state.expenses.filter(e => e.id !== expenseId) }));
+    db.deleteExpense(expenseId).catch(console.error);
   },
 
+  // ── Housekeeping ────────────────────────────────────────────────────────────
+
   updateRoomStatus: (roomId, status) => {
-    set((state) => ({
-      rooms: state.rooms.map(r => r.id === roomId ? { ...r, status } : r)
-    }));
+    set((state) => {
+      const updatedRoom = state.rooms.find(r => r.id === roomId);
+      if (!updatedRoom) return {};
+      const updated = { ...updatedRoom, status };
+      db.upsertRoom(updated).catch(console.error);
+      return { rooms: state.rooms.map(r => r.id === roomId ? updated : r) };
+    });
   },
 
   startCleaning: (assignmentId, housekeeperName) => {
     const assignment = get().assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
 
-    set((state) => ({
-      assignments: state.assignments.map(a =>
+    set((state) => {
+      const updated = state.assignments.map(a =>
         a.id === assignmentId
-          ? { ...a, status: 'in_progress', staffName: housekeeperName, startedAt: new Date() }
+          ? { ...a, status: 'in_progress' as const, staffName: housekeeperName, startedAt: new Date() }
           : a
-      )
-    }));
+      );
+      const updatedA = updated.find(a => a.id === assignmentId)!;
+      db.upsertAssignment(updatedA).catch(console.error);
+      return { assignments: updated };
+    });
     get().updateRoomStatus(assignment.roomId, 'cleaning');
   },
 
@@ -325,15 +286,20 @@ export const useTimelineStore = create<TimelineState>()(
     const assignment = get().assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
 
-    set((state) => ({
-      assignments: state.assignments.map(a => 
-        a.id === assignmentId 
-          ? { ...a, status: 'done', photos, completedAt: new Date() } 
+    set((state) => {
+      const updated = state.assignments.map(a =>
+        a.id === assignmentId
+          ? { ...a, status: 'done' as const, photos, completedAt: new Date() }
           : a
-      )
-    }));
+      );
+      const updatedA = updated.find(a => a.id === assignmentId)!;
+      db.upsertAssignment(updatedA).catch(console.error);
+      return { assignments: updated };
+    });
     get().updateRoomStatus(assignment.roomId, 'clean');
   },
+
+  // ── Booking lifecycle ────────────────────────────────────────────────────────
 
   checkInBooking: (bookingId) => {
     const { bookings, rooms } = get();
@@ -341,23 +307,22 @@ export const useTimelineStore = create<TimelineState>()(
     if (!booking) return false;
 
     const room = rooms.find(r => r.id === booking.roomId);
-    if (room?.status !== 'clean') {
-      return false;
-    }
+    if (room?.status !== 'clean') return false;
 
-    set((state) => ({
-      bookings: state.bookings.map(b =>
-        b.id === bookingId
-          ? { ...b, status: 'checked_in', actualCheckIn: new Date() }
-          : b
-      )
-    }));
+    set((state) => {
+      const updated = state.bookings.map(b =>
+        b.id === bookingId ? { ...b, status: 'checked_in' as const, actualCheckIn: new Date() } : b
+      );
+      const updatedB = updated.find(b => b.id === bookingId)!;
+      db.upsertBooking(updatedB).catch(console.error);
+      return { bookings: updated };
+    });
 
     get().addNotification({
       type: 'check_in',
       title: 'Khách đã Check-in',
       message: `Khách ${booking.guestName} đã vào ${room?.name ?? 'phòng'}.`,
-      link: '/bookings/table'
+      link: '/bookings/table',
     });
 
     return true;
@@ -370,39 +335,35 @@ export const useTimelineStore = create<TimelineState>()(
 
     const room = rooms.find(r => r.id === booking.roomId);
 
-    // Update booking status
-    set((state) => ({
-      bookings: state.bookings.map(b =>
-        b.id === bookingId
-          ? { ...b, status: 'checked_out', actualCheckOut: new Date() }
-          : b
-      )
-    }));
+    set((state) => {
+      const updated = state.bookings.map(b =>
+        b.id === bookingId ? { ...b, status: 'checked_out' as const, actualCheckOut: new Date() } : b
+      );
+      const updatedB = updated.find(b => b.id === bookingId)!;
+      db.upsertBooking(updatedB).catch(console.error);
+      return { bookings: updated };
+    });
 
     get().addNotification({
       type: 'check_out',
       title: 'Khách đã Check-out',
       message: `Khách ${booking.guestName} đã trả ${room?.name ?? 'phòng'}.`,
-      link: '/housekeeping'
+      link: '/housekeeping',
     });
 
-    // Trigger Room Dirty and Cleaning Assignment
     get().updateRoomStatus(booking.roomId, 'dirty');
-    
+
     const newAssignmentId = `c-${Math.random().toString(36).substr(2, 9)}`;
-    set((state) => ({
-      assignments: [
-        ...state.assignments,
-        {
-          id: newAssignmentId,
-          roomId: booking.roomId,
-          bookingId: bookingId,
-          status: 'pending',
-          photos: [],
-          createdAt: new Date(),
-        }
-      ]
-    }));
+    const newAssignment: CleaningAssignment = {
+      id: newAssignmentId,
+      roomId: booking.roomId,
+      bookingId,
+      status: 'pending',
+      photos: [],
+      createdAt: new Date(),
+    };
+    set((state) => ({ assignments: [...state.assignments, newAssignment] }));
+    db.upsertAssignment(newAssignment).catch(console.error);
   },
 
   addPayment: (bookingId, amount, method, note) => {
@@ -416,29 +377,32 @@ export const useTimelineStore = create<TimelineState>()(
       amount,
       method,
       date: new Date(),
-      note
+      note,
     };
 
     const newAmountPaid = booking.amountPaid + amount;
     const shouldBeDeposited = newAmountPaid >= booking.totalPrice && booking.status === 'confirmed';
 
-    set((state) => ({
-      bookings: state.bookings.map(b => 
-        b.id === bookingId 
-          ? { 
-              ...b, 
-              amountPaid: newAmountPaid, 
-              status: shouldBeDeposited ? 'deposited' : b.status,
-              payments: [...(b.payments || []), payment]
-            } 
+    set((state) => {
+      const updated = state.bookings.map(b =>
+        b.id === bookingId
+          ? {
+              ...b,
+              amountPaid: newAmountPaid,
+              status: shouldBeDeposited ? 'deposited' as const : b.status,
+              payments: [...(b.payments || []), payment],
+            }
           : b
-      )
-    }));
+      );
+      const updatedB = updated.find(b => b.id === bookingId)!;
+      db.upsertBooking(updatedB).catch(console.error);
+      return { bookings: updated };
+    });
 
     get().addNotification({
       type: 'payment_received',
       title: 'Đã thu tiền',
-      message: `Đã thu ${amount.toLocaleString('vi-VN')}đ từ ${booking.guestName}`
+      message: `Đã thu ${amount.toLocaleString('vi-VN')}đ từ ${booking.guestName}`,
     });
   },
 
@@ -451,63 +415,60 @@ export const useTimelineStore = create<TimelineState>()(
 
     const newAmountPaid = Math.max(0, booking.amountPaid - payment.amount);
 
-    set((state) => ({
-      bookings: state.bookings.map(b => 
-        b.id === bookingId 
-          ? { 
-              ...b, 
-              amountPaid: newAmountPaid, 
-              status: (b.status === 'deposited' && newAmountPaid < b.totalPrice) ? 'confirmed' : b.status,
-              payments: (b.payments || []).filter(p => p.id !== paymentId)
+    set((state) => {
+      const updated = state.bookings.map(b =>
+        b.id === bookingId
+          ? {
+              ...b,
+              amountPaid: newAmountPaid,
+              status: (b.status === 'deposited' && newAmountPaid < b.totalPrice) ? 'confirmed' as const : b.status,
+              payments: (b.payments || []).filter(p => p.id !== paymentId),
             }
           : b
-      )
-    }));
+      );
+      const updatedB = updated.find(b => b.id === bookingId)!;
+      db.upsertBooking(updatedB).catch(console.error);
+      return { bookings: updated };
+    });
 
     get().addNotification({
       type: 'system',
       title: 'Hủy giao dịch',
-      message: `Đã xóa giao dịch ${payment.amount.toLocaleString('vi-VN')}đ của ${booking.guestName}`
+      message: `Đã xóa giao dịch ${payment.amount.toLocaleString('vi-VN')}đ của ${booking.guestName}`,
     });
   },
 
   deleteBooking: (bookingId) => {
-    set((state) => ({
-      bookings: state.bookings.filter(b => b.id !== bookingId)
-    }));
+    set((state) => ({ bookings: state.bookings.filter(b => b.id !== bookingId) }));
+    db.deleteBooking(bookingId).catch(console.error);
   },
 
   markAsNoShow: (bookingId) => {
     const booking = get().bookings.find(b => b.id === bookingId);
     if (!booking) return;
 
-    set((state) => ({
-      bookings: state.bookings.map(b => 
-        b.id === bookingId ? { ...b, status: 'no_show' } : b
-      )
-    }));
+    set((state) => {
+      const updated = state.bookings.map(b =>
+        b.id === bookingId ? { ...b, status: 'no_show' as const } : b
+      );
+      const updatedB = updated.find(b => b.id === bookingId)!;
+      db.upsertBooking(updatedB).catch(console.error);
+      return { bookings: updated };
+    });
 
     get().addNotification({
       type: 'system',
       title: 'No-show',
-      message: `Khách ${booking.guestName} không đến nhận phòng.`
+      message: `Khách ${booking.guestName} không đến nhận phòng.`,
     });
   },
 
   checkConflict: (roomId, checkIn, checkOut, excludeBookingId) => {
-    const { bookings } = get();
-    
-    return bookings.some((b) => {
+    return get().bookings.some((b) => {
       if (b.id === excludeBookingId) return false;
       if (b.roomId !== roomId) return false;
       if (b.status === 'cancelled' || b.status === 'no_show') return false;
-
-      const bStart = b.checkIn.getTime();
-      const bEnd = b.checkOut.getTime();
-      const nStart = checkIn.getTime();
-      const nEnd = checkOut.getTime();
-
-      return (nStart < bEnd) && (nEnd > bStart);
+      return checkIn.getTime() < b.checkOut.getTime() && checkOut.getTime() > b.checkIn.getTime();
     });
   },
 
@@ -520,28 +481,21 @@ export const useTimelineStore = create<TimelineState>()(
     const newCheckIn = updates.checkIn ?? booking.checkIn;
     const newCheckOut = updates.checkOut ?? booking.checkOut;
 
-    if (checkConflict(newRoomId, newCheckIn, newCheckOut, bookingId)) {
-      return false;
-    }
+    if (checkConflict(newRoomId, newCheckIn, newCheckOut, bookingId)) return false;
 
-    // Recompute price if room or dates changed
     let newTotalPrice = updates.totalPrice ?? booking.totalPrice;
-    if (updates.roomId || updates.checkIn || updates.checkOut) {
+    if ((updates.roomId || updates.checkIn || updates.checkOut) && updates.totalPrice === undefined) {
       const room = rooms.find(r => r.id === newRoomId);
-      if (room) {
-        const recomputedTotal = calculateBookingTotal(room, newCheckIn, newCheckOut);
-        
-        // Simple heuristic: if the user didn't manually set a new price in the update, recompute it
-        if (updates.totalPrice === undefined) {
-          newTotalPrice = recomputedTotal;
-        }
-      }
+      if (room) newTotalPrice = calculateBookingTotal(room, newCheckIn, newCheckOut);
     }
 
-    set({
-      bookings: bookings.map((b) =>
+    set((state) => {
+      const updated = state.bookings.map((b) =>
         b.id === bookingId ? { ...b, ...updates, totalPrice: newTotalPrice } : b
-      ),
+      );
+      const updatedB = updated.find(b => b.id === bookingId)!;
+      db.upsertBooking(updatedB).catch(console.error);
+      return { bookings: updated };
     });
     return true;
   },
@@ -553,58 +507,51 @@ export const useTimelineStore = create<TimelineState>()(
       return null;
     }
 
-    // Auto-link CRM
     const guestExists = guests.some(g => g.phone === newBookingData.guestPhone);
-    if (!guestExists) {
-      addGuest({
-        name: newBookingData.guestName,
-        phone: newBookingData.guestPhone
-      });
+    if (!guestExists && newBookingData.guestPhone) {
+      addGuest({ name: newBookingData.guestName, phone: newBookingData.guestPhone });
     }
 
     const room = rooms.find(r => r.id === newBookingData.roomId);
-
     const newId = `b-${Math.random().toString(36).substr(2, 9)}`;
-    const booking: Booking = {
-      ...newBookingData,
-      id: newId,
-      payments: [] // Initialize payments array
-    };
+    const booking: Booking = { ...newBookingData, id: newId, payments: [] };
 
-    set({
-      bookings: [...bookings, booking],
-    });
+    set({ bookings: [...bookings, booking] });
+    db.upsertBooking(booking).catch(console.error);
 
-    // UNIT E: Link with chat thread if requested
     if (fromThreadId) {
       set((state) => ({
-        chatThreads: state.chatThreads.map(t => 
+        chatThreads: state.chatThreads.map(t =>
           t.id === fromThreadId ? { ...t, linkedBookingId: newId } : t
-        )
+        ),
       }));
     }
-    
+
     addNotification({
       type: 'new_booking',
       title: 'Đặt phòng mới',
-      message: `${newBookingData.guestName} – ${room?.name || 'Phòng'} – ${format(newBookingData.checkIn, 'dd/MM HH:mm')}`
+      message: `${newBookingData.guestName} – ${room?.name || 'Phòng'} – ${format(newBookingData.checkIn, 'dd/MM HH:mm')}`,
     });
 
     return newId;
   },
 
-  // Property Actions
+  // ── Property & Room ─────────────────────────────────────────────────────────
+
   addProperty: (propertyData) => {
     const newId = `p-${Math.random().toString(36).substr(2, 9)}`;
-    set((state) => ({
-      properties: [...state.properties, { ...propertyData, id: newId }]
-    }));
+    const property: Property = { ...propertyData, id: newId };
+    set((state) => ({ properties: [...state.properties, property] }));
+    db.upsertProperty(property).catch(console.error);
   },
 
   updateProperty: (propertyId, updates) => {
-    set((state) => ({
-      properties: state.properties.map(p => p.id === propertyId ? { ...p, ...updates } : p)
-    }));
+    set((state) => {
+      const updated = state.properties.map(p => p.id === propertyId ? { ...p, ...updates } : p);
+      const updatedP = updated.find(p => p.id === propertyId)!;
+      db.upsertProperty(updatedP).catch(console.error);
+      return { properties: updated };
+    });
   },
 
   deleteProperty: (propertyId) => {
@@ -612,83 +559,99 @@ export const useTimelineStore = create<TimelineState>()(
       properties: state.properties.filter(p => p.id !== propertyId),
       rooms: state.rooms.filter(r => r.propertyId !== propertyId),
       bookings: state.bookings.filter(b => b.propertyId !== propertyId),
-      selectedPropertyId: state.selectedPropertyId === propertyId ? (state.properties[0]?.id || '') : state.selectedPropertyId
+      selectedPropertyId: state.selectedPropertyId === propertyId
+        ? (state.properties.find(p => p.id !== propertyId)?.id || '')
+        : state.selectedPropertyId,
     }));
+    db.deleteProperty(propertyId).catch(console.error);
   },
 
-  // Room Actions
   addRoom: (roomData) => {
     const newId = `r-${Math.random().toString(36).substr(2, 9)}`;
-    set((state) => ({
-      rooms: [...state.rooms, { ...roomData, id: newId }]
-    }));
+    const room: Room = { ...roomData, id: newId };
+    set((state) => ({ rooms: [...state.rooms, room] }));
+    db.upsertRoom(room).catch(console.error);
   },
 
   updateRoom: (roomId, updates) => {
-    set((state) => ({
-      rooms: state.rooms.map(r => r.id === roomId ? { ...r, ...updates } : r)
-    }));
+    set((state) => {
+      const updated = state.rooms.map(r => r.id === roomId ? { ...r, ...updates } : r);
+      const updatedR = updated.find(r => r.id === roomId)!;
+      db.upsertRoom(updatedR).catch(console.error);
+      return { rooms: updated };
+    });
   },
 
   deleteRoom: (roomId) => {
     set((state) => ({
       rooms: state.rooms.filter(r => r.id !== roomId),
-      bookings: state.bookings.filter(b => b.roomId !== roomId)
+      bookings: state.bookings.filter(b => b.roomId !== roomId),
     }));
+    db.deleteRoom(roomId).catch(console.error);
   },
 
-  // Guest Actions
+  // ── Guests ──────────────────────────────────────────────────────────────────
+
   addGuest: (guestData) => {
     const newId = `g-${Math.random().toString(36).substr(2, 9)}`;
-    set((state) => ({
-      guests: [...state.guests, { ...guestData, id: newId, createdAt: new Date() }]
-    }));
+    const guest: Guest = { ...guestData, id: newId, createdAt: new Date() };
+    set((state) => ({ guests: [...state.guests, guest] }));
+    db.upsertGuest(guest).catch(console.error);
   },
 
   updateGuest: (guestId, updates) => {
-    set((state) => ({
-      guests: state.guests.map(g => g.id === guestId ? { ...g, ...updates } : g)
-    }));
+    set((state) => {
+      const updated = state.guests.map(g => g.id === guestId ? { ...g, ...updates } : g);
+      const updatedG = updated.find(g => g.id === guestId)!;
+      db.upsertGuest(updatedG).catch(console.error);
+      return { guests: updated };
+    });
   },
 
   deleteGuest: (guestId) => {
-    set((state) => ({
-      guests: state.guests.filter(g => g.id !== guestId)
-    }));
+    set((state) => ({ guests: state.guests.filter(g => g.id !== guestId) }));
+    db.deleteGuest(guestId).catch(console.error);
   },
 
-  // Staff Actions
+  // ── Staff ────────────────────────────────────────────────────────────────────
+
   addStaff: (staffData) => {
     const newId = `s-${Math.random().toString(36).substr(2, 9)}`;
-    set((state) => ({
-      staff: [...state.staff, { ...staffData, id: newId, createdAt: new Date() }]
-    }));
+    const staffMember: Staff = { ...staffData, id: newId, createdAt: new Date() };
+    set((state) => ({ staff: [...state.staff, staffMember] }));
+    db.upsertStaff(staffMember).catch(console.error);
   },
 
   updateStaff: (staffId, updates) => {
-    set((state) => ({
-      staff: state.staff.map(s => s.id === staffId ? { ...s, ...updates } : s)
-    }));
+    set((state) => {
+      const updated = state.staff.map(s => s.id === staffId ? { ...s, ...updates } : s);
+      const updatedS = updated.find(s => s.id === staffId)!;
+      db.upsertStaff(updatedS).catch(console.error);
+      return { staff: updated };
+    });
   },
 
   deleteStaff: (staffId) => {
-    set((state) => ({
-      staff: state.staff.filter(s => s.id !== staffId)
-    }));
+    set((state) => ({ staff: state.staff.filter(s => s.id !== staffId) }));
+    db.deleteStaff(staffId).catch(console.error);
   },
 
   assignTask: (assignmentId, staffId) => {
-    const staff = get().staff.find(s => s.id === staffId);
-    if (!staff) return;
+    const staffMember = get().staff.find(s => s.id === staffId);
+    if (!staffMember) return;
 
-    set((state) => ({
-      assignments: state.assignments.map(a => 
-        a.id === assignmentId ? { ...a, staffId, staffName: staff.name } : a
-      )
-    }));
+    set((state) => {
+      const updated = state.assignments.map(a =>
+        a.id === assignmentId ? { ...a, staffId, staffName: staffMember.name } : a
+      );
+      const updatedA = updated.find(a => a.id === assignmentId)!;
+      db.upsertAssignment(updatedA).catch(console.error);
+      return { assignments: updated };
+    });
   },
 
-  // Notification Actions
+  // ── Notifications ────────────────────────────────────────────────────────────
+
   addNotification: (notificationData) => {
     const prefs = get().settings?.notifPrefs;
     if (prefs && prefs[notificationData.type] === false) return;
@@ -696,97 +659,72 @@ export const useTimelineStore = create<TimelineState>()(
     set((state) => ({
       notifications: [
         { ...notificationData, id: newId, isRead: false, createdAt: new Date() },
-        ...state.notifications
-      ]
+        ...state.notifications,
+      ],
     }));
   },
 
   markAsRead: (notificationId) => {
     set((state) => ({
-      notifications: state.notifications.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
+      notifications: state.notifications.map(n => n.id === notificationId ? { ...n, isRead: true } : n),
     }));
   },
 
   markAllAsRead: () => {
-    set((state) => ({
-      notifications: state.notifications.map(n => ({ ...n, isRead: true }))
-    }));
+    set((state) => ({ notifications: state.notifications.map(n => ({ ...n, isRead: true })) }));
   },
 
-  clearAllNotifications: () => {
-    set({ notifications: [] });
-  },
+  clearAllNotifications: () => set({ notifications: [] }),
 
-  // Auth Actions
+  // ── Auth ─────────────────────────────────────────────────────────────────────
+
   login: async (email, password) => {
-    // Mock login logic
     if (email === 'admin@stayos.com' && password === 'admin123') {
-      set({
-        user: {
-          id: 'u-1',
-          name: 'Admin User',
-          email: 'admin@stayos.com',
-          role: 'admin',
-          avatar: 'AD'
-        }
-      });
+      set({ user: { id: 'u-1', name: 'Admin User', email: 'admin@stayos.com', role: 'admin', avatar: 'AD' } });
       return true;
     }
     return false;
   },
 
-  logout: () => {
-    set({ user: null });
-  },
+  logout: () => set({ user: null }),
 
-  // Chat Actions
+  // ── Chat ─────────────────────────────────────────────────────────────────────
+
   sendMessage: (threadId, content) => {
     const newMessage: Message = {
       id: `m-${Math.random().toString(36).substr(2, 9)}`,
       sender: 'StayOS Admin',
       content,
       timestamp: new Date(),
-      isFromGuest: false
+      isFromGuest: false,
     };
-
     set((state) => ({
-      chatThreads: state.chatThreads.map(t => 
-        t.id === threadId 
-          ? { 
-              ...t, 
-              messages: [...t.messages, newMessage],
-              lastMessage: content,
-              lastMessageAt: new Date()
-            } 
+      chatThreads: state.chatThreads.map(t =>
+        t.id === threadId
+          ? { ...t, messages: [...t.messages, newMessage], lastMessage: content, lastMessageAt: new Date() }
           : t
-      )
+      ),
     }));
   },
 
   markThreadAsRead: (threadId) => {
     set((state) => ({
-      chatThreads: state.chatThreads.map(t =>
-        t.id === threadId ? { ...t, unreadCount: 0 } : t
-      )
+      chatThreads: state.chatThreads.map(t => t.id === threadId ? { ...t, unreadCount: 0 } : t),
     }));
   },
 
-  // Replace the thread list with freshly-synced Meta conversations,
-  // while preserving local state (loaded messages, booking links, reads).
   syncMetaThreads: (threads) => {
     set((state) => {
       const prevById = new Map(state.chatThreads.map(t => [t.id, t]));
       const merged = threads.map((next) => {
         const prev = prevById.get(next.id);
         if (!prev) return next;
-        // No new activity since last sync -> keep local read state + messages
-        const noNewActivity =
-          prev.lastMessageAt.getTime() >= next.lastMessageAt.getTime();
+        const noNewActivity = prev.lastMessageAt.getTime() >= next.lastMessageAt.getTime();
         return {
           ...next,
           linkedBookingId: prev.linkedBookingId ?? next.linkedBookingId,
           labelIds: prev.labelIds ?? next.labelIds,
-          unreadCount: noNewActivity ? prev.unreadCount : (prev.unreadCount + 1),
+          unreadCount: noNewActivity ? prev.unreadCount : prev.unreadCount + 1,
           messages: prev.messagesLoaded ? prev.messages : next.messages,
           messagesLoaded: prev.messagesLoaded && noNewActivity,
         };
@@ -795,7 +733,6 @@ export const useTimelineStore = create<TimelineState>()(
     });
   },
 
-  // Store the full message history fetched for one conversation.
   setThreadMessages: (threadId, messages) => {
     set((state) => ({
       chatThreads: state.chatThreads.map(t => {
@@ -808,12 +745,10 @@ export const useTimelineStore = create<TimelineState>()(
           lastMessage: last ? last.content : t.lastMessage,
           lastMessageAt: last ? last.timestamp : t.lastMessageAt,
         };
-      })
+      }),
     }));
   },
 
-  // Append a single live message from SSE webhook — no API roundtrip needed.
-  // Returns true if the thread was found (matched by recipientId = guest PSID).
   appendLiveMessage: (senderId, msg) => {
     let found = false;
     set((state) => {
@@ -828,7 +763,6 @@ export const useTimelineStore = create<TimelineState>()(
           messages: t.messagesLoaded ? [...t.messages, msg] : t.messages,
         };
       });
-      // Bubble updated thread to top
       updated.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
       return { chatThreads: updated };
     });
@@ -837,15 +771,14 @@ export const useTimelineStore = create<TimelineState>()(
 
   setThreadLabels: (threadId, labelIds) => {
     set((state) => ({
-      chatThreads: state.chatThreads.map(t =>
-        t.id === threadId ? { ...t, labelIds } : t
-      ),
+      chatThreads: state.chatThreads.map(t => t.id === threadId ? { ...t, labelIds } : t),
     }));
   },
 
   addCustomLabel: (label) => {
     const newLabel: ChatLabel = { ...label, id: `custom-${Date.now()}` };
     set((state) => ({ customLabels: [...(state.customLabels ?? []), newLabel] }));
+    db.upsertLabel(newLabel).catch(console.error);
   },
 
   deleteCustomLabel: (labelId) => {
@@ -856,98 +789,6 @@ export const useTimelineStore = create<TimelineState>()(
         labelIds: (t.labelIds ?? []).filter(id => id !== labelId),
       })),
     }));
+    db.deleteLabel(labelId).catch(console.error);
   },
-    }),
-    {
-      name: 'stayos-store',
-      version: 8,
-      migrate: (_persistedState, fromVersion) => {
-        console.log(`[StayOS] Store migrated from v${fromVersion} → v8. P.101 thang 6 tu Google Sheets.`);
-        return undefined; // undefined = dùng initialState
-      },
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        properties: state.properties,
-        rooms: state.rooms,
-        bookings: state.bookings,
-        assignments: state.assignments,
-        expenses: state.expenses,
-        guests: state.guests,
-        notifications: state.notifications,
-        chatThreads: state.chatThreads,
-        customLabels: state.customLabels ?? [],
-        staff: state.staff,
-        user: state.user,
-        selectedPropertyId: state.selectedPropertyId,
-        settings: state.settings,
-      }),
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
-        
-        // Force Room 202 to be Deluxe
-        if (state.rooms) {
-          state.rooms = state.rooms.map(r => 
-            r.id === 'r202' 
-              ? { ...r, roomType: 'Deluxe', basePrice: 749000 } 
-              : r
-          );
-        }
-
-        // Re-hydrate Date instances (JSON.parse trả về string)
-        const toDate = (v: unknown) => (v ? new Date(v as string) : undefined);
-
-        state.bookings = state.bookings.map((b) => ({
-          ...b,
-          checkIn: new Date(b.checkIn),
-          checkOut: new Date(b.checkOut),
-          actualCheckIn: toDate(b.actualCheckIn),
-          actualCheckOut: toDate(b.actualCheckOut),
-          payments: b.payments?.map(p => ({
-            ...p,
-            date: new Date(p.date)
-          }))
-        }));
-
-        state.assignments = state.assignments.map((a) => ({
-          ...a,
-          createdAt: new Date(a.createdAt),
-          startedAt: toDate(a.startedAt),
-          completedAt: toDate(a.completedAt),
-        }));
-
-        state.expenses = state.expenses.map((e) => ({
-          ...e,
-          date: new Date(e.date),
-        }));
-
-        state.guests = state.guests.map((g) => ({
-          ...g,
-          createdAt: new Date(g.createdAt),
-        }));
-
-        state.notifications = state.notifications.map((n) => ({ ...n, createdAt: new Date(n.createdAt) }));
-        state.staff = (state.staff ?? []).map((s) => ({ ...s, createdAt: new Date(s.createdAt) }));
-
-        state.chatThreads = state.chatThreads.map((t) => ({
-          ...t,
-          lastMessageAt: new Date(t.lastMessageAt),
-          messages: t.messages.map((m) => ({
-            ...m,
-            timestamp: new Date(m.timestamp),
-          })),
-        }));
-
-        state.startDate = new Date(state.startDate);
-        state.startDate.setHours(0, 0, 0, 0); // Always snap to start of local day
-        
-        /* 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (state.startDate.getTime() < today.getTime()) {
-           state.startDate = today;
-        }
-        */
-      },
-    }
-  )
-);
+}));

@@ -27,6 +27,8 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: 🚢 Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -37,13 +39,15 @@ jobs:
           META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
           GOCLAW_API_URL: ${{ secrets.GOCLAW_API_URL }}
           GOCLAW_API_KEY: ${{ secrets.GOCLAW_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: 2018
           command_timeout: 15m
-          envs: META_VERIFY_TOKEN,META_PAGE_ACCESS_TOKEN,META_APP_SECRET,META_PAGE_ID,GOCLAW_API_URL,GOCLAW_API_KEY
+          envs: META_VERIFY_TOKEN,META_PAGE_ACCESS_TOKEN,META_APP_SECRET,META_PAGE_ID,GOCLAW_API_URL,GOCLAW_API_KEY,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY
           script: |
             set -e
             echo "=== Deploying StayOS ==="
@@ -56,7 +60,7 @@ jobs:
 
             # Inject Meta env vars into .env.local
             touch .env.local
-            for key in META_VERIFY_TOKEN META_PAGE_ACCESS_TOKEN META_APP_SECRET META_PAGE_ID GOCLAW_API_URL GOCLAW_API_KEY; do
+            for key in META_VERIFY_TOKEN META_PAGE_ACCESS_TOKEN META_APP_SECRET META_PAGE_ID GOCLAW_API_URL GOCLAW_API_KEY NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
               val=$(eval echo \$$key)
               if [ -n "$val" ]; then
                 sed -i "/^${key}=/d" .env.local
