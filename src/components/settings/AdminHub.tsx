@@ -56,9 +56,10 @@ function toggleInArray<T>(arr: T[], value: T): T[] {
 }
 
 export const AdminHub = () => {
-  const { settings, updateSettings } = useTimelineStore();
+  const { settings, updateSettings, markAllPaid, bookings } = useTimelineStore();
 
   const [newCategory, setNewCategory] = useState('');
+  const [paidResult, setPaidResult] = useState<string | null>(null);
   const [newTask, setNewTask] = useState('');
 
   return (
@@ -80,6 +81,7 @@ export const AdminHub = () => {
             <TabsTrigger value="pricing">Giá phòng</TabsTrigger>
             <TabsTrigger value="categories">Chi phí</TabsTrigger>
             <TabsTrigger value="cleaning">Dọn phòng</TabsTrigger>
+            <TabsTrigger value="debt">Công nợ</TabsTrigger>
             <TabsTrigger value="agent-ai">Trợ lý Agent</TabsTrigger>
           </TabsList>
 
@@ -416,6 +418,43 @@ export const AdminHub = () => {
                   </Button>
                 </div>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* Debt Management */}
+          <TabsContent value="debt" className="bg-white p-8 rounded-2xl border space-y-6 mt-4">
+            <div>
+              <h2 className="text-xl font-black">Quản lý công nợ</h2>
+              <p className="text-xs text-muted-foreground font-medium">Thao tác hàng loạt trên dữ liệu thanh toán</p>
+            </div>
+            <div className="border rounded-xl p-5 space-y-3 bg-green-50 border-green-200">
+              <h3 className="font-bold text-sm text-green-800">Đánh dấu tất cả đã thanh toán đủ</h3>
+              <p className="text-xs text-muted-foreground">
+                Tìm tất cả đặt phòng còn công nợ (amountPaid &lt; totalPrice, không phải Huỷ/No-show) và cập nhật
+                amountPaid = totalPrice trong Supabase.
+              </p>
+              {(() => {
+                const unpaidCount = bookings.filter(
+                  b => b.status !== 'cancelled' && b.status !== 'no_show' && b.amountPaid < b.totalPrice
+                ).length;
+                return (
+                  <p className="text-xs font-bold text-green-700">
+                    Hiện có <span className="text-lg">{unpaidCount}</span> đặt phòng còn công nợ.
+                  </p>
+                );
+              })()}
+              {paidResult && (
+                <p className="text-xs font-bold text-green-700 bg-green-100 px-3 py-2 rounded-lg">{paidResult}</p>
+              )}
+              <Button
+                onClick={() => {
+                  const count = markAllPaid();
+                  setPaidResult(count > 0 ? `Đã cập nhật ${count} đặt phòng — tất cả công nợ = 0.` : 'Không có công nợ nào cần cập nhật.');
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold"
+              >
+                Xác nhận: Đánh dấu tất cả đã thanh toán đủ
+              </Button>
             </div>
           </TabsContent>
 

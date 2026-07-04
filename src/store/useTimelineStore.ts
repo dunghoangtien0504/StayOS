@@ -73,6 +73,7 @@ interface TimelineState {
   setStartDate: (date: Date) => void;
   setActiveConflictBookingId: (id: string | null) => void;
   updateBooking: (bookingId: string, updates: Partial<Booking>) => boolean;
+  markAllPaid: () => number;
   addBooking: (booking: Omit<Booking, 'id'>, fromThreadId?: string) => string | null;
   checkConflict: (roomId: string, checkIn: Date, checkOut: Date, excludeBookingId?: string) => boolean;
 
@@ -498,6 +499,24 @@ export const useTimelineStore = create<TimelineState>()((set, get) => ({
       return { bookings: updated };
     });
     return true;
+  },
+
+  markAllPaid: () => {
+    const { bookings } = get();
+    const unpaid = bookings.filter(
+      b => b.status !== 'cancelled' && b.status !== 'no_show' && b.amountPaid < b.totalPrice
+    );
+    if (unpaid.length === 0) return 0;
+    set((state) => {
+      const updated = state.bookings.map(b => {
+        if (b.status === 'cancelled' || b.status === 'no_show' || b.amountPaid >= b.totalPrice) return b;
+        const updatedB = { ...b, amountPaid: b.totalPrice };
+        db.upsertBooking(updatedB).catch(console.error);
+        return updatedB;
+      });
+      return { bookings: updated };
+    });
+    return unpaid.length;
   },
 
   addBooking: (newBookingData, fromThreadId) => {
