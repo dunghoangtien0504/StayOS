@@ -70,9 +70,18 @@ export const Shell = ({ children, title }: ShellProps) => {
   }, []);
 
 
-  // Monitoring refs to avoid duplicate notifications in same session
-  const notifiedBookings = useRef(new Set<string>());
-  const notifiedAssignments = useRef(new Set<string>());
+  // Monitoring refs - persist across remounts via localStorage so same booking
+  // doesn't trigger a new alert on every page navigation or Supabase reload.
+  const notifiedBookings = useRef(new Set<string>(
+    typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('_notifiedLateCI') || '[]')
+      : []
+  ));
+  const notifiedAssignments = useRef(new Set<string>(
+    typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('_notifiedLateClean') || '[]')
+      : []
+  ));
 
   useEffect(() => {
     if (!user && pathname !== '/login') {
@@ -88,7 +97,8 @@ export const Shell = ({ children, title }: ShellProps) => {
 
       // 1. Check for Late Check-ins (30 mins past check-in time)
       bookings.forEach(b => {
-        if ((b.status === 'confirmed' || b.status === 'deposited') && !notifiedBookings.current.has(b.id)) {
+        const checkOutPassed = b.checkOut < now;
+        if ((b.status === 'confirmed' || b.status === 'deposited') && !notifiedBookings.current.has(b.id) && !checkOutPassed) {
           const lateThreshold = new Date(b.checkIn.getTime() + 30 * 60 * 1000);
           if (now > lateThreshold) {
             const room = currentRooms.find(r => r.id === b.roomId);
@@ -98,6 +108,7 @@ export const Shell = ({ children, title }: ShellProps) => {
               message: `Khách ${b.guestName} trễ giờ check-in hơn 30 phút (Phòng ${room?.name || b.roomId})`
             });
             notifiedBookings.current.add(b.id);
+            try { localStorage.setItem('_notifiedLateCI', JSON.stringify([...notifiedBookings.current])); } catch {}
           }
         }
       });
@@ -114,6 +125,7 @@ export const Shell = ({ children, title }: ShellProps) => {
               message: `Phòng ${room?.name || a.roomId} đã ở trạng thái chờ dọn hơn 4 giờ.`
             });
             notifiedAssignments.current.add(a.id);
+            try { localStorage.setItem('_notifiedLateClean', JSON.stringify([...notifiedAssignments.current])); } catch {}
           }
         }
       });
