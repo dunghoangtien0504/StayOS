@@ -53,6 +53,9 @@ jobs:
             echo "=== Deploying StayOS ==="
             cd /home/apps/StayOS
 
+            # Remove stale git lock files left by crashed/concurrent processes
+            rm -f .git/index.lock .git/HEAD.lock
+
             # Reset any local changes (e.g. from manual edits) to avoid git pull conflicts
             git reset --hard
             git clean -fd --exclude='.env.local' --exclude='public/uploads/'
