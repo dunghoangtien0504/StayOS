@@ -195,10 +195,33 @@ export interface ChatThread {
   source: ChatSource;
   guestId?: string;
   linkedBookingId?: string;
+  pendingBookingId?: string; // ID of pending booking awaiting owner approval
   labelIds?: string[]; // IDs from DEFAULT_CHAT_LABELS
+  /** Pancake conversation fields */
+  pageId?: string;
+  conversationId?: string;
+  customerId?: string;
   /** Meta Graph API fields (present for synced threads) */
   recipientId?: string;   // PSID (Messenger) or IGSID (Instagram)
   platform?: 'messenger' | 'instagram';
   /** true once full message history has been loaded from Meta */
   messagesLoaded?: boolean;
+}
+
+export interface PendingBooking {
+  id: string;
+  pageId: string;
+  conversationId: string;
+  customerId?: string;
+  guestName: string;
+  guestPhone?: string;
+  checkIn: Date;
+  checkOut: Date;
+  roomType?: string;      // 'Deluxe' | 'VIP' | specific room name
+  preferredRoomId?: string;
+  totalPrice: number;
+  notes?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
+  approvedBookingId?: string;
 }
