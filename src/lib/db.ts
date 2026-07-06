@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 import type {
   Booking, Room, Property, Guest, Staff, Expense,
-  CleaningAssignment, Settings, ChatLabel,
+  CleaningAssignment, Settings, ChatLabel, PendingBooking,
   BookingSource, BookingStatus, RoomStatus, CleaningStatus,
 } from './types'
 import {
@@ -206,6 +206,47 @@ function fromDbAssignment(row: Record<string, any>): CleaningAssignment {
   }
 }
 
+function toDbPendingBooking(p: PendingBooking) {
+  return {
+    id: p.id,
+    page_id: p.pageId,
+    conversation_id: p.conversationId,
+    customer_id: p.customerId ?? null,
+    guest_name: p.guestName,
+    guest_phone: p.guestPhone ?? null,
+    check_in: p.checkIn instanceof Date ? p.checkIn.toISOString().split('T')[0] : p.checkIn,
+    check_out: p.checkOut instanceof Date ? p.checkOut.toISOString().split('T')[0] : p.checkOut,
+    room_type: p.roomType ?? null,
+    preferred_room_id: p.preferredRoomId ?? null,
+    total_price: p.totalPrice,
+    notes: p.notes ?? null,
+    status: p.status,
+    created_at: p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt,
+    approved_booking_id: p.approvedBookingId ?? null,
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fromDbPendingBooking(row: Record<string, any>): PendingBooking {
+  return {
+    id: row.id,
+    pageId: row.page_id,
+    conversationId: row.conversation_id,
+    customerId: row.customer_id ?? undefined,
+    guestName: row.guest_name,
+    guestPhone: row.guest_phone ?? undefined,
+    checkIn: new Date(row.check_in),
+    checkOut: new Date(row.check_out),
+    roomType: row.room_type ?? undefined,
+    preferredRoomId: row.preferred_room_id ?? undefined,
+    totalPrice: row.total_price,
+    notes: row.notes ?? undefined,
+    status: row.status as PendingBooking['status'],
+    createdAt: new Date(row.created_at),
+    approvedBookingId: row.approved_booking_id ?? undefined,
+  }
+}
+
 // ── Public DB layer ───────────────────────────────────────────────────────────
 
 export const db = {
@@ -336,6 +377,33 @@ export const db = {
   async saveSettings(s: Settings) {
     const { error } = await supabase.from('settings').upsert({ id: 'main', data: s })
     if (error) console.error('[DB] saveSettings', error)
+  },
+
+  // Pending bookings (from bot conversations, awaiting owner approval)
+  async fetchPendingBookings() {
+    const { data, error } = await supabase
+      .from('pending_bookings')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) console.error('[DB] fetchPendingBookings', error)
+    return (data ?? []).map(fromDbPendingBooking)
+  },
+  async upsertPendingBooking(p: PendingBooking) {
+    const { error } = await supabase.from('pending_bookings').upsert(toDbPendingBooking(p))
+    if (error) console.error('[DB] upsertPendingBooking', error)
+    return !error
+  },
+  async updatePendingBookingStatus(id: string, status: PendingBooking['status'], approvedBookingId?: string) {
+    const { error } = await supabase
+      .from('pending_bookings')
+      .update({ status, approved_booking_id: approvedBookingId ?? null })
+      .eq('id', id)
+    if (error) console.error('[DB] updatePendingBookingStatus', error)
+    return !error
+  },
+  async deletePendingBooking(id: string) {
+    const { error } = await supabase.from('pending_bookings').delete().eq('id', id)
+    if (error) console.error('[DB] deletePendingBooking', error)
   },
 
   // Custom labels
