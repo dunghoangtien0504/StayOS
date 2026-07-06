@@ -19,7 +19,7 @@ import { BookingBlock } from './BookingBlock';
 import { Badge } from '@/components/ui/badge';
 
 const HOUR_WIDTH = 60;
-const ROW_HEIGHT = 80; // Match room row height
+const ROW_HEIGHT = 60; // Match room row height
 const ROOM_COL_WIDTH = 200;
 
 interface TimelineCanvasProps {
@@ -54,7 +54,9 @@ export const TimelineCanvas = ({ sourceFilter }: TimelineCanvasProps) => {
   );
 
   const propertyRooms = useMemo(() => 
-    rooms.filter(r => r.propertyId === selectedPropertyId),
+    rooms
+      .filter(r => r.propertyId === selectedPropertyId)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
     [rooms, selectedPropertyId]
   );
 
@@ -195,22 +197,19 @@ export const TimelineCanvas = ({ sourceFilter }: TimelineCanvasProps) => {
                 {propertyRooms.map((room) => (
                   <div 
                     key={room.id} 
-                    className="h-[80px] border-b px-4 flex flex-col justify-center gap-1 hover:bg-slate-50 transition-colors group"
+                    className="h-[60px] border-b px-3 flex items-center gap-2 hover:bg-slate-50 transition-colors group"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "w-2.5 h-2.5 rounded-full shadow-sm",
-                        room.status === 'clean' ? "bg-green-500 shadow-green-100" : 
-                        room.status === 'dirty' ? "bg-red-500 shadow-red-100" : "bg-amber-500 shadow-amber-100"
-                      )} />
-                      <span className="font-black text-sm tracking-tight text-slate-700 group-hover:text-primary transition-colors uppercase">{room.name}</span>
-                      <Badge variant="secondary" className="ml-auto text-[8px] font-black uppercase tracking-tighter opacity-70">
-                        {room.roomType}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-                      <div className="w-1 h-1 rounded-full bg-slate-300" />
-                      Tầng {room.floor}
+                    <div className={cn(
+                      "w-2 h-2 rounded-full flex-shrink-0 shadow-sm",
+                      room.status === 'clean' ? "bg-green-500 shadow-green-100" : 
+                      room.status === 'dirty' ? "bg-red-500 shadow-red-100" : "bg-amber-500 shadow-amber-100"
+                    )} />
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-black text-sm tracking-tight text-slate-700 group-hover:text-primary transition-colors uppercase leading-none">{room.name}</span>
+                      <span className={cn(
+                        "text-[9px] font-black uppercase tracking-wider mt-0.5",
+                        room.roomType === 'VIP' ? "text-amber-500" : "text-slate-400"
+                      )}>{room.roomType}</span>
                     </div>
                   </div>
                 ))}
