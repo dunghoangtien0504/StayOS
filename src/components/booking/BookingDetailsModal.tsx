@@ -533,7 +533,7 @@ export const BookingDetailsModal = ({ booking: initialBooking, isOpen, onClose }
                   <Button
                     variant="secondary"
                     className="rounded-xl font-black h-11 px-6 gap-2"
-                    onClick={() => printInvoice(booking, room, property, settings)}
+                    onClick={() => printInvoice(booking, room, property)}
                   >
                     <Printer size={18} /> In hóa đơn
                   </Button>
