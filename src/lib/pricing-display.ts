@@ -1,6 +1,4 @@
-// Read-only display data for the pricing table UI in AdminHub
-
-export interface PriceRow {
+export interface PriceTableRow {
   label: string;
   deluxe_weekday: number;
   vip_weekday: number;
@@ -8,27 +6,34 @@ export interface PriceRow {
   vip_weekend: number;
 }
 
-export const PRICE_TABLE_DISPLAY: { section: string; rows: PriceRow[] }[] = [
+export interface PriceTableSection {
+  section: string;
+  rows: PriceTableRow[];
+}
+
+export const PRICE_TABLE_DISPLAY: PriceTableSection[] = [
   {
-    section: 'Theo giờ (3–4h)',
+    section: '1 ĐÊM',
     rows: [
-      { label: '12h–15h / 13h–16h / 16h–19h / 17h–20h', deluxe_weekday: 359000, vip_weekday: 389000, deluxe_weekend: 389000, vip_weekend: 419000 },
+      { label: '1 đêm', deluxe_weekday: 750_000, vip_weekday: 950_000, deluxe_weekend: 900_000, vip_weekend: 1_100_000 },
     ],
   },
   {
-    section: 'Trong ngày',
+    section: '2 ĐÊM',
     rows: [
-      { label: '6h – 11h cùng ngày',  deluxe_weekday: 560000, vip_weekday: 640000, deluxe_weekend: 580000, vip_weekend: 660000 },
-      { label: '11h – 18h cùng ngày', deluxe_weekday: 640000, vip_weekday: 690000, deluxe_weekend: 670000, vip_weekend: 710000 },
-      { label: '12h – 19h cùng ngày', deluxe_weekday: 570000, vip_weekday: 650000, deluxe_weekend: 610000, vip_weekend: 690000 },
-      { label: '14h – 24h cùng ngày', deluxe_weekday: 690000, vip_weekday: 750000, deluxe_weekend: 710000, vip_weekend: 770000 },
+      { label: '2 đêm', deluxe_weekday: 1_500_000, vip_weekday: 1_900_000, deluxe_weekend: 1_800_000, vip_weekend: 2_200_000 },
     ],
   },
   {
-    section: 'Qua đêm',
+    section: '3 ĐÊM',
     rows: [
-      { label: 'Combo 3 (21h – 11h hôm sau)', deluxe_weekday: 599000, vip_weekday: 660000, deluxe_weekend: 649000, vip_weekend: 710000 },
-      { label: 'Combo 4 (14h – 11h hôm sau)', deluxe_weekday: 699000, vip_weekday: 760000, deluxe_weekend: 749000, vip_weekend: 819000 },
+      { label: '3 đêm', deluxe_weekday: 2_250_000, vip_weekday: 2_850_000, deluxe_weekend: 2_700_000, vip_weekend: 3_300_000 },
+    ],
+  },
+  {
+    section: '1 TUẦN',
+    rows: [
+      { label: '7 đêm', deluxe_weekday: 5_250_000, vip_weekday: 6_650_000, deluxe_weekend: 6_300_000, vip_weekend: 7_700_000 },
     ],
   },
 ];
