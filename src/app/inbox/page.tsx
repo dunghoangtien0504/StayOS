@@ -27,6 +27,22 @@ const EMOJIS = [
   '🙂','😐','🤔','😬','😴','🤑','😋','🫡',
 ];
 
+interface PendingBookingRow {
+  id: string;
+  page_id: string;
+  conversation_id: string;
+  customer_id?: string;
+  guest_name: string;
+  guest_phone?: string;
+  check_in: string;
+  check_out: string;
+  room_type?: string;
+  total_price: number;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  approved_booking_id?: string;
+}
+
 function toSource(platform: string): ChatSource {
   if (platform === 'instagram') return 'instagram';
   return 'facebook';
@@ -62,6 +78,7 @@ export default function SmartInboxPage() {
   const {
     chatThreads,
     customLabels,
+    rooms,
     sendMessage,
     markThreadAsRead,
     syncMetaThreads,
@@ -98,6 +115,14 @@ export default function SmartInboxPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  // Pending bookings (from Pancake bot conversations awaiting approval)
+  const [pendingBookings, setPendingBookings] = useState<PendingBookingRow[]>([]);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approveRoomId, setApproveRoomId] = useState('');
+  const [isApproving, setIsApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
   const deferredPromptRef = useRef<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
 
   const [showQuickReply, setShowQuickReply] = useState(false);
@@ -303,6 +328,56 @@ export default function SmartInboxPage() {
     const interval = setInterval(runSync, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [runSync]);
+
+  // Fetch pending bookings from Supabase
+  const fetchPendingBookings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/bookings/pending');
+      const data = await res.json();
+      setPendingBookings((data.pendingBookings ?? []).filter((p: PendingBookingRow) => p.status === 'pending'));
+    } catch {
+      // non-fatal
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPendingBookings();
+    const interval = setInterval(fetchPendingBookings, 30_000);
+    return () => clearInterval(interval);
+  }, [fetchPendingBookings]);
+
+  const handleApprove = async () => {
+    if (!approvingId || !approveRoomId) return;
+    setIsApproving(true);
+    setApproveError(null);
+    try {
+      const res = await fetch(`/api/bookings/pending/${approvingId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: approveRoomId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Duyệt thất bại');
+      setShowApproveModal(false);
+      setApprovingId(null);
+      setApproveRoomId('');
+      await fetchPendingBookings();
+    } catch (err) {
+      setApproveError(err instanceof Error ? err.message : 'Lỗi không xác định');
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleReject = async (pendingId: string) => {
+    if (!confirm('Từ chối booking này?')) return;
+    try {
+      await fetch(`/api/bookings/pending/${pendingId}/approve`, { method: 'DELETE' });
+      await fetchPendingBookings();
+    } catch {
+      // non-fatal
+    }
+  };
 
   // SSE — real-time new message notifications from webhook
   useEffect(() => {
@@ -922,6 +997,40 @@ export default function SmartInboxPage() {
                 </div>
               </div>
 
+              {/* Pending booking banner */}
+              {(() => {
+                const pb = pendingBookings.find(p => p.conversation_id === selectedThread.id);
+                if (!pb) return null;
+                return (
+                  <div className="mx-4 mt-2 mb-0 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 flex items-start gap-3">
+                    <span className="text-xl shrink-0">📋</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-orange-800">Booking chờ duyệt</p>
+                      <p className="text-[11px] text-orange-700 mt-0.5">
+                        {pb.guest_name}{pb.guest_phone ? ` · ${pb.guest_phone}` : ''} ·{' '}
+                        {new Date(pb.check_in).toLocaleDateString('vi-VN')} → {new Date(pb.check_out).toLocaleDateString('vi-VN')}
+                        {pb.room_type ? ` · ${pb.room_type}` : ''} ·{' '}
+                        <strong>{Number(pb.total_price).toLocaleString('vi-VN')}đ</strong>
+                      </p>
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      <button
+                        onClick={() => { setApprovingId(pb.id); setShowApproveModal(true); setApproveError(null); }}
+                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-[11px] font-semibold hover:bg-green-700 transition-colors"
+                      >
+                        ✓ Duyệt
+                      </button>
+                      <button
+                        onClick={() => handleReject(pb.id)}
+                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-[11px] font-semibold hover:bg-red-200 transition-colors"
+                      >
+                        ✗ Từ chối
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-3 py-3 md:px-6 md:py-4 space-y-3" style={{ background: '#f0f2f5' }}>
                 {isLoadingMessages && (
@@ -1274,6 +1383,72 @@ export default function SmartInboxPage() {
         initialGuestPhone={selectedThread?.guestPhone}
         fromThreadId={selectedThread?.id}
       />
+
+      {/* ── Approve Pending Booking Modal ── */}
+      {showApproveModal && approvingId && (() => {
+        const pb = pendingBookings.find(p => p.id === approvingId);
+        if (!pb) return null;
+        return (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-gray-900">✅ Duyệt Booking</h3>
+                <button onClick={() => setShowApproveModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="bg-gray-50 rounded-xl px-4 py-3 space-y-1 text-[13px] text-gray-700">
+                <p><span className="text-gray-400">Khách:</span> <strong>{pb.guest_name}</strong>{pb.guest_phone ? ` · ${pb.guest_phone}` : ''}</p>
+                <p><span className="text-gray-400">Nhận phòng:</span> {new Date(pb.check_in).toLocaleDateString('vi-VN')}</p>
+                <p><span className="text-gray-400">Trả phòng:</span> {new Date(pb.check_out).toLocaleDateString('vi-VN')}</p>
+                <p><span className="text-gray-400">Loại:</span> {pb.room_type || 'Chưa xác định'}</p>
+                <p><span className="text-gray-400">Tổng tiền:</span> <strong className="text-green-700">{Number(pb.total_price).toLocaleString('vi-VN')}đ</strong></p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-semibold text-gray-600">Chọn phòng cụ thể</label>
+                <select
+                  value={approveRoomId}
+                  onChange={e => setApproveRoomId(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] text-gray-700 focus:outline-none focus:border-primary"
+                >
+                  <option value="">— Chọn phòng —</option>
+                  {rooms
+                    .filter(r => !pb.room_type || r.roomType.toLowerCase().includes(pb.room_type.toLowerCase()) || pb.room_type.toLowerCase().includes(r.roomType.toLowerCase()))
+                    .map(r => (
+                      <option key={r.id} value={r.id}>{r.name} ({r.roomType}) — {r.basePrice.toLocaleString('vi-VN')}đ/đêm</option>
+                    ))}
+                  {rooms.filter(r => !pb.room_type || r.roomType.toLowerCase().includes(pb.room_type.toLowerCase()) || pb.room_type.toLowerCase().includes(r.roomType.toLowerCase())).length === 0 &&
+                    rooms.map(r => (
+                      <option key={r.id} value={r.id}>{r.name} ({r.roomType})</option>
+                    ))}
+                </select>
+              </div>
+
+              {approveError && (
+                <p className="text-[12px] text-red-600 bg-red-50 px-3 py-2 rounded-lg">{approveError}</p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setShowApproveModal(false)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleApprove}
+                  disabled={!approveRoomId || isApproving}
+                  className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-[13px] font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  {isApproving ? <><Loader2 size={14} className="animate-spin" /> Đang duyệt...</> : '✓ Xác nhận duyệt'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </Shell>
   );
