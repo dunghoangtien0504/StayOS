@@ -816,6 +816,10 @@ export default function SmartInboxPage() {
               const isSelected = selectedThreadId === thread.id;
               const hasUnread = thread.unreadCount > 0;
               const threadLabels = allLabels.filter(l => (thread.labelIds ?? []).includes(l.id));
+              const hasPending = pendingBookings.some(p => p.conversation_id === thread.id);
+              const isAiAutoReply = autoReply || perThreadAutoReply.has(thread.id);
+              const lastMsg = thread.messages[thread.messages.length - 1];
+              const needsReply = lastMsg?.isFromGuest && hasUnread;
               return (
                 <div
                   key={thread.id}
@@ -875,18 +879,37 @@ export default function SmartInboxPage() {
                       {thread.lastMessage || '📷 Hình ảnh'}
                     </p>
 
-                    {/* Labels */}
-                    {threadLabels.length > 0 && (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {threadLabels.map(label => (
-                          <span key={label.id}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white"
-                            style={{ backgroundColor: label.color }}>
-                            {label.emoji} {label.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    {/* Labels + Status badges */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {/* Thread status indicator */}
+                      {hasPending && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                          📋 Chờ duyệt
+                        </span>
+                      )}
+                      {isAiAutoReply && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200">
+                          🤖 AI
+                        </span>
+                      )}
+                      {needsReply && !isAiAutoReply && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 animate-pulse">
+                          ⏳ Cần TL
+                        </span>
+                      )}
+                      {!needsReply && !isAiAutoReply && lastMsg && !lastMsg.isFromGuest && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
+                          👤 Đã TL
+                        </span>
+                      )}
+                      {threadLabels.map(label => (
+                        <span key={label.id}
+                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white"
+                          style={{ backgroundColor: label.color }}>
+                          {label.emoji} {label.name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Label + AI buttons — always visible on mobile, hover-only on desktop */}
