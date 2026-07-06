@@ -124,5 +124,13 @@ jobs:
               exit 1
             fi
 
+            # Install cron job: auto-reply bot every 30 seconds
+            # Two entries offset by 30s → effectively runs every 30s
+            ( crontab -l 2>/dev/null | grep -v 'stayos-auto-reply'; \
+              echo "* * * * * curl -sf --max-time 55 http://127.0.0.1:3000/api/pancake/auto-reply > /dev/null 2>&1 # stayos-auto-reply"; \
+              echo "* * * * * sleep 30 && curl -sf --max-time 55 http://127.0.0.1:3000/api/pancake/auto-reply > /dev/null 2>&1 # stayos-auto-reply" \
+            ) | crontab -
+            echo "=== Auto-reply cron installed ==="
+
             echo "=== Deploy complete — app is healthy ==="
             pm2 status

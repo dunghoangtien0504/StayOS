@@ -67,8 +67,8 @@ export function usePancakeMessages(): UsePancakeMessagesReturn {
   useEffect(() => {
     sync();
 
-    // Set up interval for periodic sync (every 5 minutes)
-    const interval = setInterval(sync, 5 * 60 * 1000);
+    // Set up interval for periodic sync (every 30 seconds)
+    const interval = setInterval(sync, 30 * 1000);
 
     return () => clearInterval(interval);
   }, [sync]);
