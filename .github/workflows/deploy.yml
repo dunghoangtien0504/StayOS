@@ -23,12 +23,25 @@ jobs:
       - name: 📥 Install dependencies
         run: npm install
 
-      - name: 🏗️ Build Next.js (CI check)
+      - name: 🏗️ Build Next.js on CI (with real secrets)
         run: npm run build
         env:
           NODE_ENV: production
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: 📦 Package .next build artifact
+        run: tar -czf next-build.tar.gz .next
+
+      - name: 📤 SCP build artifact to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 2018
+          source: next-build.tar.gz
+          target: /tmp/
 
       - name: 🚢 Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -46,22 +59,22 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: 2018
-          command_timeout: 15m
+          command_timeout: 10m
           envs: META_VERIFY_TOKEN,META_PAGE_ACCESS_TOKEN,META_APP_SECRET,META_PAGE_ID,GOCLAW_API_URL,GOCLAW_API_KEY,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY
           script: |
             set -e
-            echo "=== Deploying StayOS ==="
+            echo "=== Deploying StayOS (pre-built on CI) ==="
             cd /home/apps/StayOS
 
             # Remove stale git lock files left by crashed/concurrent processes
             rm -f .git/index.lock .git/HEAD.lock
 
-            # Reset any local changes (e.g. from manual edits) to avoid git pull conflicts
+            # Sync source code — needed for runtime files (public/, api routes, etc.)
             git reset --hard
             git clean -fd --exclude='.env.local' --exclude='public/uploads/'
             git pull origin main
 
-            # Inject Meta env vars into .env.local
+            # Inject env vars into .env.local
             touch .env.local
             for key in META_VERIFY_TOKEN META_PAGE_ACCESS_TOKEN META_APP_SECRET META_PAGE_ID GOCLAW_API_URL GOCLAW_API_KEY NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
               val=$(eval echo \$$key)
@@ -71,28 +84,19 @@ jobs:
               fi
             done
 
-            # Clean stale rename staging dirs left by failed npm installs
-            find node_modules -maxdepth 2 -name ".next-*" -type d -exec rm -rf {} + 2>/dev/null || true
-
-            # Install; if it fails (often ENOTEMPTY on next/), nuke node_modules and retry clean
+            # Install runtime node_modules if missing (no build — already done on CI)
             if [ ! -f node_modules/.bin/next ]; then
-              npm install --legacy-peer-deps || { echo "install failed, wiping node_modules and retrying"; rm -rf node_modules package-lock.json.tmp; npm install --legacy-peer-deps; }
-            else
-              npm install --legacy-peer-deps --prefer-offline || { echo "install failed, wiping node_modules and retrying"; rm -rf node_modules; npm install --legacy-peer-deps; }
-            fi
-
-            # Only delete .next build output, never node_modules
-            rm -rf .next
-
-            # Build; on failure (e.g. corrupt/incomplete node_modules) do a full clean reinstall and rebuild
-            if ! NODE_ENV=production npm run build; then
-              echo "=== Build failed — wiping node_modules and doing clean reinstall ==="
-              rm -rf node_modules .next
+              echo "=== Installing node_modules ==="
               npm install --legacy-peer-deps
-              NODE_ENV=production npm run build
             fi
 
-            # Delete + start (not restart) so PM2 always picks up latest ecosystem.config.js
+            # Deploy pre-built .next from CI — VPS never builds again
+            echo "=== Deploying pre-built .next artifact from CI ==="
+            rm -rf .next
+            tar -xzf /tmp/next-build.tar.gz
+            rm -f /tmp/next-build.tar.gz
+
+            # Delete + start so PM2 always picks up latest ecosystem.config.js
             pm2 delete stayos 2>/dev/null || true
             pm2 start ecosystem.config.js
 
@@ -107,8 +111,7 @@ jobs:
             nginx -t && systemctl reload nginx
             echo "=== Nginx config synced and reloaded ==="
 
-            # Health check: fail the deploy if the app is not actually serving.
-            # Retry up to 10 times (Next.js needs a few seconds to boot).
+            # Health check: retry 10 x 3s = 30s max
             echo "=== Health check ==="
             ok=""
             for i in $(seq 1 10); do
@@ -125,7 +128,6 @@ jobs:
             fi
 
             # Install cron job: auto-reply bot every 30 seconds
-            # Two entries offset by 30s → effectively runs every 30s
             ( crontab -l 2>/dev/null | grep -v 'stayos-auto-reply'; \
               echo "* * * * * curl -sf --max-time 55 http://127.0.0.1:3000/api/pancake/auto-reply > /dev/null 2>&1 # stayos-auto-reply"; \
               echo "* * * * * sleep 30 && curl -sf --max-time 55 http://127.0.0.1:3000/api/pancake/auto-reply > /dev/null 2>&1 # stayos-auto-reply" \
